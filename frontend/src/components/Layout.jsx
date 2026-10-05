@@ -1,6 +1,6 @@
 // The frame around every signed-in page: brand and menu on the left, the user at the bottom.
-// Menu groups open and close when clicked; the group holding the current page opens by itself.
-import { useState } from "react";
+// Menu groups open and close when clicked; the group holding the current page opens by itself when you go there.
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { ChevronDown, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "../auth";
@@ -18,8 +18,9 @@ function Link({ to, label, icon: Icon, nested }) {
 function Group({ group, icon: Icon, items }) {
   const { pathname } = useLocation();
   const holdsCurrentPage = items.some((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
-  const [open, setOpen] = useState(holdsCurrentPage);
-  const isOpen = open || holdsCurrentPage;
+  const [isOpen, setOpen] = useState(holdsCurrentPage);
+  // Going to a page inside this group opens it; clicking the heading always opens or closes it
+  useEffect(() => { if (holdsCurrentPage) setOpen(true); }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="nav-group">
       <button type="button" className={`nav-link nav-group-head ${holdsCurrentPage ? "holds" : ""}`} aria-expanded={isOpen}
