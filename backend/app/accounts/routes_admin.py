@@ -4,7 +4,7 @@ from email.policy import default as default_policy
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
@@ -17,7 +17,7 @@ from app.core.security import hash_password, require_roles, temporary_password
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import ACTIONS, ActivityEntry, record
-from app.promotion.models import Employee
+from app.promotion.models import Decision, Employee, Nomination
 
 router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 employees_router = APIRouter(prefix="/api/admin/employees", tags=["admin"])
@@ -63,6 +63,7 @@ def create_user(body: CreateUserIn, db: Session = Depends(get_db), admin: User =
         full_name=body.full_name.strip(),
         email=email,
         role=body.role,
+        job_title=(body.job_title or "").strip() or None,
         password_hash=hash_password(password),
         must_change_password=True,
         employee_id=body.employee_id,
@@ -70,7 +71,7 @@ def create_user(body: CreateUserIn, db: Session = Depends(get_db), admin: User =
     db.add(user)
     record(db, admin, "account_created", f"{username} ({body.role})")
     db.commit()
-    result = mailer.send(email, templates.welcome(user.full_name, username, password))
+    result = mailer.send(email, templates.welcome(user.full_name, username, password, user.job_title))
     return CreateUserOut(user=UserOut.model_validate(user), temporary_password=password,
                          email_sent=result["sent"], email_detail=result["detail"])
 
@@ -93,6 +94,8 @@ def edit_user(user_id: int, body: EditUserIn, background: BackgroundTasks, db: S
         user.email = email
     if body.full_name:
         user.full_name = body.full_name.strip()
+    if body.job_title is not None:
+        user.job_title = body.job_title.strip() or None
     record(db, admin, "account_edited", user.username)
     db.commit()
     return user
@@ -110,6 +113,31 @@ def set_active(user_id: int, body: SetActiveIn, db: Session = Depends(get_db), a
     record(db, admin, "account_reactivated" if body.is_active else "account_deactivated", user.username)
     db.commit()
     return user
+
+
+@router.delete("/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(admin_only)):
+    """
+    Delete an account for good. Not allowed for your own account, or for an account that appears in the decision
+    log (it recommended someone or decided on a promotion): deleting it would erase who made those decisions, so
+    deactivate it instead. A manager's team members stay in the directory, without a manager. Activity-log
+    entries keep the person's name.
+    """
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such account.")
+    if user.id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You can't delete your own account.")
+    if db.scalar(select(Nomination.id).where(Nomination.nominated_by == user.id).limit(1)) or \
+            db.scalar(select(Decision.id).where(Decision.decided_by == user.id).limit(1)):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{user.full_name} appears in the promotion decision log, which must keep "
+                            "who recommended and decided. Deactivate the account instead: they can no longer sign in.")
+    db.execute(update(Employee).where(Employee.manager_user_id == user.id).values(manager_user_id=None))
+    db.execute(update(ActivityEntry).where(ActivityEntry.user_id == user.id).values(user_id=None))
+    record(db, admin, "account_deleted", f"{user.username} ({user.role})")
+    db.delete(user)
+    db.commit()
+    return {"deleted": user_id}
 
 
 @router.patch("/{user_id}/permissions", response_model=UserOut)

@@ -2,7 +2,7 @@
 import { DemoBand, Feature, PageIntro, Steps } from "./parts";
 
 const REPORT_STEPS = [
-  ["Write it down", "Describe what happened and choose a category: harassment, discrimination, bullying, safety or ethics."],
+  ["Write it down", "Describe what happened and choose a category, from harassment and discrimination to safety hazards, fraud and data breaches."],
   ["Check the cleaned version", "Names, emails, phone numbers and dates are replaced before anything is sent. You see and approve exactly what HR will read."],
   ["Keep your key", "You get a case ID and a secret key. Only a scrambled version of the key is stored, so nobody else can open your case."],
   ["Talk it through", "Use the key to read replies and answer questions. HR sees you only as “Reporter”, and you see them as “Investigator”."],
@@ -12,7 +12,7 @@ export default function ReportingPage() {
   return (
     <>
       <PageIntro eyebrow="Anonymous reporting" title="Speak up without revealing who you are">
-        Report harassment, discrimination, bullying, safety or ethics concerns. Your report is never linked to your
+        Report harassment, discrimination, bullying, violence, safety hazards, fraud, data breaches and more. Your report is never linked to your
         account, and before anything is sent you see exactly what HR will read.
       </PageIntro>
 

@@ -14,7 +14,7 @@ function Highlighted({ text }) {
 }
 
 export default function Report() {
-  const [categories, setCategories] = useState({});
+  const [categories, setCategories] = useState([]); // [{ group, items: [{ value, label }] }]
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");
   const [draft, setDraft] = useState("");
@@ -60,7 +60,7 @@ export default function Report() {
   return (
     <>
       <PageHeader icon={Megaphone} title="Report anonymously"
-        subtitle="Raise a concern about harassment, discrimination, bullying, safety or ethics. Your report is never linked to your account." />
+        subtitle="Raise any workplace concern: how people are treated, safety and wellbeing, or honesty and the law. Your report is never linked to your account." />
       <ol className="steps" aria-label="Steps">
         <li className={step === 1 ? "current" : ""}>1. Write</li>
         <li className={step === 2 ? "current" : ""}>2. Check what will be sent</li>
@@ -74,10 +74,14 @@ export default function Report() {
             Your report is <strong>not linked to your account</strong>. You need to be signed in so only members of the
             organisation can report, but your name, account and the time are never saved with it. Only the day is.
           </p>
-          <label className="field">What is it about?
+          <label className="field"><span>What is it about? <span className="muted small">(if it fits more than one, choose the most serious)</span></span>
             <select value={category} onChange={(e) => setCategory(e.target.value)} required>
               <option value="">Choose a category</option>
-              {Object.entries(categories).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              {categories.map(({ group, items }) => (
+                <optgroup key={group} label={group}>
+                  {items.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                </optgroup>
+              ))}
             </select>
           </label>
           <label className="field">What happened? <span className="muted small">(at least 20 characters)</span>

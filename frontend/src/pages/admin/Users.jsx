@@ -4,7 +4,7 @@
 // - Employees: Employee and Manager accounts, linked to an employee record; managers get a team.
 // In both: create accounts (a welcome email goes out), edit, reset passwords and deactivate.
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Mail, Pencil, UserCog } from "lucide-react";
+import { Eye, EyeOff, Mail, Pencil, Trash2, UserCog } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
 import { ROLE_DESCRIPTIONS, ROLE_NAMES } from "../../roles";
@@ -16,7 +16,7 @@ const TABS = {
   staff: { label: "Administration", roles: ["admin", "hr"], note: "Admin and HR accounts. They aren't linked to an employee record." },
   people: { label: "Employees", roles: ["employee", "manager"], note: "Employee and Manager accounts, each linked to their employee record." },
 };
-const emptyForm = (role) => ({ username: "", full_name: "", email: "", role, employee_id: "" });
+const emptyForm = (role) => ({ username: "", full_name: "", email: "", role, job_title: "", employee_id: "" });
 
 /** After creating an account or resetting a password: the details, and what happened to the email. */
 function SentDetails({ result, onDone }) {
@@ -36,7 +36,7 @@ function SentDetails({ result, onDone }) {
 
 /** Edit an account's username, name and email, in place. */
 function EditRow({ account, onSaved, onCancel }) {
-  const [form, setForm] = useState({ username: account.username, full_name: account.full_name, email: account.email || "" });
+  const [form, setForm] = useState({ username: account.username, full_name: account.full_name, email: account.email || "", job_title: account.job_title || "" });
   const [error, setError] = useState("");
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
@@ -60,6 +60,7 @@ function EditRow({ account, onSaved, onCancel }) {
           <label className="field">Full name<input value={form.full_name} onChange={set("full_name")} required minLength={2} /></label>
           <label className="field">Username<input value={form.username} onChange={set("username")} required minLength={2} pattern="[a-zA-Z0-9._\-]+" /></label>
           <label className="field">Email<input type="email" value={form.email} onChange={set("email")} /></label>
+          <label className="field">Job title<input value={form.job_title} onChange={set("job_title")} maxLength={120} /></label>
           <div className="row">
             <Button busy={working} busyText="Saving…">Save</Button>
             <button type="button" className="btn btn-plain" onClick={onCancel}>Cancel</button>
@@ -129,6 +130,12 @@ export default function Users() {
     if (await act(() => api(`/admin/users/${u.id}/permissions`, { method: "PATCH", body: { can_view_employees: giving } }), `perm-${u.id}`)) load();
   }
 
+  async function remove(u) {
+    if (!window.confirm(`Delete ${u.full_name}'s account (${u.username}) for good? This can't be undone. `
+      + "If you only want to stop them signing in, choose Deactivate instead.")) return;
+    if (await act(() => api(`/admin/users/${u.id}`, { method: "DELETE" }), `delete-${u.id}`)) load();
+  }
+
   async function toggleActive(u) {
     if (await act(() => api(`/admin/users/${u.id}/active`, { method: "PATCH", body: { is_active: !u.is_active } }), `active-${u.id}`)) load();
   }
@@ -148,6 +155,7 @@ export default function Users() {
             <label className="field">Full name<input value={form.full_name} onChange={set("full_name")} required minLength={2} /></label>
             <label className="field">Email<input type="email" value={form.email} onChange={set("email")} required /></label>
             <label className="field">Username<input value={form.username} onChange={set("username")} required minLength={2} pattern="[a-zA-Z0-9._\-]+" title="Letters, numbers, dots, dashes and underscores" /></label>
+            <label className="field">Job title<input value={form.job_title} onChange={set("job_title")} maxLength={120} placeholder={tab === "staff" ? "e.g. HR Business Partner" : "e.g. Operations Analyst"} /></label>
             <label className="field">Role
               <select value={form.role} onChange={set("role")}>
                 {TABS[tab].roles.map((value) => <option key={value} value={value}>{ROLE_NAMES[value]}</option>)}
@@ -182,7 +190,7 @@ export default function Users() {
                 <EditRow key={u.id} account={u} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
               ) : (
                 <tr key={u.id}>
-                  <td><span className="strong">{u.full_name}</span>{u.id === me.id && <span className="muted"> (you)</span>}<div className="muted small">{u.email || "no email"}</div></td>
+                  <td><span className="strong">{u.full_name}</span>{u.id === me.id && <span className="muted"> (you)</span>}<div className="muted small">{u.job_title ? `${u.job_title} · ` : ""}{u.email || "no email"}</div></td>
                   <td className="mono">{u.username}</td>
                   <td><span className="tag">{ROLE_NAMES[u.role]}</span>
                     {u.role === "admin" && u.can_view_employees && <div className="muted small"><Eye size={12} style={{ verticalAlign: "-1px" }} /> may view employee data</div>}
@@ -200,6 +208,7 @@ export default function Users() {
                     )}
                     <Button look="plain" busy={busyKey === `reset-${u.id}`} busyText="Resetting…" onClick={() => resetPassword(u)}>Reset password</Button>
                     {u.id !== me.id && <Button look="plain" busy={busyKey === `active-${u.id}`} busyText="Saving…" onClick={() => toggleActive(u)}>{u.is_active ? "Deactivate" : "Reactivate"}</Button>}
+                    {u.id !== me.id && <Button look="plain" className="btn-danger" icon={Trash2} busy={busyKey === `delete-${u.id}`} busyText="Deleting…" onClick={() => remove(u)}>Delete</Button>}
                   </div></td>
                 </tr>
               ))}

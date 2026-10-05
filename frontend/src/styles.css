@@ -1,6 +1,8 @@
 /* Clean, calm styles. Colours are defined once here (light and dark). Status is always shown in words or icons,
    never by colour alone. */
 :root {
+  --frame: #6b7f95;          /* thick outlines around panels and tabs */
+  --frame-width: 2px;
   /* Navy + teal: navy for trust and structure, teal for action and highlights. Every text colour below
      meets the WCAG AA contrast minimum (4.5:1) on the background it's used on. */
   --bg: #f5f8fa;
@@ -30,6 +32,7 @@
   color-scheme: light;
 }
 [data-theme="dark"] {
+  --frame: #4d6a8f;
   --bg: #0b1622;
   --surface: #12233a;
   --surface-2: #172b45;
@@ -390,3 +393,10 @@ input[aria-invalid="true"] { border-color: var(--error); }
 .pay-box h3 { margin: 0 0 10px; }
 
 .pay-box input[type="number"] { max-width: 220px; }
+
+/* ─── Thick, dark outlines around every panel and tab group ──────────────── */
+.card, .stat, .segmented, .bell-panel, .criterion, .rec-facts div, .pay-box { border: var(--frame-width) solid var(--frame); }
+.sidebar { border-right: var(--frame-width) solid var(--frame); }
+.btn-danger { color: var(--error); }
+.btn-danger:hover { border-color: var(--error); }
+

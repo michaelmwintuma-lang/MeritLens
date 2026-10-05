@@ -5,7 +5,9 @@ Simple triage: how urgent is a report? High, medium or low, from a keyword list.
 2. Words that suggest danger ("threatened", "unsafe", "hit me") mean high; words that suggest mistreatment
    ("harassed", "bullied", "humiliated") mean medium; otherwise low.
 3. Some categories have a minimum: safety reports are always at least high; harassment and discrimination at
-   least medium.
+   least medium (both from the brief). The same idea covers the categories added later: sexual harassment or
+   assault, violence, and risk of self-harm are always high; retaliation and drug or alcohol misuse at least
+   medium.
 4. The words that caused the priority are returned, so HR can see why. HR can always change the priority.
 """
 import re
@@ -23,7 +25,9 @@ MEDIUM = ["harass", "harassed", "harassing", "harassment", "discriminate", "disc
 HARMLESS = ["hit our target", "hit our targets", "hit the target", "hit the targets", "hit the deadline",
             "hit the ground running", "hit it off", "killing it", "killed it", "kill two birds", "deadline is killing",
             "kill time", "attack the problem", "threat of rain", "dangerously close to the deadline"]
-CATEGORY_MINIMUM = {"safety": "high", "harassment": "medium", "discrimination": "medium"}
+CATEGORY_MINIMUM = {"safety": "high", "harassment": "medium", "discrimination": "medium",
+                    "sexual_harassment": "high", "violence": "high", "harm_risk": "high",
+                    "retaliation": "medium", "substance": "medium"}
 LEVELS = ["low", "medium", "high"]
 
 
@@ -49,6 +53,6 @@ def triage(text: str, category: str) -> dict:
     minimum = CATEGORY_MINIMUM.get(category)
     if minimum and LEVELS.index(minimum) > LEVELS.index(level):
         level = minimum
-        reasons.append(f"{category.capitalize()} reports are always at least {minimum} priority.")
+        reasons.append(f"Reports in this category are always at least {minimum} priority.")
     return {"priority": level, "triggers": [{"word": w, "level": "high"} for w in high] +
             [{"word": w, "level": "medium"} for w in medium], "reasons": reasons}

@@ -51,6 +51,7 @@ class CreateUserIn(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     email: str = EMAIL
     role: str = Field(pattern="^(" + "|".join(ALL_ROLES) + ")$")
+    job_title: str | None = Field(default=None, max_length=120)
     employee_id: int | None = None
 
 
@@ -67,6 +68,7 @@ class EditUserIn(BaseModel):
     username: str | None = Field(default=None, min_length=2, max_length=80, pattern=r"^[a-zA-Z0-9._-]+$")
     full_name: str | None = Field(default=None, min_length=2, max_length=120)
     email: str | None = Field(default=None, min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    job_title: str | None = Field(default=None, max_length=120)  # an empty text clears it
 
 
 class ChangeUsernameIn(BaseModel):

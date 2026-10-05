@@ -894,7 +894,7 @@ dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **205 tests**, all passing:
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **224 tests**, all passing:
 
 | File | Tests | What they prove |
 |---|---|---|
@@ -911,6 +911,7 @@ Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **20
 | `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never reports; managers are emailed about new team members, and only about new ones |
 | `test_evaluation_data.py` | 4 | The labelled evaluation reports are well formed (every label copied exactly from its report); the evaluation counts every report; the usability questionnaire is scored by the standard formula |
 | `test_recommendations_and_pay.py` | 16 | Managers' recommendations need a rating and example for all four areas, a start date within a year, a rise within HR's policy, and a reason when the model disagrees; HR must set the rise on approval and explain one outside the policy; only HR sets the policy; employees see only their approved promotion; pay is not a model input and changes no prediction |
+| `test_accounts_categories.py` | 19 | The admin deletes accounts (never their own, never one in the decision log), a deleted account can't sign in, a deleted manager's team stays in the directory; job titles on new accounts and in the welcome email; every report category is offered, the original ones still work, and the serious ones have a minimum priority |
 | `test_activity.py` | 10 | Sign-ins and actions are logged by date; nothing a reporter does is logged; passwords never are; only the admin reads the log |
 
 How each requirement in the brief is tested:
@@ -1118,4 +1119,40 @@ Promotions usually come with a pay rise, but pay is sensitive, and the brief kee
 **A limit worth stating:** because the platform deliberately doesn't store gender, age or other protected
 characteristics with employee records, it can't check whether pay rises are fair across groups. An organisation
 would do that check in its HR system, which holds that data, or by extending the fairness checks with consent.
+
+## Deleting accounts, job titles, report categories and outlines
+
+**Deleting accounts.** The admin can delete an account on the Users page (after a confirmation), except:
+
+- **their own** account, so there is always an admin left;
+- an account that appears in the **promotion decision log** (it recommended someone or decided on a promotion).
+  Deleting it would erase who made those decisions, so the page says to **deactivate** it instead: it can no
+  longer sign in, but the record stays.
+
+When an account is deleted, a manager's team members stay in the directory without a manager, and activity-log
+entries keep the person's name. The deletion itself is logged. Reports are unaffected: they were never linked to
+any account.
+
+**Job titles.** The admin enters a job title when creating an account (optional), can change it when editing, and
+it appears in the user list and the welcome email ("…created an account for you as Payroll Officer"). People can
+also update their own on My profile.
+
+**Report categories.** The form now offers 19 kinds of workplace incident, in four groups:
+
+| Group | Categories |
+|---|---|
+| How people are treated | Harassment; sexual harassment or assault; discrimination; bullying or intimidation; violence or threats of violence; retaliation for speaking up; abuse of power or favouritism |
+| Safety and wellbeing | Health and safety hazard; risk of self-harm or harm to others; drug or alcohol misuse at work; excessive hours, workload or unsafe working conditions |
+| Honesty and the law | Fraud, bribery or corruption; theft or misuse of company property; conflict of interest; data protection or privacy breach; unfair pay, denied leave or employment rights; breaking the law or company policy; environmental harm |
+| Anything else | Something else |
+
+The original six keep their stored keys, so earlier reports still show correctly. As with safety, harassment and
+discrimination in the brief, the serious new categories have a **minimum priority**: sexual harassment or assault,
+violence, and risk of self-harm are always **high**; retaliation and drug or alcohol misuse at least **medium**.
+This partly answers the evaluation's most serious finding (a self-harm report filed under "Something else" was
+triaged low): a reporter who chooses "Risk of self-harm or harm to others" now always gets high priority. The
+evaluation numbers are unchanged, because its labelled reports use the original categories.
+
+**Outlines.** Panels, tab groups and the sidebar have a thick (2 px), dark slate outline (`--frame` in
+`styles.css`), in both themes, so each section stands out clearly.
 

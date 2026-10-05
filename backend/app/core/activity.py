@@ -25,6 +25,7 @@ ACTIONS = {
     "account_edited": "Edited an account",
     "account_deactivated": "Deactivated an account",
     "account_reactivated": "Reactivated an account",
+    "account_deleted": "Deleted an account",
     "password_reset": "Reset a password",
     "permission_changed": "Changed who may view employee data",
     "profile_updated": "Updated their profile",

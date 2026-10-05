@@ -35,14 +35,38 @@ router = APIRouter(prefix="/api/reports", tags=["reporting"])
 # Employees and managers report; HR handles reports in their inbox, and admins manage accounts
 reporters = require_roles(*REPORTER_ROLES)
 
-CATEGORIES = {
-    "harassment": "Harassment",
-    "discrimination": "Discrimination",
-    "bullying": "Bullying",
-    "safety": "Health and safety",
-    "ethics": "Ethics or fraud",
-    "other": "Something else",
-}
+# What can be reported, in groups for the form. The keys are stored with each report, so they never change
+# (labels can). Some categories have a minimum priority: see app/reporting/triage.py.
+CATEGORY_GROUPS = [
+    ("How people are treated", [
+        ("harassment", "Harassment"),
+        ("sexual_harassment", "Sexual harassment or assault"),
+        ("discrimination", "Discrimination"),
+        ("bullying", "Bullying or intimidation"),
+        ("violence", "Violence or threats of violence"),
+        ("retaliation", "Retaliation for speaking up"),
+        ("abuse_of_power", "Abuse of power or favouritism"),
+    ]),
+    ("Safety and wellbeing", [
+        ("safety", "Health and safety hazard"),
+        ("harm_risk", "Risk of self-harm or harm to others"),
+        ("substance", "Drug or alcohol misuse at work"),
+        ("working_conditions", "Excessive hours, workload or unsafe working conditions"),
+    ]),
+    ("Honesty and the law", [
+        ("ethics", "Fraud, bribery or corruption"),
+        ("theft", "Theft or misuse of company property"),
+        ("conflict_of_interest", "Conflict of interest"),
+        ("data_privacy", "Data protection or privacy breach"),
+        ("employment_rights", "Unfair pay, denied leave or employment rights"),
+        ("legal_breach", "Breaking the law or company policy"),
+        ("environment", "Environmental harm"),
+    ]),
+    ("Anything else", [
+        ("other", "Something else"),
+    ]),
+]
+CATEGORIES = {key: label for _, items in CATEGORY_GROUPS for key, label in items}
 OUTCOMES = {
     "substantiated": "Concern upheld",
     "not_substantiated": "Concern not upheld",
@@ -74,7 +98,8 @@ def today() -> date:
 
 @router.get("/categories")
 def categories(_: User = Depends(reporters)):
-    return CATEGORIES
+    """The categories in their groups, for the form's drop-down."""
+    return [{"group": group, "items": [{"value": key, "label": label} for key, label in items]} for group, items in CATEGORY_GROUPS]
 
 
 # ─── 1. Preview (nothing stored) ──────────────────────────────────────────────

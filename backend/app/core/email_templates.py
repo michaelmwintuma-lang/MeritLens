@@ -9,12 +9,12 @@ from app.core.mailer import link
 FIRST_SIGN_IN = "When you first sign in, you'll be asked to choose your own password. You can change your username then too."
 
 
-def welcome(full_name: str, username: str, temporary_password: str) -> dict:
+def welcome(full_name: str, username: str, temporary_password: str, job_title: str | None = None) -> dict:
     return {
         "subject": "Your account for the Promotion & Reporting platform",
         "heading": "Welcome aboard",
         "greeting": f"Hello {full_name},",
-        "paragraphs": ["An administrator has created an account for you. Here are your sign-in details.", FIRST_SIGN_IN],
+        "paragraphs": [f"An administrator has created an account for you{f' as {job_title}' if job_title else ''}. Here are your sign-in details.", FIRST_SIGN_IN],
         "details": [("Username", username), ("Temporary password", temporary_password)],
         "button": ("Sign in", link("/login")),
         "note": "For your security, please delete this email once you've signed in. If you weren't expecting it, tell your HR department.",
