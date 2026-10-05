@@ -12,9 +12,10 @@ from app.accounts.models import User
 from app.core.database import get_db
 from app.core.roles import HR
 from app.core.security import require_roles
-from app.reporting.models import Message, Report
+from app.reporting.evidence import listing as evidence_listing
+from app.reporting.models import Evidence, Message, Report
 from app.reporting.routes import CATEGORIES, OUTCOMES, add_message, conversation
-from app.reporting.triage import LEVELS, triage
+from app.reporting.triage import LABELS, LEVELS, triage
 from app.core.activity import record
 
 router = APIRouter(prefix="/api/hr/reports", tags=["reporting (HR)"])
@@ -33,6 +34,7 @@ def summary(db: Session, report: Report) -> dict:
         "created_on": report.created_on.isoformat(),
         "messages": last.number if last else 0,
         "reporter_wrote_last": bool(last and last.sender == "reporter"),
+        "evidence_count": len(db.scalars(select(Evidence.id).where(Evidence.case_id == report.case_id)).all()),
     }
 
 
@@ -47,7 +49,7 @@ def notifications(db: Session = Depends(get_db), _: User = Depends(hr_only)):
         row = summary(db, report)
         if row["messages"] == 0:
             items.append({"case_id": report.case_id, "kind": "new_report", "priority": report.priority,
-                          "text": f"New {row['category'].lower()} report ({report.priority} priority)"})
+                          "text": f"New {row['category'].lower()} report ({LABELS[report.priority]} priority)"})
         elif row["reporter_wrote_last"]:
             items.append({"case_id": report.case_id, "kind": "reporter_replied", "priority": report.priority,
                           "text": "The reporter replied and is waiting for you"})
@@ -81,6 +83,7 @@ def open_report(case_id: str, db: Session = Depends(get_db), _: User = Depends(h
         "triage": triage(report.text, report.category),
         "outcome": report.outcome,
         "conversation": conversation(db, report.case_id),
+        "evidence": evidence_listing(db, report.case_id),
         "options": {"priorities": LEVELS, "statuses": STATUSES, "outcomes": OUTCOMES},
     }
 

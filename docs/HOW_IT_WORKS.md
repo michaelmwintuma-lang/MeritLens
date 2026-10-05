@@ -648,21 +648,24 @@ Code: `backend/app/reporting/triage.py`, `routes.py` (reporter side), `routes_hr
 
 ### Triage: how urgent is a report?
 
-A simple, readable keyword list (`triage.py`) suggests a priority when a report arrives:
+A **language model** (`priority_model.py`) reads each report and suggests **high**, **moderate** or **low**
+(moderate is stored as `medium`):
 
-1. **Harmless phrases are removed first**, so they can't trigger anything: "hit our targets", "the deadline is
-   killing me", "we killed it", "hit the ground running"...
-2. **High** if the text contains a word suggesting danger: "threatened", "unsafe", "hit me", "assaulted",
-   "weapon", "stalking"... **Medium** if it contains a word suggesting mistreatment: "harassed", "bullied",
-   "shouted", "humiliated", "racist", "retaliation"... Otherwise **low**.
-3. **Category minimums**: safety reports are always at least high; harassment and discrimination at least medium.
-4. **HR sees why**: the words that triggered the priority are marked in the report (red for high-priority words,
-   amber for medium), with the reasons in plain words. HR can change the priority at any time; the original
-   suggestion is kept alongside it.
+1. **How it reads.** The text becomes numbers with TF-IDF (which words, word pairs and pieces of words it uses,
+   with rare, telling words counting more), and logistic regression turns those into a chance for each priority.
+   It was trained on about 280 labelled example reports (`priority_examples.json`), separate from the
+   evaluation sets. It runs on the server and trains itself in under a second the first time it's needed, so
+   report text is never sent anywhere.
+2. **Safety rules can raise it, never lower it.** Words that clearly suggest danger ("knife", "assaulted") or
+   self-harm ("end my life", "no point in going on") mean at least high, ignoring harmless phrases like "hit our
+   targets". Category minimums still apply: safety, sexual harassment or assault, violence and risk of self-harm
+   are always high; harassment, discrimination, retaliation and drug or alcohol misuse at least moderate.
+3. **HR sees why.** The case page shows the model's chance for each priority, the words that drove it most
+   (found by removing each word and seeing how much the chance drops), and any rule that raised it. Those words
+   are marked in the report. HR can change the priority at any time; the original suggestion is kept.
 
-Keyword rules are deliberately simple: anyone can read the list and see exactly why a report got its priority.
-They also miss things a person would catch (sarcasm, unusual wording), which is why HR always reviews and can
-override.
+The model catches meaning a keyword list misses ("he said I'd regret it and he knows where I live" reads as
+high), but it also raises more false alarms: see `docs/EVALUATION.md`. That's why it suggests, and HR decides.
 
 ### The conversation
 
@@ -894,7 +897,7 @@ dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **224 tests**, all passing:
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **249 tests**, all passing:
 
 | File | Tests | What they prove |
 |---|---|---|
@@ -903,6 +906,8 @@ Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **22
 | `test_explanations.py` | 20 | The contributions (SHAP) add up exactly to the model's output; LIME and its fit; the summary; what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; who may see whom |
 | `test_decisions.py` | 17 | Managers nominate only their team; HR decides; disagreeing with the model needs 20 characters; every decision is logged with the model's view; managers' teams |
 | `test_reporting.py` | 20 | The anonymiser removes names, emails, phones and dates; the key is hashed; dates without times; nothing about the reporter is stored; wrong attempts lock the case; **isolation**: the prediction code never touches report data, and predictions are identical before and after reports |
+| `test_evidence.py` | 18 | Photos and videos lose their location, device, owner and time (checked byte by byte); file names aren't kept; only real photos and videos are accepted; size and number limits; only the reporter (with the key) and HR can see them; the reporter can remove a file; nothing is added to a closed case; a video's sound can be removed |
+| `test_priority_model.py` | 7 | The language model's training examples are separate from the evaluation sets; it gives a chance for each priority and the words behind it; it reads threats and self-harm without alarm words; the safety rules raise but never lower |
 | `test_conversation.py` | 19 | Triage; the conversation shows no names; reporter messages are anonymised; HR's inbox and case updates |
 | `test_accounts_and_notifications.py` | 13 | Welcome emails; editing accounts; changing your username; notifications for HR and reporters; the public summary reveals no one |
 | `test_emails.py` | 14 | Security alerts; nomination and decision emails go to the right people; report alerts hold no text and nothing about the reporter; reporters get no email; only the admin uses the Email page; every email has plain and HTML versions |
@@ -1155,4 +1160,36 @@ evaluation numbers are unchanged, because its labelled reports use the original 
 
 **Outlines.** Panels, tab groups and the sidebar have a thick (2 px), dark slate outline (`--frame` in
 `styles.css`), in both themes, so each section stands out clearly.
+
+## Language-model triage and evidence for reports
+
+**Triage by a language model.** Described in Step 7: the model reads each report and suggests high, moderate or
+low, safety rules can only raise that, and HR sees the chance of each priority and the words behind it. To
+choose its settings again after changing the examples: `python -m evaluation.choose_priority_model`, then copy
+the best settings into `SETTINGS` in `priority_model.py` and re-run `python -m evaluation.evaluate_reporting`.
+
+**Photos and videos as evidence.** Code: `backend/app/reporting/evidence.py` (cleaning and storing),
+`routes_evidence.py` (the API), the `report_evidence` table, and `frontend/src/components/reporting/Evidence.jsx`.
+
+- **Adding them.** On the report form the reporter can add up to 6 photos (JPEG, PNG or WebP, up to 15 MB) or
+  videos (MP4, MOV or WebM, up to 100 MB), with previews. They're uploaded right after the report is sent, using
+  the new case ID and key, with a progress bar for each. More can be added later on **Check my report**.
+- **What's removed before saving.** Photos are rebuilt from their pixels alone, so no hidden data (GPS location,
+  phone make and model, owner's name, time taken) can survive. Videos are re-packed with ffmpeg (bundled with the
+  `imageio-ffmpeg` package, nothing to install) keeping only the picture and sound: all metadata and extra tracks
+  (some cameras record GPS as a track) are dropped. The reporter can also remove a video's sound, since a voice
+  can identify someone. The original file name is never sent or kept, and only the day it was added is stored.
+- **What isn't removed.** What can be seen or heard: faces, reflections, the view from a particular desk, a screen
+  showing a name. The reporter is told this before uploading and can remove a file later.
+- **Who can see them.** Files are kept in `backend/instance/evidence/` under random names and are never served
+  from a folder: only through the API, to the reporter with their case ID and key, or to HR. The browser is told
+  not to cache them. HR can view but not delete evidence; the reporter can remove their own files while the case
+  is open. Files are checked by their contents, not their name, so a disguised file is refused.
+
+| Endpoint | Who | What |
+|---|---|---|
+| `POST /api/reports/evidence` | Reporter (case ID + key) | Add a photo or video (form upload) |
+| `POST /api/reports/evidence/{id}/view` | Reporter (case ID + key) | See one of their files |
+| `POST /api/reports/evidence/{id}/remove` | Reporter (case ID + key) | Remove one of their files |
+| `GET /api/hr/reports/{case}/evidence/{id}` | HR | See a file attached to a case |
 

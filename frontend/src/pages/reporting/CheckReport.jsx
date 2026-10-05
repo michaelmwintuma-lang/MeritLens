@@ -7,6 +7,7 @@ import { useAuth } from "../../auth";
 import { Button, Card, PageHeader } from "../../components/ui";
 import { markSeen } from "../../keyStore";
 import Conversation, { CaseStatus } from "../../components/reporting/Conversation";
+import { EvidenceGallery, EvidencePicker, EvidenceUploader, MAX_FILES, loadAsReporter } from "../../components/reporting/Evidence";
 import { useAction } from "../../useAction";
 
 /** The reporter's reply box. Like the report, a reply is anonymised and checked before it is sent. */
@@ -68,6 +69,47 @@ function Reply({ caseId, secret, onSent }) {
   );
 }
 
+/** The reporter's photos and videos: see them, add more, or remove one (e.g. if it could identify them). */
+function ReporterEvidence({ report, secret, onChange }) {
+  const [chosen, setChosen] = useState([]);
+  const [sending, setSending] = useState(null);   // the files being uploaded now
+  const [removing, setRemoving] = useState(null);
+  const [error, setError] = useState("");
+  const open = report.status !== "closed";
+
+  async function remove(item) {
+    if (!window.confirm(`Remove ${item.kind} ${item.number}? HR will no longer be able to see it.`)) return;
+    setError(""); setRemoving(item.id);
+    try {
+      const res = await api(`/reports/evidence/${item.id}/remove`, { method: "POST", body: { case_id: report.case_id, key: secret } });
+      onChange(res.evidence);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  return (
+    <Card title="Photos and videos" subtitle="Exactly what HR sees: the hidden details were removed when each file was added.">
+      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      <EvidenceGallery items={report.evidence} load={loadAsReporter(report.case_id, secret)} onRemove={open ? remove : null} removing={removing} />
+      {open && !sending && report.evidence.length < MAX_FILES && (
+        <div style={{ marginTop: 18 }}>
+          <EvidencePicker files={chosen} setFiles={setChosen} already={report.evidence.length} />
+          {chosen.length > 0 && <Button onClick={() => { setSending(chosen); setChosen([]); }}>Add {chosen.length} {chosen.length === 1 ? "file" : "files"}</Button>}
+        </div>
+      )}
+      {sending && (
+        <div style={{ marginTop: 18 }}>
+          <EvidenceUploader caseId={report.case_id} secret={secret} files={sending} onDone={onChange} />
+          <button type="button" className="btn btn-plain" onClick={() => setSending(null)}>Done</button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // What's been typed or pasted so far, kept in memory while moving between pages (e.g. to "My report keys" to copy
 // the key after pasting the case ID). Never written to storage; gone when the tab closes, and never shown to
 // another account signing in on the same tab.
@@ -121,6 +163,7 @@ export default function CheckReport() {
           actions={<CaseStatus status={report.status} />} />
         {report.outcome && <p className="alert alert-success">This case is closed. Outcome: <strong>{report.outcome}</strong></p>}
         <Card title="Your report"><p className="cleaned">{report.text}</p></Card>
+        <ReporterEvidence report={report} secret={key} onChange={(evidence) => setReport((r) => ({ ...r, evidence }))} />
         <Card title="Conversation" subtitle="You appear as “Reporter”. HR never learns who you are, and you see them only as “Investigator”.">
           <Conversation messages={report.messages} me="reporter" />
           {report.status !== "closed" && <Reply caseId={report.case_id} secret={key} onSent={(messages) => { markSeen(report.case_id, messages.length, report.status); setReport({ ...report, messages }); }} />}

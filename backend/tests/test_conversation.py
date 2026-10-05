@@ -26,7 +26,7 @@ def hr(client):
     ("My manager shouted at me and humiliated me.", "other", "medium"),
     ("I would like more flexible hours for everyone.", "other", "low"),
 ])
-def test_keywords_set_the_priority(text, category, expected):
+def test_triage_sets_the_priority(text, category, expected):
     assert triage(text, category)["priority"] == expected
 
 
@@ -50,7 +50,10 @@ def test_a_new_report_gets_the_suggested_priority(client):
     case = submit(client)
     detail = client.get(f"/api/hr/reports/{case['case_id']}", headers=hr(client)).json()
     assert detail["priority"] == detail["suggested_priority"] == "medium"
-    assert {t["word"] for t in detail["triage"]["triggers"]} == {"shouted", "humiliated"}
+    # The words marked in the text are the ones that drove the language model, and its reading is shown
+    reading = detail["triage"]["model"]
+    assert reading["priority"] == "medium" and {t["word"] for t in detail["triage"]["triggers"]} == {w["word"] for w in reading["words"]}
+    assert detail["triage"]["reasons"][0].startswith("The language model read this as moderate priority")
 
 
 # ─── Conversation ─────────────────────────────────────────────────────────────

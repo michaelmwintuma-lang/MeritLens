@@ -17,7 +17,8 @@ from pathlib import Path
 
 from app.promotion.seed import unique_names
 from app.reporting.anonymiser import anonymise
-from app.reporting.triage import LEVELS, triage
+from app.reporting import triage as triage_rules
+from app.reporting.triage import CATEGORY_MINIMUM, HIGH, LEVELS, triage
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE.parents[1] / "results"
@@ -26,6 +27,32 @@ TYPES = ["name", "email", "phone", "date"]
 
 # The same directory the demo app uses: the 120 generated employees and the four demo accounts
 DIRECTORY = unique_names(120) + ["Ada Admin", "Hana Reviewer", "Mo Manager", "Eli Employee"]
+
+
+# ─── The earlier triage, kept only to compare with ─────────────────────────────
+# Before the language model, priority came from keyword lists alone: danger words meant high, mistreatment words
+# medium, otherwise low, then the category minimums. Kept here so the evaluation can show what the model changed.
+OLD_MEDIUM = ["harass", "harassed", "harassing", "harassment", "discriminate", "discriminated", "discrimination",
+              "bully", "bullied", "bullying", "intimidate", "intimidated", "intimidating", "humiliate", "humiliated",
+              "shouted", "shouting", "screamed", "yelled", "insulted", "abusive", "abuse", "racist", "sexist", "slur",
+              "excluded", "mocked", "mocking", "ridiculed", "belittled", "retaliate", "retaliated", "retaliation",
+              "fraud", "bribe", "stole", "stealing"]
+
+
+def keywords_only(text: str, category: str) -> str:
+    cleaned = text
+    for phrase in triage_rules.HARMLESS:
+        cleaned = re.sub(rf"{re.escape(phrase)}", " ", cleaned, flags=re.IGNORECASE)
+    level = "high" if triage_rules._find(HIGH, cleaned) else "medium" if triage_rules._find(OLD_MEDIUM, cleaned) else "low"
+    minimum = CATEGORY_MINIMUM.get(category)
+    return minimum if minimum and LEVELS.index(minimum) > LEVELS.index(level) else level
+
+
+def score(pairs: list[tuple[str, str]]) -> dict:
+    """Accuracy and the number put too low / too high, from (expected, given) pairs."""
+    return {"accuracy": safe_div(sum(e == g for e, g in pairs), len(pairs)),
+            "under_triaged": sum(LEVELS.index(g) < LEVELS.index(e) for e, g in pairs),
+            "over_triaged": sum(LEVELS.index(g) > LEVELS.index(e) for e, g in pairs)}
 
 
 # ─── Matching a label against the system's output ─────────────────────────────
@@ -66,6 +93,7 @@ def evaluate(reports: list[dict]) -> dict:
     fully_clean = 0
     confusion = {truth: {guess: 0 for guess in LEVELS} for truth in LEVELS}
     triage_misses = []
+    compared = {"keywords_only": [], "model_only": [], "model_with_safety_net": []}
 
     for r in reports:
         result = anonymise(r["text"], DIRECTORY)
@@ -109,9 +137,14 @@ def evaluate(reports: list[dict]) -> dict:
         verdict = triage(cleaned, r["category"])
         guess = verdict["priority"]
         confusion[r["priority"]][guess] += 1
+        compared["keywords_only"].append((r["priority"], keywords_only(cleaned, r["category"])))
+        compared["model_only"].append((r["priority"], verdict["model"]["priority"]))
+        compared["model_with_safety_net"].append((r["priority"], guess))
         if guess != r["priority"]:
             words = [t["word"] for t in verdict["triggers"]]
             triage_misses.append({"id": r["id"], "expected": r["priority"], "got": guess,
+                                  "model_said": verdict["model"]["priority"],
+                                  "model_confidence": verdict["model"]["confidence"],
                                   "words_found": words, "text": r["text"]})
 
     n = len(reports)
@@ -141,7 +174,8 @@ def evaluate(reports: list[dict]) -> dict:
                      "warnings_shown": flags_all, "precision": safe_div(flags_right, flags_all),
                      "missed": missed_flags, "unnecessary": wrong_flags},
         "triage": {"accuracy": safe_div(sum(confusion[l][l] for l in LEVELS), n), "confusion": confusion,
-                   "per_class": per_class, "under_triaged": under, "over_triaged": over, "mistakes": triage_misses},
+                   "per_class": per_class, "under_triaged": under, "over_triaged": over, "mistakes": triage_misses,
+                   "methods": {name: score(pairs) for name, pairs in compared.items()}},
     }
 
 
@@ -173,8 +207,16 @@ def markdown(name: str, about: str, res: dict) -> str:
         lines += ["**Not flagged:**", ""] + [f"- {x['id']}: “{x['phrase']}”" for x in w["missed"]] + [""]
     if w["unnecessary"]:
         lines += ["**Flagged but not identifying:**", ""] + [f"- {x['id']}: “{x['phrase']}”" for x in w["unnecessary"]] + [""]
-    lines += ["### Triage", "", f"Accuracy: **{pct(t['accuracy'])}**. Under-triaged (given a lower priority than it needed): "
-              f"**{t['under_triaged']}**. Over-triaged: {t['over_triaged']}.", "",
+    m = t["methods"]
+    lines += ["### Triage", "",
+              "Triage is the language model, with safety rules that can only raise its suggestion (danger and "
+              "self-harm words, and category minimums). The earlier keyword-only method is shown for comparison. "
+              "*Under-triaged* = given a lower priority than needed, the costly mistake.", "",
+              "| Method | Accuracy | Under-triaged | Over-triaged |", "|---|---|---|---|",
+              f"| Keywords only (before) | {pct(m['keywords_only']['accuracy'])} | {m['keywords_only']['under_triaged']} | {m['keywords_only']['over_triaged']} |",
+              f"| Language model alone | {pct(m['model_only']['accuracy'])} | {m['model_only']['under_triaged']} | {m['model_only']['over_triaged']} |",
+              f"| **Language model + safety rules (used)** | **{pct(m['model_with_safety_net']['accuracy'])}** | **{m['model_with_safety_net']['under_triaged']}** | **{m['model_with_safety_net']['over_triaged']}** |", "",
+              "Confusion matrix for the method used:", "",
               "| Expected ↓ / Given → | Low | Medium | High | Recall |", "|---|---|---|---|---|"]
     for truth in LEVELS:
         row = t["confusion"][truth]
@@ -182,8 +224,9 @@ def markdown(name: str, about: str, res: dict) -> str:
     lines.append("| **Precision** | " + " | ".join(pct(t["per_class"][l]["precision"]) for l in LEVELS) + " | |")
     lines.append("")
     if t["mistakes"]:
-        lines += ["**Mistakes** (with the warning words triage found):", ""] + [
-            f"- {x['id']}: expected **{x['expected']}**, got {x['got']} ({', '.join(x['words_found']) or 'no warning words'}). "
+        lines += ["**Mistakes** (with what the model said and the words that drove it):", ""] + [
+            f"- {x['id']}: expected **{x['expected']}**, got {x['got']} (model: {x['model_said']}, "
+            f"{pct(x['model_confidence'])} sure; {', '.join(x['words_found']) or 'no marked words'}). "
             f"“{x['text']}”" for x in t["mistakes"]] + [""]
     return "\n".join(lines)
 
@@ -202,6 +245,8 @@ def main():
         print(f"{name}: {res['reports']} reports | anonymiser recall {pct(o['recall'])}, precision {pct(o['precision'])} | "
               f"warnings recall {pct(w['recall'])}, precision {pct(w['precision'])} | triage accuracy {pct(t['accuracy'])}, "
               f"under-triaged {t['under_triaged']}")
+        for method, sc in t["methods"].items():
+            print(f"   triage {method:<24} accuracy {pct(sc['accuracy']):>4}, under {sc['under_triaged']:>2}, over {sc['over_triaged']:>2}")
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "reporting_evaluation.json").write_text(json.dumps(output, indent=2), encoding="utf-8")
     header = ["# Reporting evaluation", "",

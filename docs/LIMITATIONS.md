@@ -31,9 +31,18 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   `docs/EVALUATION.md`). The reporter reviews and approves the cleaned text, which is the main safeguard.
 - **Writing style can still identify someone.** No anonymiser removes how a person writes, or details only
   colleagues would recognise. The warnings about identifying phrases help, but can't catch everything.
-- **Keyword triage.** Triage got 74% right on the developer set and placed 12 of 50 reports lower than they
-  needed, including indirect descriptions of threats, unwanted touching and self-harm. It is a suggestion with
-  reasons; HR sets the real priority.
+- **Triage leans towards caution, and learned from few examples.** The language model was trained on about 280
+  example reports written by the developer. On the developer test set it put far fewer urgent reports too low
+  than the old keyword list (5 of 50 instead of 12; every high-priority report caught), but it also raised more
+  false alarms (12 instead of 1), so overall accuracy fell from 74% to 66%. It sometimes reacts to topic words
+  ("night shift", "security") rather than meaning. It is a suggestion with reasons; HR sets the real priority.
+- **The self-harm phrases in the safety rules were added after the developer test set had been seen**, so they
+  flatter its one self-harm report. They were kept because a missed self-harm report is the worst possible
+  mistake; the external set is the fair measure.
+- **Cleaning evidence removes hidden details, not what can be seen or heard.** Location, device, owner and time
+  are removed from photos and videos, but a face, a reflection, a view from someone's desk or a voice can still
+  identify the reporter. The reporter is warned and can remove the sound from videos or delete a file, but faces
+  aren't blurred automatically. Evidence files are stored unencrypted on the server, like the database.
 - **Evaluated mainly on the developer's own reports.** The developer wrote both the rules and the main test set,
   which likely flatters the results. A set written by others (`reports_external.json`) is the fairer test.
 - **Sign-in is required to report.** This differs from the original brief (which asked for reporting without
@@ -56,17 +65,18 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   backend runs in WSL (Ubuntu) there. On a normal Linux server this doesn't arise.
 - **Pay rises can't be checked for fairness across groups**, because protected characteristics are deliberately
   not stored with employee records. Only percentages are kept, never salaries.
-- **Tested mostly by its developer.** 224 automated tests check behaviour and privacy rules, and every page was
+- **Tested mostly by its developer.** 249 automated tests check behaviour and privacy rules, and every page was
   checked in a browser as each role, but usability with real users depends on the user test (`docs/USER_TEST.md`).
 
 ## Future work
 
 1. **Collect the external evaluation set** and measure the anonymiser and triage on reports the rules never saw.
-2. **Improve triage fairly**: more word forms and phrases, or a trained text classifier, developed on the
-   developer set and measured on the external set.
-3. **Better name detection**: a named-entity recogniser to catch names outside the directory and nicknames, kept
+2. **Improve triage fairly**: more and more varied training examples, ideally written by other people, to reduce
+   false alarms; then measure on the external set, which the model never saw.
+3. **Blur faces in photos** automatically before HR sees them, with the reporter choosing what to keep.
+4. **Better name detection**: a named-entity recogniser to catch names outside the directory and nicknames, kept
    alongside the directory list.
-4. **Retrain on real data** with an organisation's consent, and extend the fairness checks: accuracy per group,
+5. **Retrain on real data** with an organisation's consent, and extend the fairness checks: accuracy per group,
    combinations of characteristics, and monitoring over time.
 5. **Reporting as a service for other organisations**: an API where reports go straight from the employee's
    browser to the reporting service, never through the employer's servers, with HR systems reading cases through

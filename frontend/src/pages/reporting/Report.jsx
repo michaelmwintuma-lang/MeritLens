@@ -5,6 +5,7 @@ import { api } from "../../api";
 import { Megaphone } from "lucide-react";
 import { Button, PageHeader } from "../../components/ui";
 import KeepKey from "../../components/reporting/KeepKey";
+import { EvidencePicker, EvidenceUploader } from "../../components/reporting/Evidence";
 import { useAction } from "../../useAction";
 
 /** Shows the cleaned text with the replacement tags highlighted. */
@@ -24,6 +25,8 @@ export default function Report() {
   const [receipt, setReceipt] = useState(null);   // case ID and key, shown once
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [files, setFiles] = useState([]);         // photos and videos chosen, uploaded after the report is sent
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { api("/reports/categories").then(setCategories).catch((err) => setError(err.message)); }, []);
 
@@ -49,6 +52,7 @@ export default function Report() {
       setReceipt(await api("/reports", { method: "POST", body: { category, text: edited } }));
       setDraft("");
       setEdited("");
+      setUploading(files.length > 0);
       setStep(3);
     } catch (err) {
       setError(err.message);
@@ -89,6 +93,8 @@ export default function Report() {
               placeholder="Describe what happened, how often, and how it affected you or others." />
           </label>
           <p className="muted small">Names, emails, phone numbers and dates are removed automatically in the next step, before anything is sent.</p>
+          <h3 className="form-subhead">Evidence</h3>
+          <EvidencePicker files={files} setFiles={setFiles} />
           <Button busy={checking} busyText="Removing names and details…" disabled={!category || draft.trim().length < 20} onClick={() => withChecking(() => runCheck(draft))}>Check what will be sent</Button>
         </div>
       )}
@@ -114,8 +120,14 @@ export default function Report() {
             <textarea rows={8} value={edited} onChange={(e) => setEdited(e.target.value)} maxLength={5000} />
           </label>
           {editedSinceCheck && <p className="alert alert-info">You changed the text. Check it again before sending.</p>}
+          {files.length > 0 && (
+            <p className="alert alert-info">
+              {files.length} {files.length === 1 ? "file" : "files"} will be added after the report is sent, with their hidden
+              details removed. Go <button type="button" className="link-btn" onClick={() => setStep(1)}>back</button> to look at them again.
+            </p>
+          )}
           <label className="check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-            I've read this and it doesn't contain anything that identifies me.</label>
+            I've read this{files.length > 0 ? " and checked my photos and videos," : ""} and it doesn't contain anything that identifies me.</label>
           <div className="row">
             <button className="btn btn-plain" onClick={() => setStep(1)}>Back</button>
             {editedSinceCheck
@@ -137,10 +149,18 @@ export default function Report() {
             <strong>Keep these somewhere safe now.</strong> The key is shown only once. It isn't linked to your account,
             so if you lose it, nobody (not even an administrator) can recover it.
           </p>
+          {files.length > 0 && (
+            <>
+              <h3>Adding your evidence</h3>
+              {uploading && <p className="muted small">Please keep this page open until every file is added.</p>}
+              <EvidenceUploader caseId={receipt.case_id} secret={receipt.key} files={files} onFinished={() => setUploading(false)} />
+              <p className="muted small">If a file wasn't added, you can add it later from <strong>Check my report</strong>.</p>
+            </>
+          )}
           <h3>Choose how to keep it</h3>
           <KeepKey caseId={receipt.case_id} secret={receipt.key} />
           <label className="check" style={{ marginTop: 16 }}><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> I've kept my case ID and key.</label>
-          {saved && <p className="row"><Link to="/my-report">Check my report</Link> · <Link to="/report-keys">My report keys</Link> · <button className="btn btn-plain" onClick={() => { setReceipt(null); setSaved(false); setCategory(""); setStep(1); }}>Make another report</button></p>}
+          {saved && <p className="row"><Link to="/my-report">Check my report</Link> · <Link to="/report-keys">My report keys</Link> · <button className="btn btn-plain" onClick={() => { setReceipt(null); setSaved(false); setCategory(""); setFiles([]); setStep(1); }}>Make another report</button></p>}
         </div>
       )}
     </>

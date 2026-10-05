@@ -1,7 +1,7 @@
 // HR: every anonymous report, urgent and open ones first.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Inbox } from "lucide-react";
+import { Inbox, Paperclip } from "lucide-react";
 import { api } from "../../api";
 import { Card, EmptyState, PageHeader, Segmented, StatCard } from "../../components/ui";
 import { CaseStatus, PriorityTag } from "../../components/reporting/Conversation";
@@ -41,7 +41,7 @@ export default function ReportInbox() {
               {rows.map((r) => (
                 <tr key={r.case_id}>
                   <td className="mono strong">{r.case_id}</td>
-                  <td>{r.category}</td>
+                  <td>{r.category}{r.evidence_count > 0 && <div className="small muted evidence-count"><Paperclip size={13} aria-hidden="true" />{r.evidence_count} {r.evidence_count === 1 ? "file" : "files"}</div>}</td>
                   <td><PriorityTag priority={r.priority} /></td>
                   <td><CaseStatus status={r.status} /></td>
                   <td className="nowrap">{r.created_on}</td>

@@ -141,138 +141,255 @@
       ]
     },
     "triage": {
-      "accuracy": 0.74,
+      "accuracy": 0.66,
       "confusion": {
         "low": {
-          "low": 10,
-          "medium": 0,
-          "high": 1
+          "low": 4,
+          "medium": 2,
+          "high": 5
         },
         "medium": {
-          "low": 8,
-          "medium": 17,
-          "high": 0
+          "low": 5,
+          "medium": 15,
+          "high": 5
         },
         "high": {
-          "low": 1,
-          "medium": 3,
-          "high": 10
+          "low": 0,
+          "medium": 0,
+          "high": 14
         }
       },
       "per_class": {
         "low": {
-          "precision": 0.526,
-          "recall": 0.909,
+          "precision": 0.444,
+          "recall": 0.364,
           "count": 11
         },
         "medium": {
-          "precision": 0.85,
-          "recall": 0.68,
+          "precision": 0.882,
+          "recall": 0.6,
           "count": 25
         },
         "high": {
-          "precision": 0.909,
-          "recall": 0.714,
+          "precision": 0.583,
+          "recall": 1.0,
           "count": 14
         }
       },
-      "under_triaged": 12,
-      "over_triaged": 1,
+      "under_triaged": 5,
+      "over_triaged": 12,
       "mistakes": [
+        {
+          "id": "D02",
+          "expected": "medium",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.544,
+          "words_found": [
+            "happened",
+            "month",
+            "floor"
+          ],
+          "text": "Nadia shouted at me in front of the whole Sales floor and called me useless. It has happened three times this month."
+        },
         {
           "id": "D06",
           "expected": "medium",
           "got": "low",
+          "model_said": "low",
+          "model_confidence": 0.45,
           "words_found": [],
           "text": "I believe Samuel Varga is approving his own expense claims. You can check invoice 20250114 and ticket 4471229 in the system."
         },
         {
-          "id": "D08",
-          "expected": "high",
-          "got": "medium",
+          "id": "D11",
+          "expected": "medium",
+          "got": "low",
+          "model_said": "low",
+          "model_confidence": 0.582,
           "words_found": [],
-          "text": "A colleague touched me inappropriately at the Christmas party and later sent messages to my personal number 07700 900123 asking me to meet him alone."
+          "text": "My manager asked me to change the delivery dates on the client report so we hit our targets for the quarter. I think this is fraud."
         },
         {
           "id": "D12",
           "expected": "low",
           "got": "high",
+          "model_said": "low",
+          "model_confidence": 0.876,
           "words_found": [
             "kill"
           ],
           "text": "The new product launch is going to kill the competition, but the marketing team is working until midnight every day and people are exhausted."
         },
         {
-          "id": "D15",
+          "id": "D16",
           "expected": "medium",
           "got": "low",
+          "model_said": "low",
+          "model_confidence": 0.421,
           "words_found": [],
-          "text": "Sam keeps belittling my work in front of clients. Everyone calls him Sam but his full name is in the directory."
+          "text": "A supplier contact, Derek Holt, offered me a holiday if we chose his company. I said no but I think others accepted a bribe."
         },
         {
-          "id": "D22",
-          "expected": "high",
+          "id": "D21",
+          "expected": "low",
           "got": "medium",
-          "words_found": [],
-          "text": "Mateo Adeyemi said that if I report him he will make sure I regret it, and he knows where I live."
+          "model_said": "medium",
+          "model_confidence": 0.343,
+          "words_found": [
+            "told",
+            "shifts"
+          ],
+          "text": "I was told to raise this with the Manager on duty but they never answer. The rota for Saturday shifts is unfair."
+        },
+        {
+          "id": "D23",
+          "expected": "medium",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.393,
+          "words_found": [
+            "told",
+            "racist",
+            "witnesses"
+          ],
+          "text": "Racist jokes are told at lunch by Hannah Castillo and William Mensah. Call me on +44 20 7946 0958 if you need witnesses."
+        },
+        {
+          "id": "D24",
+          "expected": "medium",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.735,
+          "words_found": [
+            "night",
+            "switched",
+            "store",
+            "going"
+          ],
+          "text": "Stock is going missing from the store room and I think someone is stealing it at night. The CCTV was switched off on March 14."
+        },
+        {
+          "id": "D25",
+          "expected": "low",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.501,
+          "words_found": [
+            "security",
+            "patched"
+          ],
+          "text": "Our software is still on version 3.14.207 and the security team has not patched it. This is an Admin team issue, not IT."
         },
         {
           "id": "D26",
           "expected": "medium",
           "got": "low",
+          "model_said": "low",
+          "model_confidence": 0.444,
           "words_found": [],
           "text": "Ibrahim Walsh constantly criticises me in emails copied to the whole department. I am the intern so I feel I can't say anything."
         },
         {
-          "id": "D27",
-          "expected": "high",
+          "id": "D29",
+          "expected": "medium",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.403,
+          "words_found": [
+            "night",
+            "shift",
+            "break"
+          ],
+          "text": "During Ramadan my requests to move my break were refused, while others get flexibility. I'm the only Muslim on the night shift."
+        },
+        {
+          "id": "D32",
+          "expected": "low",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.392,
+          "words_found": [],
+          "text": "The training budget was cut but managers still went on an expensive retreat. It does not seem fair, but I'm not sure it breaks any rule."
+        },
+        {
+          "id": "D33",
+          "expected": "medium",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.52,
+          "words_found": [
+            "said",
+            "partner",
+            "works"
+          ],
+          "text": "Oliver Rossi keeps asking me out even though I've said no several times. My partner also works here and it is very awkward."
+        },
+        {
+          "id": "D39",
+          "expected": "low",
           "got": "medium",
-          "words_found": [],
-          "text": "Julia Walsh was pushed against a wall by a visitor in reception and nobody intervened. She is too scared to report it herself."
-        },
-        {
-          "id": "D34",
-          "expected": "medium",
-          "got": "low",
-          "words_found": [],
-          "text": "Laura Haddad told me to sign off a safety inspection that never happened. Her email is l.haddad@company.example."
-        },
-        {
-          "id": "D35",
-          "expected": "high",
-          "got": "low",
-          "words_found": [],
-          "text": "I don't know where else to say this. Things at work have got so bad that I've had thoughts of ending my life."
-        },
-        {
-          "id": "D41",
-          "expected": "medium",
-          "got": "low",
-          "words_found": [],
-          "text": "Someone in finance is taking a cut from supplier payments. Contact nadia at company dot com, she knows more."
+          "model_said": "medium",
+          "model_confidence": 0.392,
+          "words_found": [
+            "demotivating",
+            "goes"
+          ],
+          "text": "The Employee of the Month award always goes to the same three people. It is demotivating for everyone else."
         },
         {
           "id": "D42",
           "expected": "medium",
           "got": "low",
+          "model_said": "low",
+          "model_confidence": 0.485,
           "words_found": [],
           "text": "Efe Okafor's team leader screams at people when targets are missed. Efe is too afraid to speak up."
         },
         {
-          "id": "D48",
-          "expected": "medium",
-          "got": "low",
-          "words_found": [],
-          "text": "I'm the newest member of the design team and Hannah Dubois keeps telling me I'm stupid in front of everyone."
+          "id": "D46",
+          "expected": "low",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.42,
+          "words_found": [
+            "guard",
+            "security",
+            "visitors"
+          ],
+          "text": "Brooks the security guard is very rude to visitors at the front desk, which gives a bad impression."
         },
         {
-          "id": "D49",
-          "expected": "medium",
-          "got": "low",
-          "words_found": [],
-          "text": "Timesheets for the night team are being padded. Priya Fischer and Mo Manager both signed them off."
+          "id": "D50",
+          "expected": "low",
+          "got": "high",
+          "model_said": "high",
+          "model_confidence": 0.398,
+          "words_found": [
+            "machine",
+            "broken",
+            "called"
+          ],
+          "text": "The coffee machine has been broken since 0771-234-567 was called for repair; nobody follows up. I sit by the window so I hear all the complaints."
         }
-      ]
+      ],
+      "methods": {
+        "keywords_only": {
+          "accuracy": 0.74,
+          "under_triaged": 12,
+          "over_triaged": 1
+        },
+        "model_only": {
+          "accuracy": 0.64,
+          "under_triaged": 7,
+          "over_triaged": 11
+        },
+        "model_with_safety_net": {
+          "accuracy": 0.66,
+          "under_triaged": 5,
+          "over_triaged": 12
+        }
+      }
     }
   }
 }

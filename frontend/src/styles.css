@@ -518,3 +518,52 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
 .pay-box { border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px 16px; margin-bottom: 16px; background: var(--surface-2); }
 .pay-box h3 { margin: 0 0 10px; }
 .pay-box input[type="number"] { max-width: 220px; }
+
+/* ─── Evidence: photos and videos for reports ────────────────────────────── */
+.drop-zone {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px 18px; border-radius: 16px;
+  border: 2px dashed var(--input-border); background: var(--surface-2); transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.drop-zone > div { flex: 1; min-width: 200px; }
+.drop-zone.over { border-color: var(--primary); background: var(--tint); }
+.drop-zone.full { opacity: 0.6; }
+.drop-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--surface); color: var(--primary); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+.evidence-grid { list-style: none; padding: 0; margin: 14px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.evidence-tile { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; }
+.evidence-media { aspect-ratio: 4 / 3; background: var(--surface-2); display: grid; place-items: center; overflow: hidden; }
+.evidence-media img, .evidence-media video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+.evidence-media a { display: block; width: 100%; height: 100%; }
+.evidence-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; }
+.evidence-meta .icon-btn { width: 32px; height: 32px; border-radius: 9px; }
+.evidence-tile > .check { padding: 0 10px 10px; align-items: flex-start; line-height: 1.35; }
+.evidence-tile > .check input { margin-top: 1px; flex-shrink: 0; }
+.evidence-privacy { display: grid; gap: 6px; margin: 12px 0 18px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13.5px; }
+.evidence-privacy p { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.evidence-privacy p:first-child svg { color: var(--success); flex-shrink: 0; margin-top: 2px; }
+.evidence-privacy p:last-child svg { color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+.evidence-count { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.upload-list { list-style: none; padding: 0; margin: 10px 0 14px; display: grid; gap: 8px; }
+.upload-row { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); }
+.upload-thumb { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: var(--surface); color: var(--muted); flex-shrink: 0; }
+.upload-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.upload-body { flex: 1; min-width: 0; }
+.upload-status { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.upload-row.done .upload-status { color: var(--success); }
+.upload-row.failed .upload-status { color: var(--error); }
+.upload-row.uploading .upload-status, .upload-row.cleaning .upload-status { color: var(--primary); }
+.upload-bar { height: 6px; border-radius: 99px; background: var(--track); margin-top: 6px; overflow: hidden; }
+.upload-bar span { display: block; height: 100%; border-radius: 99px; background: var(--primary); transition: width 0.2s ease; }
+.upload-row.done .upload-bar span { background: var(--success); }
+
+/* HR: what the language model read */
+.model-reading { margin-bottom: 14px; }
+.chance-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; max-width: 520px; }
+.chance-list li { display: grid; grid-template-columns: 84px minmax(0, 1fr) 44px; gap: 12px; align-items: center; color: var(--muted); }
+.chance-list li.chosen { color: var(--text); font-weight: 700; }
+.chance-track { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.chance-fill { display: block; height: 100%; border-radius: 99px; min-width: 3px; }
+.chance-fill.high { background: var(--error); }
+.chance-fill.medium { background: var(--warning); }
+.chance-fill.low { background: var(--muted); }
+.chance-value { text-align: right; }
+.word-chip { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 9px; border-radius: 99px; background: var(--tint); color: var(--primary); font-weight: 600; }

@@ -52,27 +52,39 @@ Flagged 10 of 11 labelled phrases (recall 91%); 11 warnings shown, of which 91% 
 
 ### Triage
 
-Accuracy: **74%**. Under-triaged (given a lower priority than it needed): **12**. Over-triaged: 1.
+Triage is the language model, with safety rules that can only raise its suggestion (danger and self-harm words, and category minimums). The earlier keyword-only method is shown for comparison. *Under-triaged* = given a lower priority than needed, the costly mistake.
+
+| Method | Accuracy | Under-triaged | Over-triaged |
+|---|---|---|---|
+| Keywords only (before) | 74% | 12 | 1 |
+| Language model alone | 64% | 7 | 11 |
+| **Language model + safety rules (used)** | **66%** | **5** | **12** |
+
+Confusion matrix for the method used:
 
 | Expected ↓ / Given → | Low | Medium | High | Recall |
 |---|---|---|---|---|
-| Low | 10 | 0 | 1 | 91% |
-| Medium | 8 | 17 | 0 | 68% |
-| High | 1 | 3 | 10 | 71% |
-| **Precision** | 53% | 85% | 91% | |
+| Low | 4 | 2 | 5 | 36% |
+| Medium | 5 | 15 | 5 | 60% |
+| High | 0 | 0 | 14 | 100% |
+| **Precision** | 44% | 88% | 58% | |
 
-**Mistakes** (with the warning words triage found):
+**Mistakes** (with what the model said and the words that drove it):
 
-- D06: expected **medium**, got low (no warning words). “I believe Samuel Varga is approving his own expense claims. You can check invoice 20250114 and ticket 4471229 in the system.”
-- D08: expected **high**, got medium (no warning words). “A colleague touched me inappropriately at the Christmas party and later sent messages to my personal number 07700 900123 asking me to meet him alone.”
-- D12: expected **low**, got high (kill). “The new product launch is going to kill the competition, but the marketing team is working until midnight every day and people are exhausted.”
-- D15: expected **medium**, got low (no warning words). “Sam keeps belittling my work in front of clients. Everyone calls him Sam but his full name is in the directory.”
-- D22: expected **high**, got medium (no warning words). “Mateo Adeyemi said that if I report him he will make sure I regret it, and he knows where I live.”
-- D26: expected **medium**, got low (no warning words). “Ibrahim Walsh constantly criticises me in emails copied to the whole department. I am the intern so I feel I can't say anything.”
-- D27: expected **high**, got medium (no warning words). “Julia Walsh was pushed against a wall by a visitor in reception and nobody intervened. She is too scared to report it herself.”
-- D34: expected **medium**, got low (no warning words). “Laura Haddad told me to sign off a safety inspection that never happened. Her email is l.haddad@company.example.”
-- D35: expected **high**, got low (no warning words). “I don't know where else to say this. Things at work have got so bad that I've had thoughts of ending my life.”
-- D41: expected **medium**, got low (no warning words). “Someone in finance is taking a cut from supplier payments. Contact nadia at company dot com, she knows more.”
-- D42: expected **medium**, got low (no warning words). “Efe Okafor's team leader screams at people when targets are missed. Efe is too afraid to speak up.”
-- D48: expected **medium**, got low (no warning words). “I'm the newest member of the design team and Hannah Dubois keeps telling me I'm stupid in front of everyone.”
-- D49: expected **medium**, got low (no warning words). “Timesheets for the night team are being padded. Priya Fischer and Mo Manager both signed them off.”
+- D02: expected **medium**, got high (model: high, 54% sure; happened, month, floor). “Nadia shouted at me in front of the whole Sales floor and called me useless. It has happened three times this month.”
+- D06: expected **medium**, got low (model: low, 45% sure; no marked words). “I believe Samuel Varga is approving his own expense claims. You can check invoice 20250114 and ticket 4471229 in the system.”
+- D11: expected **medium**, got low (model: low, 58% sure; no marked words). “My manager asked me to change the delivery dates on the client report so we hit our targets for the quarter. I think this is fraud.”
+- D12: expected **low**, got high (model: low, 88% sure; kill). “The new product launch is going to kill the competition, but the marketing team is working until midnight every day and people are exhausted.”
+- D16: expected **medium**, got low (model: low, 42% sure; no marked words). “A supplier contact, Derek Holt, offered me a holiday if we chose his company. I said no but I think others accepted a bribe.”
+- D21: expected **low**, got medium (model: medium, 34% sure; told, shifts). “I was told to raise this with the Manager on duty but they never answer. The rota for Saturday shifts is unfair.”
+- D23: expected **medium**, got high (model: high, 39% sure; told, racist, witnesses). “Racist jokes are told at lunch by Hannah Castillo and William Mensah. Call me on +44 20 7946 0958 if you need witnesses.”
+- D24: expected **medium**, got high (model: high, 74% sure; night, switched, store, going). “Stock is going missing from the store room and I think someone is stealing it at night. The CCTV was switched off on March 14.”
+- D25: expected **low**, got high (model: high, 50% sure; security, patched). “Our software is still on version 3.14.207 and the security team has not patched it. This is an Admin team issue, not IT.”
+- D26: expected **medium**, got low (model: low, 44% sure; no marked words). “Ibrahim Walsh constantly criticises me in emails copied to the whole department. I am the intern so I feel I can't say anything.”
+- D29: expected **medium**, got high (model: high, 40% sure; night, shift, break). “During Ramadan my requests to move my break were refused, while others get flexibility. I'm the only Muslim on the night shift.”
+- D32: expected **low**, got high (model: high, 39% sure; no marked words). “The training budget was cut but managers still went on an expensive retreat. It does not seem fair, but I'm not sure it breaks any rule.”
+- D33: expected **medium**, got high (model: high, 52% sure; said, partner, works). “Oliver Rossi keeps asking me out even though I've said no several times. My partner also works here and it is very awkward.”
+- D39: expected **low**, got medium (model: medium, 39% sure; demotivating, goes). “The Employee of the Month award always goes to the same three people. It is demotivating for everyone else.”
+- D42: expected **medium**, got low (model: low, 48% sure; no marked words). “Efe Okafor's team leader screams at people when targets are missed. Efe is too afraid to speak up.”
+- D46: expected **low**, got high (model: high, 42% sure; guard, security, visitors). “Brooks the security guard is very rude to visitors at the front desk, which gives a bad impression.”
+- D50: expected **low**, got high (model: high, 40% sure; machine, broken, called). “The coffee machine has been broken since 0771-234-567 was called for repair; nobody follows up. I sit by the window so I hear all the complaints.”

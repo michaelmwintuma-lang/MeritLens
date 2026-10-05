@@ -10,6 +10,7 @@ A report is linked to its reporter only by the secret key, which only the report
 2. submit:  the approved text is saved; the reporter receives a case ID and a secret key, once.
 3. access:  case ID + key opens the case later. Wrong attempts lock the case for 15 minutes.
 4. messages: the reporter replies to the investigator, with the same anonymising rules.
+(Photos and videos as evidence: routes_evidence.py, also opened with the case ID and key.)
 """
 import secrets
 from datetime import date, datetime, timedelta, timezone
@@ -25,6 +26,7 @@ from app.core.roles import REPORTER_ROLES
 from app.core.security import hash_password, require_roles, verify_password
 from app.promotion.models import Employee
 from app.reporting.anonymiser import anonymise, still_identifying
+from app.reporting.evidence import listing as evidence_listing
 from app.reporting.models import Message, Report
 from app.reporting.triage import triage
 from app.accounts.contacts import hr_contacts
@@ -195,7 +197,8 @@ def access(body: AccessIn, db: Session = Depends(get_db), _: User = Depends(repo
     report = open_case(body.case_id, body.key, db)
     return {"case_id": report.case_id, "category": CATEGORIES[report.category], "text": report.text,
             "created_on": report.created_on.isoformat(), "status": report.status,
-            "outcome": OUTCOMES.get(report.outcome), "messages": conversation(db, report.case_id)}
+            "outcome": OUTCOMES.get(report.outcome), "messages": conversation(db, report.case_id),
+            "evidence": evidence_listing(db, report.case_id)}
 
 
 # ─── 4. The reporter replies ──────────────────────────────────────────────────

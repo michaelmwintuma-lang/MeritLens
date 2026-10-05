@@ -5,7 +5,8 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, FileText } from "lucide-react";
 import { api } from "../../api";
 import { Button, Card, PageHeader } from "../../components/ui";
-import Conversation, { CaseStatus, PriorityTag } from "../../components/reporting/Conversation";
+import Conversation, { CaseStatus, PRIORITY_LABELS, PriorityTag } from "../../components/reporting/Conversation";
+import { EvidenceGallery, EvidencePrivacy, loadAsHr } from "../../components/reporting/Evidence";
 import { useAction } from "../../useAction";
 
 /** The report text with the words that triggered its priority marked. */
@@ -16,9 +17,30 @@ function MarkedText({ text, triggers }) {
     <p className="cleaned">
       {text.split(pattern).map((part, i) => {
         const hit = triggers.find((t) => t.word.toLowerCase() === part.toLowerCase());
-        return hit ? <mark key={i} className={`trigger ${hit.level}`} title={`${hit.level} priority word`}>{part}</mark> : part;
+        return hit ? <mark key={i} className={`trigger ${hit.level}`} title={`Pushed it towards ${PRIORITY_LABELS[hit.level].toLowerCase()} priority`}>{part}</mark> : part;
       })}
     </p>
+  );
+}
+
+/** What the language model read: its chance for each level, and the words that drove it. */
+function ModelReading({ reading }) {
+  return (
+    <div className="model-reading">
+      <ul className="chance-list" aria-label="How likely the model thinks each priority is">
+        {["high", "medium", "low"].map((level) => (
+          <li key={level} className={reading.priority === level ? "chosen" : ""}>
+            <span className="chance-label">{PRIORITY_LABELS[level]}</span>
+            <span className="chance-track"><span className={`chance-fill ${level}`} style={{ width: `${Math.round(reading.chances[level] * 100)}%` }} /></span>
+            <span className="chance-value">{Math.round(reading.chances[level] * 100)}%</span>
+          </li>
+        ))}
+      </ul>
+      {reading.words.length > 0 && (
+        <p className="small"><span className="muted">Words that drove it most: </span>
+          {reading.words.map((w) => <span key={w.word} className="word-chip">{w.word}</span>)}</p>
+      )}
+    </div>
   );
 }
 
@@ -74,8 +96,17 @@ export default function ReportCase() {
         <MarkedText text={report.text} triggers={report.triage.triggers} />
       </Card>
 
-      <Card title="Why this priority" subtitle={`Suggested by the keyword rules: ${report.suggested_priority}. You can change it below.`}>
+      <Card title="Why this priority"
+        subtitle={`Suggested when the report arrived: ${PRIORITY_LABELS[report.suggested_priority]}. It's a suggestion: you can change it below.`}>
+        <ModelReading reading={report.triage.model} />
         <ul className="links">{report.triage.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+        <p className="muted small">The language model learned from labelled example reports. Safety rules can raise its suggestion
+          (words suggesting danger or self-harm, and some categories), but never lower it.</p>
+      </Card>
+
+      <Card title="Photos and videos" subtitle={report.evidence.length ? `${report.evidence.length} added by the reporter. Location, device and time were removed before saving.` : undefined}>
+        <EvidenceGallery items={report.evidence} load={loadAsHr(report.case_id)} />
+        {report.evidence.length > 0 && <details className="details"><summary>What was removed, and what wasn't</summary><EvidencePrivacy /></details>}
       </Card>
 
       <Card title="Conversation" subtitle="The reporter sees you as “Investigator”. Don't sign with your name, and never ask who they are.">
@@ -95,7 +126,7 @@ export default function ReportCase() {
           <div className="form-row">
             <label className="field">Priority
               <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-                {report.options.priorities.map((p) => <option key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</option>)}
+                {report.options.priorities.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
               </select>
             </label>
             <label className="field">Status

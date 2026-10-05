@@ -22,8 +22,11 @@ export default function Conversation({ messages, me }) {
 }
 
 /** Priority as a word with an icon, never colour alone. */
+// Priorities are stored as low, medium and high; the middle one is shown as "Moderate"
+export const PRIORITY_LABELS = { high: "High", medium: "Moderate", low: "Low" };
+
 export function PriorityTag({ priority }) {
-  const label = { high: "High", medium: "Medium", low: "Low" }[priority] || priority;
+  const label = PRIORITY_LABELS[priority] || priority;
   const cls = { high: "tag-off", medium: "tag-warn", low: "" }[priority] || "";
   return <span className={`tag ${cls}`}>{priority === "high" ? "▲▲" : priority === "medium" ? "▲" : "–"} {label}</span>;
 }

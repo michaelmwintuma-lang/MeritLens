@@ -8,6 +8,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_tmp, 'test.db')}"
 os.environ["DEMO_PASSWORD"] = "demo1234"
 os.environ["OUTBOX_DIR"] = os.path.join(_tmp, "outbox")   # welcome emails go to a temporary folder
 os.environ["SMTP_HOST"] = ""                              # and are never sent during tests
+os.environ["EVIDENCE_DIR"] = os.path.join(_tmp, "evidence")  # report photos and videos too
 os.environ["SKIP_ENV_FILE"] = "1"                          # never read your private backend/.env
 
 import pytest  # noqa: E402

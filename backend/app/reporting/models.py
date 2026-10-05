@@ -48,3 +48,23 @@ class Message(Base):
     sender: Mapped[str] = mapped_column(String(15))                      # reporter or investigator
     text: Mapped[str] = mapped_column(Text)
     sent_on: Mapped[date] = mapped_column(Date)
+
+
+class Evidence(Base):
+    """
+    A photo or video the reporter attached to their case. The file itself is in EVIDENCE_DIR under a random name;
+    its hidden details (location, device, owner, time taken) were removed before it was saved. The original file
+    name is not kept (it often contains a name or a date), and only the day it was added.
+    """
+    __tablename__ = "report_evidence"
+    __table_args__ = {"sqlite_with_rowid": False}
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)         # random
+    case_id: Mapped[str] = mapped_column(ForeignKey("reports.case_id"), index=True)
+    number: Mapped[int] = mapped_column(Integer)                          # 1, 2, 3... within the case
+    kind: Mapped[str] = mapped_column(String(10))                         # photo or video
+    content_type: Mapped[str] = mapped_column(String(40))
+    size: Mapped[int] = mapped_column(Integer)                            # bytes, after cleaning
+    stored_name: Mapped[str] = mapped_column(String(80))
+    added_on: Mapped[date] = mapped_column(Date)
+

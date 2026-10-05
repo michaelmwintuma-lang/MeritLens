@@ -71,9 +71,10 @@ From `results/reporting_evaluation.md`, run on 5 October 2026:
 | Anonymiser precision | 87% (41 of 47 replacements were identifying) |
 | Reports with every detail removed | 44 of 50 |
 | Identifying-phrase warnings | recall 91% (10 of 11), precision 91% |
-| Triage accuracy | 74% (37 of 50) |
-| Under-triaged | 12, including a report about thoughts of self-harm marked **low** |
-| Over-triaged | 1 ("kill the competition" marked high) |
+| Triage accuracy (language model + safety rules, used now) | 66% (33 of 50) |
+| Under-triaged | 5 (keyword list before: 12, including a self-harm report marked **low**) |
+| Over-triaged | 12 (keyword list before: 1) |
+| High-priority reports caught | 14 of 14 |
 
 ### What the results show
 
@@ -83,7 +84,25 @@ From `results/reporting_evaluation.md`, run on 5 October 2026:
   reporter always reviews the cleaned text before sending.
 - **Its unnecessary replacements are harmless but visible:** invoice and version numbers taken for phone numbers,
   and capitalised words that are also parts of directory names ("Manager", "Admin", "Employee").
-- **Triage is the weaker part.** A keyword list misses meaning: a threat phrased without the word ("he will make
+- **Triage: the language model trades false alarms for fewer missed urgent reports.** Triage now uses a
+  language model (TF-IDF and logistic regression, trained on about 280 separate example reports;
+  `backend/app/reporting/priority_model.py`), with safety rules that can only raise its suggestion. Compared on
+  the same 50 reports:
+
+  | Method | Accuracy | Under-triaged | Over-triaged |
+  |---|---|---|---|
+  | Keywords only (before) | 74% | 12 | 1 |
+  | Language model alone | 64% | 7 | 11 |
+  | **Language model + safety rules (used)** | **66%** | **5** | **12** |
+
+  The model catches every high-priority report, including threats and unwanted touching described without any
+  alarming word, but it over-reacts to topic words ("night shift", "security guard", "machine") because it
+  learned from few examples. Accuracy fell, but the costly mistake (an urgent report placed too low) fell by more
+  than half. Its settings were chosen by cross-validation on the training examples only
+  (`python -m evaluation.choose_priority_model`: 75% accuracy across folds), never on this set. One caveat: the
+  self-harm phrases in the safety rules were added after this set had been seen, so its one self-harm report is
+  flattered. The external set is the fair test.
+- **Why the old keyword list missed so much.** A keyword list misses meaning: a threat phrased without the word ("he will make
   sure I regret it"), unwanted touching described politely, self-harm described indirectly, and other forms of a
   listed word ("belittling" when only "belittled" is listed). Most mistakes put a report *lower* than it should be,
   which is the costly direction. The category minimums help (every safety report is high), but an "Other" report
@@ -96,4 +115,5 @@ From `results/reporting_evaluation.md`, run on 5 October 2026:
 The obvious fixes (more word forms, phrases like "regret it", "ending my life", "touched me") would raise these
 numbers, but **only on this set**, because the fixes would be written while looking at it. A fair improvement
 would be made using the developer set, then measured on the **external** set, which the fixes never saw.
-Alternatively, a trained text classifier could replace the keyword list, at the cost of being harder to explain.
+The trained text classifier now in use is explained by showing, for each report, the chance of each priority
+and the words whose removal would lower its suggestion the most.

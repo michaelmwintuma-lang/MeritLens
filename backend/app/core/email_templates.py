@@ -99,15 +99,19 @@ def promotion_approved(employee_name: str, title: str | None = None, start: str 
     }
 
 
+# Priorities are stored as low, medium and high; the middle one is called "moderate" wherever people read it
+PRIORITY_WORDS = {"low": "low", "medium": "moderate", "high": "high"}
+
+
 def report_alert(hr_name: str, case_id: str, category: str, priority: str) -> dict:
     """A new anonymous report. Only the case ID, category and priority: never the text or anything about the reporter."""
     return {
-        "subject": f"New anonymous report ({priority} priority)",
+        "subject": f"New anonymous report ({PRIORITY_WORDS.get(priority, priority)} priority)",
         "heading": "A new anonymous report is waiting",
         "greeting": f"Hello {hr_name},",
         "paragraphs": ["A new report has arrived through the anonymous reporting channel. For the reporter's protection, "
                        "this email doesn't include what it says: please read it in the report inbox."],
-        "details": [("Case", case_id), ("Category", category), ("Priority", priority.capitalize())],
+        "details": [("Case", case_id), ("Category", category), ("Priority", PRIORITY_WORDS.get(priority, priority).capitalize())],
         "button": ("Open the report inbox", link(f"/reports/{case_id}")),
     }
 
