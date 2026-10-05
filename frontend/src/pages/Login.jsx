@@ -1,14 +1,16 @@
-// Sign-in page.
+// Sign-in page: a frosted-glass card floating over soft, slowly drifting navy and teal lights.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "../auth";
-import { Button, ThemeToggle } from "../components/ui";
+import { Button } from "../components/ui";
+import "./login.css";
 
 export default function Login() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -26,28 +28,37 @@ export default function Login() {
   }
 
   return (
-    <div className="center-page">
-      <Link to="/" className="back" style={{ position: "fixed", top: 22, left: 24 }}><ArrowLeft size={16} />Back to the website</Link>
-      <div style={{ position: "fixed", top: 20, right: 20 }}><ThemeToggle /></div>
-      <form className="card narrow" onSubmit={submit}>
-        <div className="brand" style={{ padding: "0 0 20px", marginBottom: 22 }}>
-          <div className="brand-logo"><ShieldCheck size={20} aria-hidden="true" /></div>
-          <div>
-            <div className="brand-name">Promotion &amp; Reporting</div>
-            <div className="brand-sub">Staff platform</div>
-          </div>
+    <div className="login-page">
+      <div className="login-lights" aria-hidden="true"><span /><span /><span /><span /></div>
+      <Link to="/" className="login-back"><ArrowLeft size={16} aria-hidden="true" />Back to the website</Link>
+
+      <form className="login-box" onSubmit={submit}>
+        <div className="login-logo"><ShieldCheck size={24} aria-hidden="true" /></div>
+        <h1>Welcome back</h1>
+        <p className="login-sub">Sign in to Promotion &amp; Reporting with the account your administrator gave you.</p>
+
+        {error && <p className="login-error" role="alert">{error}</p>}
+
+        <label className="login-field" htmlFor="login-username">Username</label>
+        <div className="login-input">
+          <UserRound size={18} aria-hidden="true" />
+          <input id="login-username" value={username} onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username" placeholder="e.g. jane.doe" required autoFocus />
         </div>
-        <h1 style={{ fontSize: 24 }}>Sign in</h1>
-        <p className="muted" style={{ marginTop: 4 }}>Use the account your administrator gave you.</p>
-        {error && <p className="alert alert-error" role="alert">{error}</p>}
-        <label className="field">Username
-          <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required autoFocus />
-        </label>
-        <label className="field">Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-        </label>
-        <Button busy={busy} busyText="Signing in…" style={{ width: "100%", justifyContent: "center" }}>Sign in</Button>
-        <p className="muted small" style={{ textAlign: "center", margin: "16px 0 0" }}>New to the platform? <Link to="/demo">Book a demo</Link></p>
+
+        <label className="login-field" htmlFor="login-password">Password</label>
+        <div className="login-input">
+          <Lock size={18} aria-hidden="true" />
+          <input id="login-password" type={showPassword ? "text" : "password"} value={password}
+            onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="••••••••" required />
+          <button type="button" className="login-eye" onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+
+        <Button busy={busy} busyText="Signing in…" className="login-btn">Sign in</Button>
+        <p className="login-foot">New to the platform? <Link to="/demo">Book a demo</Link></p>
       </form>
     </div>
   );
