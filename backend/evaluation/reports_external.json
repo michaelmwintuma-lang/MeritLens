@@ -1,0 +1,4 @@
+{
+  "about": "Reports written by people other than the developer (who did not see the rules), then labelled using docs/EVALUATION.md. This set is the fairer test. Add reports below in the same format as reports_developer.json.",
+  "reports": []
+}

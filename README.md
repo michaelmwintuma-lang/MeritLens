@@ -106,6 +106,15 @@ Reporting, Privacy and **Book a demo**. Demo requests are emailed to `DEMO_INBOX
 the Gmail address in `SMTP_USER`); replying to that email answers the visitor. The admin sees them all under
 **Administration → Demo requests**.
 
+## Evaluation
+
+- **Promotion model:** `results/metrics.json`, `results/fairness.json` and the curve images, made by `python train.py`.
+- **Reporting:** `python -m evaluation.evaluate_reporting` (from `backend`) measures the anonymiser and triage on
+  hand-labelled reports and writes `results/reporting_evaluation.md`. Method and findings: `docs/EVALUATION.md`.
+- **User test:** a ready-to-run kit (tasks, the System Usability Scale questionnaire, consent note and scoring
+  script) in `docs/USER_TEST.md`; `python -m evaluation.user_test` scores the answers.
+- **Limitations and future work:** `docs/LIMITATIONS.md`.
+
 ## Adding employees
 
 The 120 demo employees come from the synthetic dataset. HR can add real ones on **All employees**: **Add employee**

@@ -894,7 +894,7 @@ dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **185 tests**, all passing:
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **189 tests**, all passing:
 
 | File | Tests | What they prove |
 |---|---|---|
@@ -909,6 +909,7 @@ Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **18
 | `test_employee_records.py` | 16 | HR adds an employee who can be scored at once; values are stored as the model expects; impossible values are refused and unusual ones flagged; no one is added twice; one bad CSV row means nobody is imported; no protected characteristics are accepted; only HR manages records |
 | `test_demo_requests.py` | 10 | Anyone can book a demo; it's emailed with Reply-To set to the visitor; the admin lists and ticks off requests; robots and repeats are kept out; visitors' text can't inject HTML; only the admin sees requests |
 | `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never reports; managers are emailed about new team members, and only about new ones |
+| `test_evaluation_data.py` | 4 | The labelled evaluation reports are well formed (every label copied exactly from its report); the evaluation counts every report; the usability questionnaire is scored by the standard formula |
 | `test_activity.py` | 10 | Sign-ins and actions are logged by date; nothing a reporter does is logged; passwords never are; only the admin reads the log |
 
 How each requirement in the brief is tested:
