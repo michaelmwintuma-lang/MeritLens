@@ -368,3 +368,25 @@ input[aria-invalid="true"] { border-color: var(--error); }
 .details-list dt { color: var(--muted); }
 .details-list dd { margin: 0; font-weight: 600; text-align: right; }
 .section-title { display: flex; align-items: center; gap: 8px; margin: 28px 0 14px; font-size: 17px; }
+
+/* ─── Promotion recommendations and pay ──────────────────────────────────── */
+.form-subhead { font-size: 15px; margin: 18px 0 10px; }
+.criteria-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+@media (max-width: 860px) { .criteria-grid { grid-template-columns: 1fr; } }
+.criterion { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.criterion legend { font-weight: 700; font-size: 14px; padding: 0 4px; }
+.rec-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.rec-facts div { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.rec-facts dt { color: var(--muted); font-size: 13px; }
+.rec-facts dd { margin: 2px 0 0; font-weight: 700; }
+@media (max-width: 700px) { .rec-facts { grid-template-columns: 1fr; } }
+.rec-criteria { width: 100%; margin-bottom: 6px; }
+.rec-criteria td { vertical-align: top; }
+.rating { display: inline-flex; flex-direction: column; gap: 4px; }
+.rating-dots { display: inline-flex; gap: 4px; }
+.rating-dots span { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--primary); }
+.rating-dots span.on { background: var(--primary); }
+.pay-box { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px 16px; margin-bottom: 16px; background: var(--surface-2); }
+.pay-box h3 { margin: 0 0 10px; }
+
+.pay-box input[type="number"] { max-width: 220px; }

@@ -21,12 +21,16 @@ export default function NominationsTable({ nominations, isHr, title, subtitle })
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>Employee</th><th>Nominated by</th><th>Model's view now</th><th>Status</th><th>Date</th><th style={{ textAlign: "right" }}>Actions</th></tr>
+            <tr><th>Employee</th><th>Proposed</th><th>Nominated by</th><th>Model's view now</th><th>Status</th><th>Date</th><th style={{ textAlign: "right" }}>Actions</th></tr>
           </thead>
           <tbody>
             {rows.map((n) => (
               <tr key={n.id}>
                 <td><span className="strong">{n.employee.full_name}</span><div className="muted small">{n.employee.department}</div></td>
+                <td>{n.recommendation?.proposed_title
+                  ? <><span className="strong">{n.recommendation.proposed_title}</span><div className="muted small">
+                      {n.decision?.approved_raise != null ? `${n.decision.approved_raise}% approved` : `${n.recommendation.proposed_raise}% proposed`}</div></>
+                  : <span className="muted">–</span>}</td>
                 <td>{n.nominated_by}</td>
                 <td>{percent(n.model_now.score)} · {n.model_now.recommended ? "recommends" : "not yet"}</td>
                 <td><NominationStatus status={n.status} /></td>

@@ -46,3 +46,22 @@ def emails_to(address):
             found.append({"subject": message["Subject"], "text": message.get_body(("plain",)).get_content(),
                           "html": message.get_body(("html",)).get_content(), "reply_to": message["Reply-To"]})
     return found
+
+
+def recommendation(employee_id, reason="Led the migration project and mentored two new colleagues this year.", **changes):
+    """A complete, valid manager's recommendation (nomination) for one employee; override any field with changes."""
+    from datetime import date, timedelta
+    body = {
+        "employee_id": employee_id,
+        "proposed_title": "Senior Analyst",
+        "proposed_start": (date.today() + timedelta(days=30)).isoformat(),
+        "criteria": {key: {"rating": 4, "example": f"A clear example of strong {key} this year."}
+                     for key in ("performance", "leadership", "skills", "impact")},
+        "reason": reason,
+        # Needed when the model doesn't recommend the person (most of the demo team); ignored otherwise
+        "model_disagreement": "Strong client feedback and leadership that the data doesn't capture.",
+        "proposed_raise": 8,
+    }
+    body.update(changes)
+    return body
+

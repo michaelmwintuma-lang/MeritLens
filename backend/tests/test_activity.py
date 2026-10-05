@@ -4,7 +4,7 @@ from sqlalchemy import inspect
 
 from app.core.database import SessionLocal, engine
 from app.core.activity import ActivityEntry
-from tests.conftest import login
+from tests.conftest import login, recommendation
 
 
 def log(client, **params):
@@ -50,7 +50,7 @@ def test_nominations_and_decisions_are_logged(client):
     manager = login(client, "manager")
     member = client.get("/api/promotion/employees", headers=manager).json()["employees"][0]
     nomination = client.post("/api/promotion/nominations", headers=manager,
-                             json={"employee_id": member["id"], "reason": "Excellent delivery all year round."}).json()
+                             json=recommendation(member["id"])).json()
     client.post(f"/api/promotion/nominations/{nomination['id']}/decision", headers=login(client, "hr"),
                 json={"decision": "reject"})
     entries = {e["action"]: e for e in log(client)}

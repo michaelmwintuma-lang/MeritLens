@@ -33,6 +33,7 @@ ACTIONS = {
     "employee_edited": "Edited an employee's record",
     "employees_imported": "Imported employees from a file",
     "nomination_made": "Nominated for promotion",
+    "pay_policy_changed": "Changed the promotion pay-rise range",
     "decision_made": "Decided on a nomination",
     "report_replied": "Replied to a report",
     "report_updated": "Updated a report",

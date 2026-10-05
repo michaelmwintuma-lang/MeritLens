@@ -55,18 +55,24 @@ def username_changed(full_name: str, old: str, new: str, by_admin: bool) -> dict
     }
 
 
-def nomination_received(hr_name: str, employee_name: str, manager_name: str) -> dict:
+def nomination_received(hr_name: str, employee_name: str, manager_name: str, title: str | None = None) -> dict:
     return {
         "subject": f"New nomination: {employee_name}",
         "heading": "A nomination is waiting for review",
         "greeting": f"Hello {hr_name},",
-        "paragraphs": [f"{manager_name} has nominated {employee_name} for promotion. You'll see the manager's reason next to the model's view."],
+        "paragraphs": [f"{manager_name} has nominated {employee_name} for promotion"
+                       + (f" to {title}" if title else "") + ". You'll see the manager's recommendation next to the model's view."],
         "button": ("Review nominations", link("/nominations")),
     }
 
 
-def decision_for_manager(manager_name: str, employee_name: str, approved: bool, reason: str | None) -> dict:
+def decision_for_manager(manager_name: str, employee_name: str, approved: bool, reason: str | None,
+                         title: str | None = None, raise_percent: float | None = None) -> dict:
     details = [("Employee", employee_name), ("Decision", "Approved" if approved else "Not approved")]
+    if approved and title:
+        details.append(("New role", title))
+    if approved and raise_percent is not None:
+        details.append(("Pay rise", f"{raise_percent:g}%"))
     if reason:
         details.append(("HR's reason", reason))
     return {
@@ -79,12 +85,16 @@ def decision_for_manager(manager_name: str, employee_name: str, approved: bool, 
     }
 
 
-def promotion_approved(employee_name: str) -> dict:
+def promotion_approved(employee_name: str, title: str | None = None, start: str | None = None,
+                       raise_percent: float | None = None) -> dict:
+    details = [(label, value) for label, value in [("New role", title), ("Starting", start),
+               ("Pay rise", f"{raise_percent:g}%" if raise_percent is not None else None)] if value]
     return {
         "subject": "Your promotion has been approved",
         "heading": "Congratulations!",
         "greeting": f"Hello {employee_name},",
         "paragraphs": ["Your manager nominated you for promotion, and HR has approved it. Your manager and HR will be in touch about the next steps."],
+        "details": details,
         "button": ("Sign in", link("/login")),
     }
 

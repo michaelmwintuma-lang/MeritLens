@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import login
+from tests.conftest import login, recommendation
 
 pytestmark = pytest.mark.skipif(not (Path(__file__).resolve().parents[1] / "models" / "model.joblib").exists(),
                                 reason="run train.py first")
@@ -24,12 +24,14 @@ def manager_id(client):
 
 def nominate(client, employee_id, reason=REASON):
     return client.post("/api/promotion/nominations", headers=login(client, "manager"),
-                       json={"employee_id": employee_id, "reason": reason})
+                       json=recommendation(employee_id, reason))
 
 
 def decide(client, nomination_id, decision, reason=None):
-    return client.post(f"/api/promotion/nominations/{nomination_id}/decision", headers=login(client, "hr"),
-                       json={"decision": decision, "reason": reason})
+    body = {"decision": decision, "reason": reason}
+    if decision == "approve":
+        body["approved_raise"] = 10  # within the default 5-15% policy
+    return client.post(f"/api/promotion/nominations/{nomination_id}/decision", headers=login(client, "hr"), json=body)
 
 
 # ─── Nominating ───────────────────────────────────────────────────────────────
@@ -47,7 +49,7 @@ def test_manager_cannot_nominate_outside_their_team(client):
 @pytest.mark.parametrize("username", ["employee", "hr", "admin"])
 def test_only_managers_nominate(client, username):
     employee_id = team(client)[0]["id"]
-    res = client.post("/api/promotion/nominations", headers=login(client, username), json={"employee_id": employee_id, "reason": REASON})
+    res = client.post("/api/promotion/nominations", headers=login(client, username), json=recommendation(employee_id))
     assert res.status_code == 403
 
 

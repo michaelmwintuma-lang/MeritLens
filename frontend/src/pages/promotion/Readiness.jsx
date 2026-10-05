@@ -3,7 +3,7 @@
 // Employees see their own; HR and managers open it from a list.
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Gauge, Pencil } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Gauge, PartyPopper, Pencil } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
 import { percent } from "../../format";
@@ -22,6 +22,8 @@ export default function Readiness() {
   const saved = useLocation().state; // { saved: "added" | "updated", warnings } after the employee form
   const own = !params.id; // "My readiness" for an employee
   const employeeId = own ? user.employee_id : Number(params.id);
+  const [promotions, setPromotions] = useState([]); // an employee's approved promotions (their own page only)
+  useEffect(() => { if (own) api("/promotion/my-promotions").then(setPromotions).catch(() => {}); }, [own]);
   const [profile, setProfile] = useState(null);
   const [result, setResult] = useState(null); // { prediction, lime, tips }, filled in step by step
   const [error, setError] = useState("");
@@ -51,6 +53,12 @@ export default function Readiness() {
       )}
 
       {user.role === "admin" && <p className="alert alert-info">Read-only view for administrators: you can run the prediction, but not nominate, decide or edit.</p>}
+      {promotions.map((p) => (
+        <div key={p.approved_on + p.title} className="alert alert-success">
+          <strong><PartyPopper size={16} style={{ verticalAlign: "-3px" }} /> Promotion approved{p.title ? `: ${p.title}` : ""}</strong>
+          <span>{p.start && `Starting ${p.start}. `}{p.raise != null && `Pay rise: ${p.raise}%. `}Approved on {p.approved_on}.</span>
+        </div>
+      ))}
       <RunPrediction key={profile.id} profile={profile} onResult={setResult} />
 
       {data && (
@@ -94,7 +102,7 @@ export default function Readiness() {
 
       {user.role === "manager" && (
         <section className="card">
-          <h2>Nominate for promotion</h2>
+          <h2>Recommend for promotion</h2>
           <NominateBox employeeId={profile.id} name={profile.full_name} />
         </section>
       )}

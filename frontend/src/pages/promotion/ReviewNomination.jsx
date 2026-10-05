@@ -1,12 +1,14 @@
-// HR reviews one nomination: the manager's reason, the model's score and explanation, then decides.
+// HR reviews one nomination: the manager's recommendation, the model's score and explanation, then decides,
+// setting the final pay rise for an approval.
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, ClipboardCheck } from "lucide-react";
 import { api } from "../../api";
 import { percent } from "../../format";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
 import Contributions from "../../components/promotion/Contributions";
+import Recommendation from "../../components/promotion/Recommendation";
 import { NominationStatus } from "../../components/promotion/Status";
-import { ArrowLeft, ClipboardCheck } from "lucide-react";
 import { Button, PageHeader } from "../../components/ui";
 import { useAction } from "../../useAction";
 
@@ -17,33 +19,43 @@ export default function ReviewNomination() {
   const navigate = useNavigate();
   const [nomination, setNomination] = useState(null);
   const [explanation, setExplanation] = useState(null);
+  const [policy, setPolicy] = useState(null);
   const [decision, setDecision] = useState("");
   const [reason, setReason] = useState("");
+  const [raise, setRaise] = useState("");
+  const [raiseReason, setRaiseReason] = useState("");
   const [error, setError] = useState("");
+  const [working, withWorking] = useAction(); // hooks before any early return, so their order never changes
 
   useEffect(() => {
-    api(`/promotion/nominations/${id}`)
-      .then((n) => {
+    Promise.all([api(`/promotion/nominations/${id}`), api("/promotion/pay-policy")])
+      .then(([n, pay]) => {
         setNomination(n);
+        setPolicy(pay);
+        setRaise(n.recommendation?.proposed_raise != null ? String(n.recommendation.proposed_raise) : String(pay.min_raise));
         return api(`/promotion/employees/${n.employee.id}`).then(setExplanation);
       })
       .catch((err) => setError(err.message));
   }, [id]);
 
   if (error && !nomination) return <p className="alert alert-error">{error}</p>;
-  if (!nomination || !explanation) return <p className="muted">Loading…</p>;
+  if (!nomination || !explanation || !policy) return <p className="muted">Loading…</p>;
 
   // Disagreeing = approving someone the model doesn't recommend, or rejecting someone it does
   const disagrees = decision && (decision === "approve") !== explanation.recommended;
   const reasonTooShort = disagrees && reason.trim().length < MIN_REASON;
-
-  const [working, withWorking] = useAction();
+  const raiseNumber = Number(raise);
+  const raiseOutside = decision === "approve" && raise !== "" && (raiseNumber < policy.min_raise || raiseNumber > policy.max_raise);
+  const raiseMissing = decision === "approve" && raise === "";
+  const raiseReasonTooShort = raiseOutside && raiseReason.trim().length < MIN_REASON;
 
   async function submit(e) {
     e.preventDefault();
     setError("");
+    const body = { decision, reason: reason.trim() || null };
+    if (decision === "approve") Object.assign(body, { approved_raise: raiseNumber, raise_reason: raiseReason.trim() || null });
     try {
-      await api(`/promotion/nominations/${id}/decision`, { method: "POST", body: { decision, reason: reason.trim() || null } });
+      await api(`/promotion/nominations/${id}/decision`, { method: "POST", body });
       navigate("/decisions");
     } catch (err) {
       setError(err.message);
@@ -54,12 +66,12 @@ export default function ReviewNomination() {
     <>
       <Link to="/nominations" className="back"><ArrowLeft size={16} />Back to nominations</Link>
       <PageHeader icon={ClipboardCheck} title={`Review: ${nomination.employee.full_name}`}
-        subtitle={`${nomination.employee.department} · nominated by ${nomination.nominated_by} on ${nomination.created_at.slice(0, 10)}`}
+        subtitle={`${nomination.employee.department} · recommended by ${nomination.nominated_by} on ${nomination.created_at.slice(0, 10)}`}
         actions={<NominationStatus status={nomination.status} />} />
 
       <section className="card">
-        <h2>The manager's reason</h2>
-        <blockquote className="quote">{nomination.reason}</blockquote>
+        <h2>The manager's recommendation</h2>
+        <Recommendation nomination={nomination} />
       </section>
 
       <section className="card">
@@ -88,10 +100,30 @@ export default function ReviewNomination() {
               That's allowed, but please explain why, in at least {MIN_REASON} characters.
             </p>
           )}
-          <label className="field">Reason {disagrees ? <span className="small">(required, {reason.trim().length}/{MIN_REASON} characters)</span> : <span className="muted small">(optional)</span>}
+          <label className="field"><span>Reason {disagrees ? <span className="small">(required, {reason.trim().length}/{MIN_REASON} characters)</span> : <span className="muted small">(optional)</span>}</span>
             <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={2000} />
           </label>
-          <Button busy={working} busyText="Saving decision…" disabled={!decision || reasonTooShort}>Save decision</Button>
+
+          {decision === "approve" && (
+            <div className="pay-box">
+              <h3>Pay rise</h3>
+              <div className="form-row">
+                <label className="field">Approved pay rise (%)
+                  <input type="number" value={raise} onChange={(e) => setRaise(e.target.value)} min={0} max={100} step="0.5" required />
+                  <span className={raiseOutside ? "field-problem" : "field-hint"}>
+                    The manager proposed {nomination.recommendation?.proposed_raise ?? "–"}%. Policy: {policy.min_raise}% to {policy.max_raise}%.
+                  </span>
+                </label>
+              </div>
+              {raiseOutside && (
+                <label className="field"><span>Why go outside the policy? <span className="small">(required, {raiseReason.trim().length}/{MIN_REASON} characters)</span></span>
+                  <textarea rows={2} value={raiseReason} onChange={(e) => setRaiseReason(e.target.value)} maxLength={2000} />
+                </label>
+              )}
+              <p className="muted small" style={{ margin: 0 }}>Only the percentage is recorded, never a salary. It's never used by the model.</p>
+            </div>
+          )}
+          <Button busy={working} busyText="Saving decision…" disabled={!decision || reasonTooShort || raiseMissing || raiseReasonTooShort}>Save decision</Button>
         </form>
       ) : (
         <p className="alert alert-info">This nomination has already been decided. See the decision log.</p>

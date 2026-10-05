@@ -894,7 +894,7 @@ dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **189 tests**, all passing:
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **205 tests**, all passing:
 
 | File | Tests | What they prove |
 |---|---|---|
@@ -910,6 +910,7 @@ Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **18
 | `test_demo_requests.py` | 10 | Anyone can book a demo; it's emailed with Reply-To set to the visitor; the admin lists and ticks off requests; robots and repeats are kept out; visitors' text can't inject HTML; only the admin sees requests |
 | `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never reports; managers are emailed about new team members, and only about new ones |
 | `test_evaluation_data.py` | 4 | The labelled evaluation reports are well formed (every label copied exactly from its report); the evaluation counts every report; the usability questionnaire is scored by the standard formula |
+| `test_recommendations_and_pay.py` | 16 | Managers' recommendations need a rating and example for all four areas, a start date within a year, a rise within HR's policy, and a reason when the model disagrees; HR must set the rise on approval and explain one outside the policy; only HR sets the policy; employees see only their approved promotion; pay is not a model input and changes no prediction |
 | `test_activity.py` | 10 | Sign-ins and actions are logged by date; nothing a reporter does is logged; passwords never are; only the admin reads the log |
 
 How each requirement in the brief is tested:
@@ -1072,4 +1073,49 @@ scores or records.
 - If you paste the case ID, go to My report keys for the key, and come back, the case ID is still there. It's
   kept in the page's memory only: never written to storage, gone when the tab closes, and never shown to another
   account signing in on the same tab.
+
+## Recommendations with reasons, and the pay rise
+
+### Who does what
+
+| | Does |
+|---|---|
+| The model | Gives each employee a readiness score and says whether it recommends promotion. It never nominates or decides. |
+| The manager | **Recommends** someone on their team, with stated reasons (below). |
+| HR | Reviews the recommendation beside the model's view, **decides**, and sets the final pay rise. |
+
+### The manager's recommendation
+
+On a team member's readiness page, a manager fills in (`NominateBox.jsx`; checked again on the server in
+`routes_decisions.py`):
+
+- the **proposed new role** and **start date** (between today and a year from now);
+- a **rating from 1 to 5 with a real example** for each of four areas: performance, leadership, skills and
+  knowledge, and impact. Every area is required, so a recommendation can't rest on one vague sentence;
+- an **overall recommendation**;
+- if the model **doesn't** recommend the person, **why the manager disagrees** (at least 20 characters), the
+  same rule HR follows when it disagrees;
+- a **proposed pay rise** as a percentage, within HR's policy.
+
+HR's review page shows all of it: the facts, the ratings (as dots *and* words, never colour alone), the examples
+and both reasons, next to the model's score and explanation.
+
+### The pay rise
+
+Promotions usually come with a pay rise, but pay is sensitive, and the brief keeps it out of the model. So:
+
+- **Only percentages are stored, never salaries.** The rise is a percentage on the nomination (proposed) and on
+  the decision (approved). No salary amounts are entered anywhere.
+- **HR sets a pay policy**, a range such as 5% to 15% (on the Nominations page). Managers must propose within it.
+  HR sets the final figure when approving, and can go outside the range only with a written reason (at least
+  20 characters), which is kept in the decision log. Changing the policy is recorded in the activity log.
+- **Who sees it:** HR sees every rise; a manager sees the ones on their own recommendations; an employee sees
+  their own only once approved (on My readiness, and in the approval email, with the new role and start date).
+  Pending recommendations are not shown to the employee.
+- **The model never sees pay.** Pay isn't one of the model's inputs, and approving a rise changes no prediction;
+  two tests check this.
+
+**A limit worth stating:** because the platform deliberately doesn't store gender, age or other protected
+characteristics with employee records, it can't check whether pay rises are fair across groups. An organisation
+would do that check in its HR system, which holds that data, or by extending the fairness checks with consent.
 
