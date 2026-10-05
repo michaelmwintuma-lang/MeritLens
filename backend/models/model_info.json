@@ -1,0 +1,200 @@
+{
+  "model": "Logistic Regression",
+  "reason": "Logistic Regression has the highest validation PR-AUC.",
+  "threshold": 0.7887,
+  "features": [
+    "performance_score",
+    "performance_change",
+    "manager_rating",
+    "peer_feedback_score",
+    "kpi_achievement_percent",
+    "projects_completed",
+    "tasks_completed",
+    "deadline_adherence_rate",
+    "innovation_score",
+    "leadership_score",
+    "problem_solving_score",
+    "skill_assessment_score",
+    "training_hours_last_year",
+    "certifications_count",
+    "cross_department_projects",
+    "mentoring_sessions",
+    "attendance_rate",
+    "late_days",
+    "years_since_last_promotion",
+    "years_in_current_role",
+    "department"
+  ],
+  "trained_at": "2026-10-04T00:40:04+00:00",
+  "feature_stats": {
+    "performance_score": {
+      "mean": 70.124796,
+      "std": 14.72781,
+      "p5": 45.2945,
+      "p95": 95.693,
+      "min": 40.0,
+      "max": 100.0
+    },
+    "performance_change": {
+      "mean": 1.921332,
+      "std": 5.828636,
+      "p5": -7.6514,
+      "p95": 11.5908,
+      "min": -22.2607,
+      "max": 24.7042
+    },
+    "manager_rating": {
+      "mean": 3.302418,
+      "std": 0.76681,
+      "p5": 2.0312,
+      "p95": 4.5892,
+      "min": 1.0,
+      "max": 5.0
+    },
+    "peer_feedback_score": {
+      "mean": 3.495698,
+      "std": 0.818793,
+      "p5": 2.1104,
+      "p95": 4.8964,
+      "min": 1.0,
+      "max": 5.0
+    },
+    "kpi_achievement_percent": {
+      "mean": 69.906995,
+      "std": 17.084362,
+      "p5": 40.9736,
+      "p95": 99.6536,
+      "min": 30.0,
+      "max": 100.0
+    },
+    "projects_completed": {
+      "mean": 5.4321,
+      "std": 3.804869,
+      "p5": 1.0,
+      "p95": 11.0,
+      "min": 0.0,
+      "max": 80.0
+    },
+    "tasks_completed": {
+      "mean": 35.66197,
+      "std": 14.977238,
+      "p5": 13.5195,
+      "p95": 62.4575,
+      "min": 5.0,
+      "max": 125.2802
+    },
+    "deadline_adherence_rate": {
+      "mean": 0.819376,
+      "std": 0.078939,
+      "p5": 0.6885,
+      "p95": 0.952,
+      "min": 0.4506,
+      "max": 1.0
+    },
+    "innovation_score": {
+      "mean": 67.622954,
+      "std": 17.633228,
+      "p5": 37.8269,
+      "p95": 98.0665,
+      "min": 20.0,
+      "max": 100.0
+    },
+    "leadership_score": {
+      "mean": 58.18139,
+      "std": 12.256471,
+      "p5": 37.9542,
+      "p95": 78.2638,
+      "min": 10.0,
+      "max": 100.0
+    },
+    "problem_solving_score": {
+      "mean": 55.787132,
+      "std": 12.959242,
+      "p5": 34.3169,
+      "p95": 77.1117,
+      "min": 20.0,
+      "max": 100.0
+    },
+    "skill_assessment_score": {
+      "mean": 67.932463,
+      "std": 13.834666,
+      "p5": 44.9907,
+      "p95": 90.8844,
+      "min": 20.0,
+      "max": 100.0
+    },
+    "training_hours_last_year": {
+      "mean": 43.316408,
+      "std": 17.672626,
+      "p5": 21.9024,
+      "p95": 63.7215,
+      "min": 0.0,
+      "max": 281.5995
+    },
+    "certifications_count": {
+      "mean": 2.355814,
+      "std": 1.561516,
+      "p5": 0.0,
+      "p95": 5.0,
+      "min": 0.0,
+      "max": 10.0
+    },
+    "cross_department_projects": {
+      "mean": 1.994914,
+      "std": 1.41376,
+      "p5": 0.0,
+      "p95": 5.0,
+      "min": 0.0,
+      "max": 10.0
+    },
+    "mentoring_sessions": {
+      "mean": 2.999243,
+      "std": 1.731019,
+      "p5": 1.0,
+      "p95": 6.0,
+      "min": 0.0,
+      "max": 13.0
+    },
+    "attendance_rate": {
+      "mean": 0.928083,
+      "std": 0.046579,
+      "p5": 0.8477,
+      "p95": 1.0,
+      "min": 0.7276,
+      "max": 1.0
+    },
+    "late_days": {
+      "mean": 1.998857,
+      "std": 1.418127,
+      "p5": 0.0,
+      "p95": 5.0,
+      "min": 0.0,
+      "max": 11.0
+    },
+    "years_since_last_promotion": {
+      "mean": 2.748929,
+      "std": 2.7343,
+      "p5": 0.0,
+      "p95": 8.0,
+      "min": 0.0,
+      "max": 29.0
+    },
+    "years_in_current_role": {
+      "mean": 2.755429,
+      "std": 2.753622,
+      "p5": 0.0,
+      "p95": 8.0,
+      "min": 0.0,
+      "max": 28.0
+    }
+  },
+  "department_shares": {
+    "Finance": 0.1447,
+    "HR": 0.144329,
+    "Sales": 0.142986,
+    "Marketing": 0.1427,
+    "Support": 0.142271,
+    "Operations": 0.141743,
+    "Engineering": 0.141271
+  }
+}

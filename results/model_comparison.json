@@ -1,0 +1,18 @@
+{
+  "validation": {
+    "Logistic Regression": {
+      "val_pr_auc": 0.6323,
+      "val_roc_auc": 0.9261
+    },
+    "Random Forest": {
+      "val_pr_auc": 0.6134,
+      "val_roc_auc": 0.922
+    },
+    "XGBoost": {
+      "val_pr_auc": 0.6259,
+      "val_roc_auc": 0.922
+    }
+  },
+  "chosen": "Logistic Regression",
+  "reason": "Logistic Regression has the highest validation PR-AUC."
+}

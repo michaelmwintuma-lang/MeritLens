@@ -1,0 +1,19 @@
+# Web API and database
+fastapi>=0.110
+uvicorn>=0.29
+sqlalchemy>=2.0,<2.1  # 2.1 has no pure-Python fallback, which Windows Smart App Control needs
+pyjwt>=2.8
+
+# Tests
+pytest>=8.0
+httpx>=0.27
+
+# Machine learning (versions known to load under Windows Smart App Control)
+pandas==3.0.6
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.1
+xgboost==3.2.0
+joblib==1.6.0
+matplotlib==3.11.2
+lime==0.2.0.1

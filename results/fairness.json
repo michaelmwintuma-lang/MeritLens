@@ -1,0 +1,59 @@
+{
+  "rule": "each group's selection rate must be at least 80% of the highest group's",
+  "checks": {
+    "gender": {
+      "groups": {
+        "Female": {
+          "employees": 10075,
+          "selection_rate": 0.1228,
+          "actual_promotion_rate": 0.0965
+        },
+        "Male": {
+          "employees": 9925,
+          "selection_rate": 0.119,
+          "actual_promotion_rate": 0.1036
+        }
+      },
+      "ratio": 0.9691,
+      "passes": true
+    },
+    "age_group": {
+      "groups": {
+        "40+": {
+          "employees": 10688,
+          "selection_rate": 0.1199,
+          "actual_promotion_rate": 0.1015
+        },
+        "under 40": {
+          "employees": 9312,
+          "selection_rate": 0.1221,
+          "actual_promotion_rate": 0.0983
+        }
+      },
+      "ratio": 0.982,
+      "passes": true
+    },
+    "education": {
+      "groups": {
+        "Bachelor": {
+          "employees": 12926,
+          "selection_rate": 0.1197,
+          "actual_promotion_rate": 0.0974
+        },
+        "Master": {
+          "employees": 6038,
+          "selection_rate": 0.1221,
+          "actual_promotion_rate": 0.1028
+        },
+        "PhD": {
+          "employees": 1036,
+          "selection_rate": 0.1293,
+          "actual_promotion_rate": 0.1158
+        }
+      },
+      "ratio": 0.9258,
+      "passes": true
+    }
+  },
+  "passes": true
+}
