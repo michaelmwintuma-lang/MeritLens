@@ -66,3 +66,16 @@ export function menuFor(user) {
   if (user.role === "admin" && user.can_view_employees) return [...MENU.admin, EMPLOYEE_DATA];
   return MENU[user.role];
 }
+
+// On a phone the menu becomes a tab bar at the bottom: three pages per role, plus "Menu" for everything else
+export const PHONE_TABS = {
+  employee: ["/", "/my-readiness", "/report"],
+  manager: ["/", "/team", "/report"],
+  hr: ["/", "/nominations", "/reports"],
+  admin: ["/", "/admin/users", "/admin/activity"],
+};
+// Short names that fit under a tab icon
+export const SHORT_LABELS = {
+  "/": "Home", "/my-readiness": "Readiness", "/report": "Report", "/team": "Team",
+  "/nominations": "Nominations", "/reports": "Inbox", "/admin/users": "Users", "/admin/activity": "Activity",
+};

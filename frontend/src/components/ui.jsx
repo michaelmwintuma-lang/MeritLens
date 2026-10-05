@@ -8,7 +8,7 @@ export function PageHeader({ icon: Icon, title, subtitle, actions }) {
   return (
     <header className="page-header">
       <div>
-        <div className="page-title">{Icon && <Icon size={28} strokeWidth={2} aria-hidden="true" />}<h1>{title}</h1></div>
+        <div className="page-title">{Icon && <span className="page-icon"><Icon size={24} strokeWidth={2} aria-hidden="true" /></span>}<h1>{title}</h1></div>
         {subtitle && <p className="page-sub">{subtitle}</p>}
       </div>
       <div className="page-actions">
