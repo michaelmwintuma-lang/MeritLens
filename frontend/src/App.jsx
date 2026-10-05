@@ -23,6 +23,7 @@ import EmployeeForm from "./pages/promotion/EmployeeForm";
 import ImportEmployees from "./pages/promotion/ImportEmployees";
 import ModelOverview from "./pages/promotion/ModelOverview";
 import Nominations from "./pages/promotion/Nominations";
+import PaySignOff from "./pages/finance/PaySignOff";
 import ReviewNomination from "./pages/promotion/ReviewNomination";
 import DecisionLog from "./pages/promotion/DecisionLog";
 import Report from "./pages/reporting/Report";
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="nominations" element={<OnlyFor roles={["manager", "hr"]}><Nominations /></OnlyFor>} />
         <Route path="nominations/:id" element={<OnlyFor roles={["hr"]}><ReviewNomination /></OnlyFor>} />
         <Route path="decisions" element={<OnlyFor roles={["hr"]}><DecisionLog /></OnlyFor>} />
+        <Route path="finance" element={<OnlyFor roles={["finance"]}><PaySignOff /></OnlyFor>} />
         {/* Anonymous reporting: employees and managers. HR handles reports in the inbox. */}
         <Route path="report" element={<OnlyFor roles={REPORTER_ROLES}><Report /></OnlyFor>} />
         <Route path="my-report" element={<OnlyFor roles={REPORTER_ROLES}><CheckReport /></OnlyFor>} />

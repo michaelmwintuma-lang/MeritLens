@@ -79,7 +79,8 @@ def decision_for_manager(manager_name: str, employee_name: str, approved: bool, 
         "subject": f"Decision on your nomination of {employee_name}",
         "heading": f"Promotion {'approved' if approved else 'not approved'}",
         "greeting": f"Hello {manager_name},",
-        "paragraphs": [f"HR has decided on your nomination of {employee_name}."],
+        "paragraphs": [f"HR has decided on your nomination of {employee_name}"
+                       + (", and Finance has confirmed the pay rise." if approved else ".")],
         "details": details,
         "button": ("See your nominations", link("/nominations")),
     }
@@ -93,9 +94,39 @@ def promotion_approved(employee_name: str, title: str | None = None, start: str 
         "subject": "Your promotion has been approved",
         "heading": "Congratulations!",
         "greeting": f"Hello {employee_name},",
-        "paragraphs": ["Your manager nominated you for promotion, and HR has approved it. Your manager and HR will be in touch about the next steps."],
+        "paragraphs": ["Your manager nominated you for promotion, HR has approved it and Finance has confirmed the pay rise. "
+                       "Your manager and HR will be in touch about the next steps."],
         "details": details,
         "button": ("Sign in", link("/login")),
+    }
+
+
+def pay_review_waiting(finance_name: str, employee_name: str, title: str | None, raise_percent: float,
+                       resubmitted: bool = False) -> dict:
+    """To Finance: a promotion pay rise needs signing off."""
+    details = [("Employee", employee_name), ("New role", title), ("Pay rise", f"{raise_percent:g}%")]
+    return {
+        "subject": f"Pay rise to sign off: {employee_name}" + (" (revised)" if resubmitted else ""),
+        "heading": "A promotion pay rise needs your sign-off",
+        "greeting": f"Hello {finance_name},",
+        "paragraphs": [("HR has revised a pay rise you sent back, and resubmitted it." if resubmitted else
+                        "HR has approved a promotion. The pay rise that comes with it needs Finance's sign-off before "
+                        "anyone is told.")],
+        "details": [(label, value) for label, value in details if value],
+        "button": ("Review pay rises", link("/finance")),
+    }
+
+
+def pay_returned(hr_name: str, employee_name: str, finance_name: str, note: str) -> dict:
+    """To HR: Finance sent a pay rise back."""
+    return {
+        "subject": f"Pay rise sent back by Finance: {employee_name}",
+        "heading": "Finance has a question about a pay rise",
+        "greeting": f"Hello {hr_name},",
+        "paragraphs": [f"{finance_name} sent the pay rise for {employee_name}'s promotion back to HR. Please revise it "
+                       "and resubmit it. Nobody has been told about the promotion yet."],
+        "details": [("Finance's reason", note)],
+        "button": ("Open nominations", link("/nominations")),
     }
 
 

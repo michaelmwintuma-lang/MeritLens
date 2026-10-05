@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { percent } from "../../format";
 import { AgreesWithModel } from "../../components/promotion/Status";
+import { PayStatus } from "../../components/promotion/PayStatus";
 import { BookCheck } from "lucide-react";
 import { EmptyState, PageHeader, StatCard } from "../../components/ui";
 
@@ -38,7 +39,8 @@ export default function DecisionLog() {
                   <td>{d.proposed_title || <span className="muted">–</span>}
                     {d.approved_raise != null && <div className="small"><span className="strong">{d.approved_raise}%</span>
                       {d.proposed_raise != null && d.proposed_raise !== d.approved_raise && <span className="muted"> (proposed {d.proposed_raise}%)</span>}</div>}
-                    {d.raise_reason && <div className="muted small">Outside policy: {d.raise_reason}</div>}</td>
+                    {d.raise_reason && <div className="muted small">Outside policy: {d.raise_reason}</div>}
+                    {d.pay_status && <div style={{ marginTop: 4 }}><PayStatus status={d.pay_status} /></div>}</td>
                   <td>{d.decided_by}</td>
                   <td>{percent(d.model_score)} · {d.model_recommended ? "recommended" : "not recommended"}</td>
                   <td><AgreesWithModel agrees={d.agrees_with_model} /></td>

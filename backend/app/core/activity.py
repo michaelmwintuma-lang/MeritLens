@@ -36,6 +36,9 @@ ACTIONS = {
     "nomination_made": "Nominated for promotion",
     "pay_policy_changed": "Changed the promotion pay-rise range",
     "decision_made": "Decided on a nomination",
+    "pay_signed_off": "Signed off a promotion pay rise",
+    "pay_returned": "Sent a promotion pay rise back to HR",
+    "pay_resubmitted": "Sent a revised pay rise to Finance",
     "report_replied": "Replied to a report",
     "report_updated": "Updated a report",
 }

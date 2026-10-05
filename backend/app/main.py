@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from app.accounts import routes_admin, routes_auth
 from app.accounts.seed import seed_demo_accounts
 from app.promotion import routes as promotion_routes
-from app.promotion import routes_decisions, routes_public, routes_records
+from app.promotion import routes_decisions, routes_finance, routes_public, routes_records
 from app.promotion.seed import seed_demo_employees
 from app.reporting import routes as reporting_routes
 from app.reporting import routes_hr as reporting_hr_routes
@@ -34,6 +34,7 @@ app.include_router(routes_admin.activity_router)
 app.include_router(routes_admin.email_router)
 app.include_router(promotion_routes.router)
 app.include_router(routes_decisions.router)
+app.include_router(routes_finance.router)
 app.include_router(routes_records.router)
 app.include_router(routes_public.router)
 app.include_router(reporting_routes.router)

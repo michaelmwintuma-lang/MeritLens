@@ -19,6 +19,7 @@ async function loadOverview(user) {
     ]);
     return { people, nominations, decisions };
   }
+  if (user.role === "finance") return { finance: await api("/finance/pay-reviews") };
   if (user.role === "employee") {
     return { me: user.employee_id ? await api(`/promotion/employees/${user.employee_id}`) : null };
   }
@@ -65,6 +66,24 @@ function EmployeeOverview({ me }) {
   );
 }
 
+function FinanceOverview({ finance }) {
+  const { summary, policy } = finance;
+  return (
+    <>
+      <div className="stat-grid">
+        <StatCard label="Waiting for you" value={summary.awaiting} note="Pay rises to sign off" />
+        <StatCard label="Sent back to HR" value={summary.returned} note="Waiting for HR to revise" />
+        <StatCard label="Signed off this year" value={summary.signed_off_this_year} note="Promotion pay rises confirmed" />
+        <StatCard label="Average rise this year" value={summary.average_raise_this_year != null ? `${summary.average_raise_this_year}%` : "–"}
+          note={`Policy: ${policy.min_raise}% to ${policy.max_raise}%`} />
+      </div>
+      <Card title="Pay sign-off" subtitle="Nobody is told about a promotion until you confirm its pay rise.">
+        <Link className="btn btn-primary" to="/finance">{summary.awaiting ? `Review ${summary.awaiting} waiting` : "Open pay sign-off"} <ArrowRight size={16} /></Link>
+      </Card>
+    </>
+  );
+}
+
 function AdminOverview({ data }) {
   const { users, employees } = data;
   return (
@@ -96,6 +115,7 @@ export default function Home() {
       {data && (user.role === "hr" || user.role === "manager") && <PromotionOverview data={data} isHr={user.role === "hr"} />}
       {data && user.role === "employee" && <EmployeeOverview me={data.me} />}
       {data && user.role === "admin" && <AdminOverview data={data} />}
+      {data && user.role === "finance" && <FinanceOverview finance={data.finance} />}
     </>
   );
 }

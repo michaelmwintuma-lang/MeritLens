@@ -7,7 +7,8 @@ A final-year project. The platform supports two HR processes that both depend on
 
 1. **Explainable promotion prediction.** A machine-learning model estimates how ready each employee is for
    promotion and explains every score in plain language: what raised it, what lowered it, and what would help.
-   The model only advises. A manager recommends, with stated reasons, and HR decides.
+   The model only advises. A manager recommends, with stated reasons, HR decides, and Finance signs off the pay
+   rise.
 2. **Anonymous misconduct reporting.** Members of the organisation report workplace concerns without revealing
    who they are. Identifying details are removed from the text and from attached photos and videos. A language
    model suggests how urgent each report is, and the reporter follows up through a two-way conversation using
@@ -38,16 +39,17 @@ The two parts are deliberately kept apart: **no report data is ever used by the 
 
 ## 1. What the system does
 
-### Four roles
+### Five roles
 
 | Role | What they can do |
 |---|---|
 | **Employee** | See their own readiness score, its explanation and tips to improve; try "what-if" changes; see an approved promotion; report a concern anonymously, attach evidence, and follow it up |
 | **Manager** | Everything an employee can do for themselves, plus see their team's readiness and recommend team members for promotion with structured reasons and a proposed pay rise |
 | **HR** | See all employees; review recommendations alongside the model's view and decide; set the pay-rise policy; keep the decision log; add or import employees; handle anonymous reports (inbox, triage, evidence, conversation, outcome) |
+| **Finance** | Sign off the pay rise of each approved promotion, or send it back to HR with a reason; see pay rises signed off this year by department |
 | **Admin** | Create, edit, deactivate and delete accounts; assign managers' teams; grant admins read-only access to employee data; view the activity log, email outbox and demo requests |
 
-Administration accounts (admin, HR) and employee accounts (employee, manager) are managed separately. Every role
+Administration accounts (admin, HR, finance) and employee accounts (employee, manager) are managed separately. Every role
 check is enforced by the backend, not just hidden in the interface.
 
 ### Main features
@@ -59,6 +61,8 @@ check is enforced by the backend, not just hidden in the interface.
   the model, and HR's final decision recorded with the model's view at that moment.
 - **Pay rises kept separate and bounded**: a percentage within an HR-set policy range (default 5–15%); going
   outside it requires a written reason. Salaries are never stored.
+- **Finance sign-off**: an approved promotion's pay rise waits for Finance, who signs it off or sends it back
+  to HR with a reason. Nobody is told about the promotion until it is signed off, and every step is kept.
 - **Anonymous reports**: 19 categories in four groups; automatic removal of names, emails, phone numbers and
   dates, which the reporter reviews before sending; warnings about phrases that could identify them; a case ID
   and secret key for follow-up.
@@ -97,7 +101,7 @@ check is enforced by the backend, not just hidden in the interface.
 | Machine learning | scikit-learn (logistic regression, TF-IDF text classifier), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Evidence cleaning | Pillow (photos), ffmpeg via imageio-ffmpeg (videos) |
 | Frontend | React 19, React Router 7, Vite 7, lucide-react icons |
-| Testing | pytest (249 tests), headless-browser checks of every page |
+| Testing | pytest (269 tests), headless-browser checks of every page |
 
 ---
 
@@ -182,6 +186,12 @@ Curves are in `results/roc_curve.png` and `results/pr_curve.png`.
 3. **HR decides:** approve or reject, setting the final pay rise within policy (or outside it, with a written
    reason). Each decision is stored with the model's view at that moment, so the **decision log** shows
    where people and the model disagreed.
+4. **Finance signs off the pay rise.** Until then the promotion isn't final: the manager sees "Being
+   finalised", and the employee sees nothing. Finance can instead send the rise back to HR with a reason (at
+   least 20 characters); HR revises it and resubmits. Only after sign-off are the manager and employee told.
+   Every step (sent, sent back, resubmitted, signed off), with who, when and the percentage, is kept as an
+   audit trail. Finance sees only what a pay decision needs, not the model's score or the reasons for the
+   promotion. A rejection is final at once and never goes to Finance.
 
 ---
 
@@ -273,6 +283,8 @@ who was signed in.
   - reports store no identity;
   - logs record dates, not times.
 - **Separation:** promotion code never reads report tables. A test checks this.
+- **Separation of duties:** HR decides on a promotion and Finance confirms its cost; neither can do the other's
+  part, and Finance sees no model scores or performance ratings.
 - **No leaks through side channels:**
   - HR alerts contain no report text;
   - reporters are never emailed;
@@ -298,12 +310,13 @@ who was signed in.
 | Anonymiser, warnings and triage on labelled reports | `results/reporting_evaluation.md`, `docs/EVALUATION.md` | Developer set done; external set ready to collect |
 | Triage model selection (cross-validation on training data only) | `python -m evaluation.choose_priority_model` | Done |
 | Usability (tasks + System Usability Scale) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
-| Automated tests | `backend/tests/`, 249 tests | All passing (Windows and WSL) |
+| Automated tests | `backend/tests/`, 269 tests | All passing (Windows and WSL) |
 
 The automated tests cover:
 - roles and permissions, and the model with its fairness gate;
 - the exactness of explanations;
 - recommendations, decisions and the pay policy;
+- Finance sign-off: nobody is told before it, sending back and resubmitting, the audit trail, and what Finance may see;
 - anonymisation, keys and lock-out;
 - the separation of reports from promotion;
 - triage, including the model's separation from the evaluation sets;
@@ -359,6 +372,7 @@ The password for all of them is `demo1234`. Their emails use `example.org`, whic
 | `hr` | HR |
 | `manager` | Manager |
 | `employee` | Employee |
+| `finance` | Finance |
 
 To start from scratch, stop the app and delete `backend/instance/app.db`.
 
@@ -396,7 +410,7 @@ python train.py                                  # trains, compares, tests once,
 python -m evaluation.choose_priority_model       # cross-validates the triage model's settings (training data only)
 python -m evaluation.evaluate_reporting          # anonymiser, warnings and triage → results/reporting_evaluation.md
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 249 automated tests
+python -m pytest                                 # the 269 automated tests
 ```
 
 In WSL: `wsl --cd backend -- ~/venvs/hr-simple/bin/python -m pytest`.
@@ -420,7 +434,7 @@ backend/
   evaluation/            reporting evaluation, triage model selection, labelled report sets, user-test scoring
   data/                  the synthetic employee dataset (100,000 rows)
   models/                the live promotion model (created by train.py)
-  tests/                 249 automated tests
+  tests/                 269 automated tests
   instance/              database, secret key, outbox, evidence (created automatically, never committed)
 frontend/src/
   pages/                 one file per page (promotion/, reporting/, admin/, public/)

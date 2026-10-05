@@ -5,6 +5,7 @@ import { ClipboardCheck } from "lucide-react";
 import { percent } from "../../format";
 import { Card, EmptyState, Segmented } from "../ui";
 import { NominationStatus } from "./Status";
+import { PayStatus } from "./PayStatus";
 
 const VIEWS = [
   { value: "pending", label: "Waiting" },
@@ -14,7 +15,9 @@ const VIEWS = [
 
 export default function NominationsTable({ nominations, isHr, title, subtitle }) {
   const [view, setView] = useState("pending");
-  const rows = nominations.filter((n) => view === "all" || (view === "pending") === (n.status === "pending"));
+  // "Waiting" holds what needs someone's attention: new nominations, and pay rises Finance sent back to HR
+  const waiting = (n) => n.status === "pending" || n.status === "finalising" || n.decision?.pay_status === "returned";
+  const rows = nominations.filter((n) => view === "all" || (view === "pending") === waiting(n));
 
   return (
     <Card flush title={title} subtitle={subtitle} actions={<Segmented label="Show" options={VIEWS} value={view} onChange={setView} />}>
@@ -33,11 +36,11 @@ export default function NominationsTable({ nominations, isHr, title, subtitle })
                   : <span className="muted">–</span>}</td>
                 <td>{n.nominated_by}</td>
                 <td>{percent(n.model_now.score)} · {n.model_now.recommended ? "recommends" : "not yet"}</td>
-                <td><NominationStatus status={n.status} /></td>
+                <td><NominationStatus status={n.status} />{n.decision?.pay_status && <div style={{ marginTop: 4 }}><PayStatus status={n.decision.pay_status} /></div>}</td>
                 <td className="nowrap">{(n.decision?.decided_at || n.created_at).slice(0, 10)}</td>
                 <td style={{ textAlign: "right" }}>
-                  {isHr && n.status === "pending"
-                    ? <Link className="btn btn-primary" to={`/nominations/${n.id}`}>Review</Link>
+                  {isHr && (n.status === "pending" || n.decision?.pay_status === "returned")
+                    ? <Link className="btn btn-primary" to={`/nominations/${n.id}`}>{n.status === "pending" ? "Review" : "Revise pay"}</Link>
                     : <Link className="btn btn-plain" to={`/employees/${n.employee.id}`}>View</Link>}
                 </td>
               </tr>

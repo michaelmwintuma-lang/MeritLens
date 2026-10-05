@@ -65,7 +65,7 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   backend runs in WSL (Ubuntu) there. On a normal Linux server this doesn't arise.
 - **Pay rises can't be checked for fairness across groups**, because protected characteristics are deliberately
   not stored with employee records. Only percentages are kept, never salaries.
-- **Tested mostly by its developer.** 249 automated tests check behaviour and privacy rules, and every page was
+- **Tested mostly by its developer.** 269 automated tests check behaviour and privacy rules, and every page was
   checked in a browser as each role, but usability with real users depends on the user test (`docs/USER_TEST.md`).
 
 ## Future work

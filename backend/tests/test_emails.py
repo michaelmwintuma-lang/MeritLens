@@ -3,7 +3,7 @@ import pytest
 
 from app.core import email_templates as templates
 from app.core import mailer
-from tests.conftest import emails_to, login, recommendation
+from tests.conftest import emails_to, login, recommendation, sign_off
 
 HR_EMAIL, MANAGER_EMAIL, EMPLOYEE_EMAIL = "hr@example.org", "manager@example.org", "employee@example.org"
 REPORT = "My supervisor threatened me after the meeting and said I would regret complaining. I feel unsafe."
@@ -56,8 +56,11 @@ def test_hr_is_emailed_about_a_new_nomination(client):
 def test_an_approval_emails_the_manager_and_the_employee(client):
     nomination = nominate(client)
     before_employee = count(EMPLOYEE_EMAIL)
-    client.post(f"/api/promotion/nominations/{nomination['id']}/decision", headers=login(client, "hr"),
-                json={"decision": "approve", "reason": "Exceptional client feedback not in the data.", "approved_raise": 9})
+    before_manager = count(MANAGER_EMAIL)
+    decision = client.post(f"/api/promotion/nominations/{nomination['id']}/decision", headers=login(client, "hr"),
+                           json={"decision": "approve", "reason": "Exceptional client feedback not in the data.", "approved_raise": 9}).json()
+    assert count(MANAGER_EMAIL) == before_manager and count(EMPLOYEE_EMAIL) == before_employee  # not until Finance signs off
+    sign_off(client, decision["id"])
     to_manager = emails_to(MANAGER_EMAIL)[-1]
     assert "Approved" in to_manager["text"] and "Exceptional client feedback" in to_manager["text"]
     assert count(EMPLOYEE_EMAIL) == before_employee + 1

@@ -12,7 +12,7 @@ from app.accounts.contacts import notify_new_team_members
 from app.accounts.schemas import CreateUserIn, CreateUserOut, EditUserIn, PermissionIn, SetActiveIn, UserOut
 from app.core.config import OUTBOX_DIR, SMTP
 from app.core.database import get_db
-from app.core.roles import ADMIN, HR, MANAGER
+from app.core.roles import ADMIN, FINANCE, HR, MANAGER
 from app.core.security import hash_password, require_roles, temporary_password
 from app.core import email_templates as templates
 from app.core import mailer
@@ -22,7 +22,7 @@ from app.promotion.models import Decision, Employee, Nomination
 router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 employees_router = APIRouter(prefix="/api/admin/employees", tags=["admin"])
 admin_only = require_roles(ADMIN)
-STAFF_ROLES = (ADMIN, HR)  # "Administration" accounts: not linked to an employee record
+STAFF_ROLES = (ADMIN, HR, FINANCE)  # "Administration" accounts: not linked to an employee record
 
 
 @router.get("", response_model=list[UserOut])

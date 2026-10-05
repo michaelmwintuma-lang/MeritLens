@@ -897,7 +897,7 @@ dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **249 tests**, all passing:
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **269 tests**, all passing:
 
 | File | Tests | What they prove |
 |---|---|---|
@@ -906,6 +906,7 @@ Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **24
 | `test_explanations.py` | 20 | The contributions (SHAP) add up exactly to the model's output; LIME and its fit; the summary; what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; who may see whom |
 | `test_decisions.py` | 17 | Managers nominate only their team; HR decides; disagreeing with the model needs 20 characters; every decision is logged with the model's view; managers' teams |
 | `test_reporting.py` | 20 | The anonymiser removes names, emails, phones and dates; the key is hashed; dates without times; nothing about the reporter is stored; wrong attempts lock the case; **isolation**: the prediction code never touches report data, and predictions are identical before and after reports |
+| `test_finance.py` | 17 | An approval waits for Finance and nobody is told; a rejection never goes to Finance; Finance sees only what a pay decision needs; sign-off makes the promotion final and emails the manager and employee; sending back needs a reason and tells only HR; HR revises and resubmits; every step is kept; only Finance signs off and only HR resubmits; managers see "being finalised" until sign-off |
 | `test_evidence.py` | 18 | Photos and videos lose their location, device, owner and time (checked byte by byte); file names aren't kept; only real photos and videos are accepted; size and number limits; only the reporter (with the key) and HR can see them; the reporter can remove a file; nothing is added to a closed case; a video's sound can be removed |
 | `test_priority_model.py` | 7 | The language model's training examples are separate from the evaluation sets; it gives a chance for each priority and the words behind it; it reads threats and self-harm without alarm words; the safety rules raise but never lower |
 | `test_conversation.py` | 19 | Triage; the conversation shows no names; reporter messages are anonymised; HR's inbox and case updates |
@@ -1192,4 +1193,52 @@ the best settings into `SETTINGS` in `priority_model.py` and re-run `python -m e
 | `POST /api/reports/evidence/{id}/view` | Reporter (case ID + key) | See one of their files |
 | `POST /api/reports/evidence/{id}/remove` | Reporter (case ID + key) | Remove one of their files |
 | `GET /api/hr/reports/{case}/evidence/{id}` | HR | See a file attached to a case |
+
+## Finance: signing off promotion pay rises
+
+Code: `backend/app/promotion/routes_finance.py`, the resubmit endpoint and `tell_about_promotion` in
+`routes_decisions.py`, the `pay_reviews` table and `Decision.pay_status` in `models.py`, and the page
+`frontend/src/pages/finance/PaySignOff.jsx`.
+
+**A fifth role.** Finance accounts are Administration accounts, like admin and HR: they aren't linked to an
+employee record. The admin creates them on the Users page. A demo account `finance` (Fay Finance) is created on a
+new, empty database.
+
+**How it works.**
+
+1. HR approves a promotion and sets its pay rise (step 5). The rise is now **with Finance**, and Finance is
+   emailed. Nobody else is told yet: the manager's list shows "Being finalised", and the employee sees nothing.
+2. Finance reviews it on **Pay sign-off** and either:
+   - **signs it off** (an optional note). The promotion is now final: the manager and the employee get their
+     emails, and the employee sees the new role and pay rise; or
+   - **sends it back to HR** with a reason of at least 20 characters (for example, a budget that is already
+     committed). Only HR is told.
+3. HR sees "Sent back by Finance" (in the bell, the nominations list and the review page), revises the pay rise
+   or keeps it, answers Finance's note, and resubmits. The same policy rule applies: outside the range needs a
+   written reason.
+
+A rejection is final at once and never goes to Finance. Promotions approved before Finance sign-off existed are
+shown as they were.
+
+**The audit trail.** Every step is a row in `pay_reviews` (sent to Finance, sent back, resubmitted, signed off),
+with who, when, the percentage at that step and any note. Rows are never changed or deleted, and the names are
+kept even if an account is later renamed or deleted. HR and Finance both see this history as a timeline, and the
+activity log records each step.
+
+**What Finance sees, and why.** Only what a pay decision needs: the employee's name and department, the new role
+and start date, the pay rise HR approved and the one the manager proposed, the pay policy, and HR's reason if the
+rise is outside the policy. Finance does **not** see the model's score, the manager's ratings and examples, or the
+reasons for the promotion: whether someone deserves a promotion is HR's decision, and Finance's part is its cost.
+Finance can read the pay policy but not change it. As everywhere, only percentages are used, never salaries.
+
+**Finance's page** shows what is waiting, what was sent back, how many rises were signed off this year (and how
+many were outside the policy), the average rise, and a breakdown by department.
+
+| Endpoint | Who | What |
+|---|---|---|
+| `GET /api/finance/pay-reviews` | Finance | Every pay rise with Finance, sent back or signed off, with a summary |
+| `POST /api/finance/pay-reviews/{id}/sign-off` | Finance | Sign off (optional note); tells the manager and employee |
+| `POST /api/finance/pay-reviews/{id}/return` | Finance | Send back to HR with a reason (20+ characters) |
+| `GET /api/finance/pay-policy` | Finance | Read the pay policy |
+| `POST /api/promotion/decisions/{id}/resubmit` | HR | Revise a returned pay rise and send it back to Finance |
 

@@ -66,3 +66,9 @@ def recommendation(employee_id, reason="Led the migration project and mentored t
     body.update(changes)
     return body
 
+
+def sign_off(client, decision_id):
+    """Finance signs off an approved promotion's pay rise (only then are the manager and employee told)."""
+    res = client.post(f"/api/finance/pay-reviews/{decision_id}/sign-off", headers=login(client, "finance"), json={})
+    assert res.status_code == 200, res.text
+    return res.json()

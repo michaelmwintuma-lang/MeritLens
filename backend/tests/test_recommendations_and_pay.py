@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import pytest
 
 from app.promotion.features import MODEL_FEATURES
-from tests.conftest import emails_to, login, recommendation
+from tests.conftest import emails_to, login, recommendation, sign_off
 
 
 def team(client):
@@ -105,7 +105,9 @@ def test_the_employee_sees_only_their_approved_promotion(client):
     employee = login(client, "employee")
     nomination_id = recommend(client, me["employee_id"]).json()["id"]
     assert client.get("/api/promotion/my-promotions", headers=employee).json() == []  # pending: not shown yet
-    decide(client, nomination_id, approved_raise=11)
+    decision = decide(client, nomination_id, approved_raise=11).json()
+    assert client.get("/api/promotion/my-promotions", headers=employee).json() == []  # waiting for Finance: not yet
+    sign_off(client, decision["id"])
     mine = client.get("/api/promotion/my-promotions", headers=employee).json()
     assert mine[0]["title"] == "Senior Analyst" and mine[0]["raise"] == 11 and mine[0]["start"]
     email = emails_to("employee@example.org")[-1]
@@ -119,7 +121,7 @@ def test_only_employees_use_my_promotions(client, username):
 
 def test_the_manager_hears_the_approved_rise(client):
     nomination_id = recommend(client, member(client)["id"]).json()["id"]
-    decide(client, nomination_id, approved_raise=9.5)
+    sign_off(client, decide(client, nomination_id, approved_raise=9.5).json()["id"])
     assert "9.5%" in emails_to("manager@example.org")[-1]["text"]
 
 

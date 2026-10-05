@@ -9,6 +9,9 @@ Nominations and decisions.
    model only advises: HR's decision is final. If HR disagrees with the model, a reason of at least 20 characters
    is required. An approval sets the final pay rise; going outside the policy range needs a written reason too.
 3. Every decision is saved in the decision log, with the model's score and recommendation at that moment.
+4. An approval's pay rise goes to Finance to sign off (routes_finance.py). Only when Finance signs it off are the
+   manager and employee told, and the employee sees the promotion. If Finance sends it back, HR revises the rise
+   and resubmits it. A rejection is final at once and goes straight to the manager.
 
 Pay is kept apart from the model: only percentages are stored (never salaries), and they never reach the model's
 inputs (tests check this).
@@ -21,7 +24,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.accounts.contacts import hr_contacts, login_for_employee
+from app.accounts.contacts import finance_contacts, hr_contacts, login_for_employee
 from app.accounts.models import User
 from app.core import email_templates as templates
 from app.core import mailer
@@ -29,7 +32,7 @@ from app.core.activity import record
 from app.core.database import get_db
 from app.core.roles import EMPLOYEE, HR, MANAGER
 from app.core.security import require_roles
-from app.promotion.models import Decision, Employee, Nomination, PayPolicy
+from app.promotion.models import Decision, Employee, Nomination, PayPolicy, PayReview
 from app.promotion.routes import model
 
 router = APIRouter(prefix="/api/promotion", tags=["decisions"])
@@ -158,13 +161,16 @@ def recommendation(nomination: Nomination) -> dict:
     }
 
 
-def describe(db: Session, nomination: Nomination) -> dict:
-    """A nomination as the pages show it, with the model's current view and the decision, if any."""
+def describe(db: Session, nomination: Nomination, for_manager: bool = False) -> dict:
+    """
+    A nomination as the pages show it, with the model's current view and the decision, if any. A manager sees an
+    approval only once Finance has signed off its pay rise; until then it shows as "finalising".
+    """
     employee = db.get(Employee, nomination.employee_id)
     live = model()
     score = live.score(employee.record)
     decision = db.scalar(select(Decision).where(Decision.nomination_id == nomination.id))
-    return {
+    result = {
         "id": nomination.id,
         "employee": {"id": employee.id, "full_name": employee.full_name, "department": employee.department},
         "nominated_by": name_of(db, nomination.nominated_by),
@@ -175,6 +181,9 @@ def describe(db: Session, nomination: Nomination) -> dict:
         "model_now": {"score": round(score, 4), "threshold": live.threshold, "recommended": score >= live.threshold},
         "decision": log_entry(db, decision) if decision else None,
     }
+    if for_manager and decision and decision.pay_status in ("awaiting_finance", "returned"):
+        result.update(status="finalising", decision=None)
+    return result
 
 
 @router.get("/nominations")
@@ -183,7 +192,7 @@ def list_nominations(user: User = Depends(require_roles(HR, MANAGER)), db: Sessi
     query = select(Nomination).order_by(Nomination.created_at.desc())
     if user.role == MANAGER:
         query = query.where(Nomination.nominated_by == user.id)
-    return [describe(db, n) for n in db.scalars(query)]
+    return [describe(db, n, for_manager=user.role == MANAGER) for n in db.scalars(query)]
 
 
 @router.get("/nominations/{nomination_id}")
@@ -191,7 +200,7 @@ def get_nomination(nomination_id: int, user: User = Depends(require_roles(HR, MA
     nomination = db.get(Nomination, nomination_id)
     if nomination is None or (user.role == MANAGER and nomination.nominated_by != user.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such nomination.")
-    return describe(db, nomination)
+    return describe(db, nomination, for_manager=user.role == MANAGER)
 
 
 # ─── Deciding ─────────────────────────────────────────────────────────────────
@@ -240,22 +249,84 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
     decision = Decision(nomination_id=nomination.id, employee_id=nomination.employee_id, decided_by=user.id,
                         decision=body.decision, model_score=round(score, 4), model_threshold=live.threshold,
                         model_recommended=recommended, agrees_with_model=agrees, reason=reason,
-                        approved_raise=raise_percent, raise_reason=raise_reason)
+                        approved_raise=raise_percent, raise_reason=raise_reason,
+                        pay_status="awaiting_finance" if approved else None)
     nomination.status = "approved" if approved else "rejected"
     db.add(decision)
     employee_name = db.get(Employee, nomination.employee_id).full_name
     record(db, user, "decision_made", f"{nomination.status}: {employee_name}{'' if agrees else ' (differs from the model)'}")
+    if approved:
+        db.flush()  # gives the decision its id
+        db.add(PayReview(decision_id=decision.id, action="submitted", by_user=user.id, by_name=user.full_name,
+                         raise_percent=raise_percent, note=raise_reason))
     db.commit()
 
+    if approved:  # nobody is told until Finance signs off the pay rise
+        for email, finance_name in finance_contacts(db):
+            background.add_task(mailer.send, email, templates.pay_review_waiting(
+                finance_name, employee_name, nomination.proposed_title, raise_percent))
+    else:
+        manager = db.get(User, nomination.nominated_by)
+        if manager and manager.email:
+            background.add_task(mailer.send, manager.email, templates.decision_for_manager(
+                manager.full_name, employee_name, False, reason, nomination.proposed_title))
+    return log_entry(db, decision)
+
+
+def tell_about_promotion(background: BackgroundTasks, db: Session, decision: Decision) -> None:
+    """Once Finance has signed off: email the manager, and the employee if they have an account."""
+    nomination = db.get(Nomination, decision.nomination_id)
+    employee_name = db.get(Employee, decision.employee_id).full_name
     manager = db.get(User, nomination.nominated_by)
     if manager and manager.email:
         background.add_task(mailer.send, manager.email, templates.decision_for_manager(
-            manager.full_name, employee_name, approved, reason, nomination.proposed_title, raise_percent))
-    employee_login = login_for_employee(db, nomination.employee_id) if approved else None
+            manager.full_name, employee_name, True, decision.reason, nomination.proposed_title, decision.approved_raise))
+    employee_login = login_for_employee(db, decision.employee_id)
     if employee_login and employee_login.email:
         start = nomination.proposed_start.isoformat() if nomination.proposed_start else None
         background.add_task(mailer.send, employee_login.email, templates.promotion_approved(
-            employee_login.full_name, nomination.proposed_title, start, raise_percent))
+            employee_login.full_name, nomination.proposed_title, start, decision.approved_raise))
+
+
+def pay_history(db: Session, decision_id: int) -> list[dict]:
+    """Every step of the pay rise's sign-off, oldest first."""
+    steps = db.scalars(select(PayReview).where(PayReview.decision_id == decision_id).order_by(PayReview.at, PayReview.id))
+    return [{"action": s.action, "by": s.by_name, "at": iso(s.at), "raise": s.raise_percent, "note": s.note} for s in steps]
+
+
+# ─── HR resubmits a pay rise Finance sent back ────────────────────────────────
+class ResubmitIn(BaseModel):
+    approved_raise: float = Field(ge=0, le=100)
+    raise_reason: str | None = Field(default=None, max_length=2000)
+    note: str = Field(min_length=10, max_length=2000)
+
+
+@router.post("/decisions/{decision_id}/resubmit")
+def resubmit(decision_id: int, body: ResubmitIn, background: BackgroundTasks, user: User = Depends(require_roles(HR)),
+             db: Session = Depends(get_db)):
+    """HR answers Finance: a revised (or the same) pay rise, with a note. It goes back to Finance."""
+    decision = db.get(Decision, decision_id)
+    if decision is None or decision.decision != "approve":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such approved promotion.")
+    if decision.pay_status != "returned":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Only a pay rise Finance has sent back can be resubmitted.")
+    raise_percent = round(body.approved_raise, 1)
+    policy = pay_policy(db)
+    raise_reason = (body.raise_reason or "").strip() or None
+    if not policy.min_raise <= raise_percent <= policy.max_raise and (raise_reason is None or len(raise_reason) < MIN_DISAGREEMENT_REASON):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            f"{raise_percent:g}% is outside the pay policy ({policy.min_raise:g}% to {policy.max_raise:g}%), "
+                            f"so please explain why, in at least {MIN_DISAGREEMENT_REASON} characters.")
+    decision.approved_raise, decision.raise_reason, decision.pay_status = raise_percent, raise_reason, "awaiting_finance"
+    db.add(PayReview(decision_id=decision.id, action="resubmitted", by_user=user.id, by_name=user.full_name,
+                     raise_percent=raise_percent, note=body.note.strip()))
+    employee_name = db.get(Employee, decision.employee_id).full_name
+    record(db, user, "pay_resubmitted", f"{employee_name}: {raise_percent:g}%")
+    db.commit()
+    nomination = db.get(Nomination, decision.nomination_id)
+    for email, finance_name in finance_contacts(db):
+        background.add_task(mailer.send, email, templates.pay_review_waiting(
+            finance_name, employee_name, nomination.proposed_title, raise_percent, resubmitted=True))
     return log_entry(db, decision)
 
 
@@ -279,6 +350,8 @@ def log_entry(db: Session, decision: Decision) -> dict:
         "proposed_raise": nomination.proposed_raise if nomination else None,
         "approved_raise": decision.approved_raise,
         "raise_reason": decision.raise_reason,
+        "pay_status": decision.pay_status,
+        "pay_history": pay_history(db, decision.id),
     }
 
 
@@ -291,11 +364,15 @@ def decision_log(_: User = Depends(require_roles(HR)), db: Session = Depends(get
 # ─── The employee's own promotions ────────────────────────────────────────────
 @router.get("/my-promotions")
 def my_promotions(user: User = Depends(require_roles(EMPLOYEE)), db: Session = Depends(get_db)):
-    """An employee's approved promotions: new role, start date and pay rise. Pending nominations aren't shown."""
+    """
+    An employee's approved promotions: new role, start date and pay rise. Pending nominations aren't shown, and
+    nor are approvals whose pay rise Finance hasn't signed off yet.
+    """
     if not user.employee_id:
         return []
     rows = []
-    for decision in db.scalars(select(Decision).where(Decision.employee_id == user.employee_id, Decision.decision == "approve")
+    signed_off = (Decision.pay_status.is_(None)) | (Decision.pay_status == "signed_off")  # empty: before Finance existed
+    for decision in db.scalars(select(Decision).where(Decision.employee_id == user.employee_id, Decision.decision == "approve", signed_off)
                                .order_by(Decision.decided_at.desc())):
         nomination = db.get(Nomination, decision.nomination_id)
         rows.append({"title": nomination.proposed_title, "approved_on": decision.decided_at.date().isoformat(),

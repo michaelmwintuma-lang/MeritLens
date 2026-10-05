@@ -1,4 +1,5 @@
-// The bell at the top right. HR is told about new reports and replies; reporters about replies on their cases.
+// The bell at the top right. HR is told about new reports and replies, and about pay rises Finance sent back;
+// Finance about pay rises waiting for sign-off; reporters about replies on their cases.
 //
 // Reporters' notifications are worked out in their own browser: it checks only the cases saved on this device
 // (My report keys) and compares them with what the reporter has already seen. The server never stores which
@@ -14,8 +15,16 @@ import { REPORTER_ROLES } from "../roles";
 const CHECK_EVERY_MS = 60_000;
 
 async function hrItems() {
-  const items = await api("/hr/reports/notifications");
-  return items.map((i) => ({ id: `${i.case_id}-${i.kind}`, text: i.text, detail: `Case ${i.case_id}`, to: `/reports/${i.case_id}` }));
+  const [items, decisions] = await Promise.all([api("/hr/reports/notifications"), api("/promotion/decisions")]);
+  const sentBack = decisions.filter((d) => d.pay_status === "returned").map((d) => ({
+    id: `pay-${d.id}`, text: "Finance sent a pay rise back", detail: d.employee.full_name, to: `/nominations/${d.nomination_id}` }));
+  return [...sentBack, ...items.map((i) => ({ id: `${i.case_id}-${i.kind}`, text: i.text, detail: `Case ${i.case_id}`, to: `/reports/${i.case_id}` }))];
+}
+
+async function financeItems() {
+  const { reviews } = await api("/finance/pay-reviews");
+  return reviews.filter((r) => r.status === "awaiting_finance").map((r) => ({
+    id: `pay-${r.id}`, text: `Pay rise to sign off: ${r.raise}%`, detail: `${r.employee.full_name} · ${r.new_title || "promotion"}`, to: "/finance" }));
 }
 
 async function reporterItems() {
@@ -42,11 +51,11 @@ export default function NotificationBell() {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const box = useRef(null);
-  const role = user.role === "hr" ? "hr" : REPORTER_ROLES.includes(user.role) ? "reporter" : null;
+  const role = ["hr", "finance"].includes(user.role) ? user.role : REPORTER_ROLES.includes(user.role) ? "reporter" : null;
 
   useEffect(() => {
     if (!role) return undefined;
-    const load = () => (role === "hr" ? hrItems() : reporterItems()).then(setItems).catch(() => {});
+    const load = () => ({ hr: hrItems, finance: financeItems }[role] || reporterItems)().then(setItems).catch(() => {});
     load();
     const timer = setInterval(load, CHECK_EVERY_MS);
     return () => clearInterval(timer);

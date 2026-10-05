@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import login, recommendation
+from tests.conftest import login, recommendation, sign_off
 
 pytestmark = pytest.mark.skipif(not (Path(__file__).resolve().parents[1] / "models" / "model.joblib").exists(),
                                 reason="run train.py first")
@@ -119,6 +119,9 @@ def test_every_decision_is_logged_with_the_models_view(client):
     assert entry["decided_by"] == "Hana Reviewer" and entry["decision"] == "approve" and entry["decided_at"]
     assert entry["model_recommended"] is False and 0 <= entry["model_score"] < entry["model_threshold"]
     assert entry["reason"] == "Exceptional client feedback not in the data."
+    nomination = client.get(f"/api/promotion/nominations/{nomination_id}", headers=login(client, "manager")).json()
+    assert nomination["status"] == "finalising" and nomination["decision"] is None  # the manager waits for Finance
+    sign_off(client, entry["id"])
     nomination = client.get(f"/api/promotion/nominations/{nomination_id}", headers=login(client, "manager")).json()
     assert nomination["status"] == "approved" and nomination["decision"]["id"] == entry["id"]
 

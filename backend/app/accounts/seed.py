@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.models import User
 from app.core.config import DEMO_PASSWORD
-from app.core.roles import ADMIN, EMPLOYEE, HR, MANAGER
+from app.core.roles import ADMIN, EMPLOYEE, FINANCE, HR, MANAGER
 from app.core.security import hash_password
 
 DEMO_ACCOUNTS = [
@@ -12,6 +12,7 @@ DEMO_ACCOUNTS = [
     ("hr", "Hana Reviewer", HR),
     ("manager", "Mo Manager", MANAGER),
     ("employee", "Eli Employee", EMPLOYEE),
+    ("finance", "Fay Finance", FINANCE),
 ]
 
 

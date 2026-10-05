@@ -13,7 +13,7 @@ import { Button, Card, PageHeader, Segmented } from "../../components/ui";
 import { useAction } from "../../useAction";
 
 const TABS = {
-  staff: { label: "Administration", roles: ["admin", "hr"], note: "Admin and HR accounts. They aren't linked to an employee record." },
+  staff: { label: "Administration", roles: ["admin", "hr", "finance"], note: "Admin, HR and Finance accounts. They aren't linked to an employee record." },
   people: { label: "Employees", roles: ["employee", "manager"], note: "Employee and Manager accounts, each linked to their employee record." },
 };
 const emptyForm = (role) => ({ username: "", full_name: "", email: "", role, job_title: "", employee_id: "" });

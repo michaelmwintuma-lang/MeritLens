@@ -3,12 +3,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
-from app.core.roles import HR
+from app.core.roles import FINANCE, HR
 
 
 def hr_contacts(db: Session) -> list[tuple[str, str]]:
     """(email, name) of every active HR account that has an email address."""
     users = db.scalars(select(User).where(User.role == HR, User.is_active.is_(True), User.email.is_not(None)))
+    return [(u.email, u.full_name) for u in users]
+
+
+def finance_contacts(db: Session) -> list[tuple[str, str]]:
+    """(email, name) of every active Finance account that has an email address."""
+    users = db.scalars(select(User).where(User.role == FINANCE, User.is_active.is_(True), User.email.is_not(None)))
     return [(u.email, u.full_name) for u in users]
 
 

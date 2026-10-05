@@ -1,15 +1,13 @@
 // The four roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
-import {
-  BookCheck, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, KeyRound, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck,
-  TrendingUp, UserCog, UserRound, Users,
-} from "lucide-react";
+import { Banknote, BookCheck, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, KeyRound, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
 
 export const ROLE_NAMES = {
   employee: "Employee",
   manager: "Manager",
   hr: "HR",
   admin: "Admin",
+  finance: "Finance",
 };
 
 export const ROLE_DESCRIPTIONS = {
@@ -17,6 +15,7 @@ export const ROLE_DESCRIPTIONS = {
   manager: "See your team's scores, nominate team members for promotion, and report a concern anonymously.",
   hr: "See all employees, decide on nominations, and handle anonymous reports.",
   admin: "Create and manage user accounts, and view the activity log.",
+  finance: "Sign off the pay rise of each approved promotion, or send it back to HR with a reason.",
 };
 
 // Who uses the anonymous reporting pages (HR handles reports in the report inbox instead)
@@ -55,6 +54,8 @@ export const MENU = {
       { to: "/admin/activity", label: "Activity log", icon: ScrollText },
       { to: "/admin/email", label: "Email", icon: Mail },
       { to: "/admin/demo-requests", label: "Demo requests", icon: CalendarCheck }] }],
+  finance: [OVERVIEW,
+    { group: "Finance", icon: Banknote, items: [{ to: "/finance", label: "Pay sign-off", icon: Banknote }] }],
 };
 
 // Admins an admin has allowed to view employee data (read-only) get the employee pages too
@@ -73,9 +74,10 @@ export const PHONE_TABS = {
   manager: ["/", "/team", "/report"],
   hr: ["/", "/nominations", "/reports"],
   admin: ["/", "/admin/users", "/admin/activity"],
+  finance: ["/", "/finance"],
 };
 // Short names that fit under a tab icon
 export const SHORT_LABELS = {
   "/": "Home", "/my-readiness": "Readiness", "/report": "Report", "/team": "Team",
-  "/nominations": "Nominations", "/reports": "Inbox", "/admin/users": "Users", "/admin/activity": "Activity",
+  "/nominations": "Nominations", "/reports": "Inbox", "/admin/users": "Users", "/admin/activity": "Activity", "/finance": "Pay",
 };

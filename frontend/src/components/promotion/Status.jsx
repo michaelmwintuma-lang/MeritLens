@@ -3,6 +3,7 @@
 export function NominationStatus({ status }) {
   if (status === "approved") return <span className="tag tag-yes">Approved</span>;
   if (status === "rejected") return <span className="tag tag-off">Rejected</span>;
+  if (status === "finalising") return <span className="tag tag-info">Being finalised</span>;  // a manager's view, until Finance signs off
   return <span className="tag">Waiting for HR</span>;
 }
 

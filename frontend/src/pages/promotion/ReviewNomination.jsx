@@ -9,10 +9,67 @@ import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
 import Contributions from "../../components/promotion/Contributions";
 import Recommendation from "../../components/promotion/Recommendation";
 import { NominationStatus } from "../../components/promotion/Status";
+import { PayStatus, PayTimeline } from "../../components/promotion/PayStatus";
 import { Button, PageHeader } from "../../components/ui";
 import { useAction } from "../../useAction";
 
 const MIN_REASON = 20;
+
+/** After approval: where the pay rise is with Finance, and (if Finance sent it back) HR's revision. */
+function PaySignOff({ decision, policy, onChange }) {
+  const [raise, setRaise] = useState(String(decision.approved_raise));
+  const [raiseReason, setRaiseReason] = useState(decision.raise_reason || "");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const [working, withWorking] = useAction();
+  const value = Number(raise);
+  const outside = raise !== "" && (value < policy.min_raise || value > policy.max_raise);
+  const blocked = raise === "" || note.trim().length < 10 || (outside && raiseReason.trim().length < MIN_REASON);
+
+  async function resubmit(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      onChange(await api(`/promotion/decisions/${decision.id}/resubmit`, { method: "POST",
+        body: { approved_raise: value, raise_reason: raiseReason.trim() || null, note: note.trim() } }));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <section className="card">
+      <div className="row spread"><h2>Pay rise: {decision.approved_raise}%</h2><PayStatus status={decision.pay_status} /></div>
+      <p className="muted">
+        {decision.pay_status === "awaiting_finance" && "Waiting for Finance to sign it off. The manager and employee are told only after that."}
+        {decision.pay_status === "returned" && "Finance sent this back. Revise the pay rise (or keep it) and answer their note."}
+        {decision.pay_status === "signed_off" && "Finance has signed it off, and the manager and employee have been told."}
+        {!decision.pay_status && "Approved before Finance sign-off was introduced."}
+      </p>
+      <PayTimeline history={decision.pay_history} />
+      {decision.pay_status === "returned" && (
+        <form onSubmit={(e) => withWorking(() => resubmit(e))} style={{ marginTop: 16 }}>
+          {error && <p className="alert alert-error" role="alert">{error}</p>}
+          <div className="form-row">
+            <label className="field">Revised pay rise (%)
+              <input type="number" value={raise} onChange={(e) => setRaise(e.target.value)} min={0} max={100} step="0.5" required />
+              <span className={outside ? "field-problem" : "field-hint"}>Policy: {policy.min_raise}% to {policy.max_raise}%.</span>
+            </label>
+          </div>
+          {outside && (
+            <label className="field"><span>Why go outside the policy? <span className="small">(required, {raiseReason.trim().length}/{MIN_REASON} characters)</span></span>
+              <textarea rows={2} value={raiseReason} onChange={(e) => setRaiseReason(e.target.value)} maxLength={2000} />
+            </label>
+          )}
+          <label className="field"><span>Your answer to Finance <span className="small">(at least 10 characters)</span></span>
+            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} />
+          </label>
+          <Button busy={working} busyText="Sending to Finance…" disabled={blocked}>Send to Finance again</Button>
+        </form>
+      )}
+    </section>
+  );
+}
 
 export default function ReviewNomination() {
   const { id } = useParams();
@@ -125,6 +182,9 @@ export default function ReviewNomination() {
           )}
           <Button busy={working} busyText="Saving decision…" disabled={!decision || reasonTooShort || raiseMissing || raiseReasonTooShort}>Save decision</Button>
         </form>
+      ) : nomination.decision?.decision === "approve" ? (
+        <PaySignOff decision={nomination.decision} policy={policy}
+          onChange={(decision) => setNomination({ ...nomination, decision })} />
       ) : (
         <p className="alert alert-info">This nomination has already been decided. See the decision log.</p>
       )}

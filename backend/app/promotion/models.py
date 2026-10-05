@@ -69,6 +69,26 @@ class Decision(Base):
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     approved_raise: Mapped[float | None] = mapped_column(Float, nullable=True)  # the % HR approved (approvals only)
     raise_reason: Mapped[str | None] = mapped_column(Text, nullable=True)       # needed when outside the pay policy
+    # Finance's sign-off of the pay rise (approvals only): awaiting_finance, returned (to HR) or signed_off.
+    # Empty for rejections, and for approvals made before Finance sign-off existed.
+    pay_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+
+class PayReview(Base):
+    """
+    One step in a promotion pay rise's journey, kept for audit: HR sends it to Finance, Finance signs it off or
+    sends it back with a reason, HR resubmits. Nothing is ever changed or deleted. Only percentages are kept.
+    """
+    __tablename__ = "pay_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), index=True)
+    action: Mapped[str] = mapped_column(String(20))          # submitted, returned, resubmitted or signed_off
+    by_user: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    by_name: Mapped[str] = mapped_column(String(120))         # kept even if the account is renamed or deleted
+    at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    raise_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class PayPolicy(Base):
