@@ -143,7 +143,7 @@ export default function Users() {
   return (
     <>
       <PageHeader icon={UserCog} title="Users"
-        subtitle="Only administrators create accounts. Each new user is emailed a temporary password, and chooses their own (and may change their username) at first sign-in."
+        subtitle="New users get a temporary password by email."
         actions={<Segmented label="Account type" value={tab} onChange={switchTab} options={Object.entries(TABS).map(([value, t]) => (
           { value, label: `${t.label} (${users.filter((u) => t.roles.includes(u.role)).length})` }))} />} />
       {error && <p className="alert alert-error" role="alert">{error}</p>}
@@ -180,8 +180,8 @@ export default function Users() {
       )}
 
       <Card flush title={`${TABS[tab].label} accounts`} subtitle={tab === "staff"
-        ? "Edit details, reset passwords, deactivate accounts, and choose which admins may view employee data."
-        : "Edit details, reset passwords, deactivate accounts, and set managers' teams (each manager is emailed about new team members)."}>
+        ? undefined
+        : "Managers are emailed when people join their team."}>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>

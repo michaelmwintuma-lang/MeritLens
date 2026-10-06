@@ -4,6 +4,7 @@ turns them into the HTML and plain-text versions.
 
 Rule for anything about anonymous reports: never the report's text, and nothing about who sent it.
 """
+from app.core.config import APP_NAME
 from app.core.mailer import link
 
 FIRST_SIGN_IN = "When you first sign in, you'll be asked to choose your own password. You can change your username then too."
@@ -11,7 +12,7 @@ FIRST_SIGN_IN = "When you first sign in, you'll be asked to choose your own pass
 
 def welcome(full_name: str, username: str, temporary_password: str, job_title: str | None = None) -> dict:
     return {
-        "subject": "Your account for the Promotion & Reporting platform",
+        "subject": f"Your {APP_NAME} account",
         "heading": "Welcome aboard",
         "greeting": f"Hello {full_name},",
         "paragraphs": [f"An administrator has created an account for you{f' as {job_title}' if job_title else ''}. Here are your sign-in details.", FIRST_SIGN_IN],
@@ -149,7 +150,7 @@ def report_alert(hr_name: str, case_id: str, category: str, priority: str) -> di
 
 def test_email(name: str) -> dict:
     return {
-        "subject": "Test email from the Promotion & Reporting platform",
+        "subject": f"Test email from {APP_NAME}",
         "heading": "Email is working",
         "greeting": f"Hello {name},",
         "paragraphs": ["This is a test email sent from the admin's Email page. If you can read it, emails from the platform will arrive."],

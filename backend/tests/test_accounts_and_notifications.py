@@ -1,4 +1,5 @@
 """Tests for welcome emails, editing accounts, changing your username, notifications, and the public summary."""
+from app.core.config import APP_NAME
 import pytest
 
 from tests.conftest import emails_to, login
@@ -16,7 +17,7 @@ def test_new_accounts_get_a_welcome_email_with_their_sign_in_details(client):
     body = res.json()
     assert body["email_sent"] is False and "saved to instance/outbox/" in body["email_detail"]  # no mail server in tests
     email = emails_to("new.person@example.org")[-1]
-    assert email["subject"] == "Your account for the Promotion & Reporting platform"
+    assert email["subject"] == f"Your {APP_NAME} account"
     assert "new.person" in email["text"] and body["temporary_password"] in email["text"] and "/login" in email["text"]
     assert body["temporary_password"] in email["html"]  # the branded version carries the same details
 

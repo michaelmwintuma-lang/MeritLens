@@ -19,7 +19,7 @@ export default function DecisionLog() {
   return (
     <>
       <PageHeader icon={BookCheck} title="Decision log"
-        subtitle="Every promotion decision, with the model's score and recommendation at the moment it was made." />
+        subtitle="With the model's score at the time of each decision." />
       <div className="stat-grid">
         <StatCard label="Decisions" value={log.length} note="Approved or rejected" />
         <StatCard label="Approved" value={log.filter((d) => d.decision === "approve").length} note="Promotions granted" />

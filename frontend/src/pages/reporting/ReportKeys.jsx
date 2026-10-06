@@ -55,9 +55,9 @@ export default function ReportKeys() {
 
   return (
     <>
-      <PageHeader icon={KeyRound} title="My report keys" subtitle="Case IDs and keys saved on this device, so you don't have to type them." />
+      <PageHeader icon={KeyRound} title="My report keys"  />
 
-      <Card flush title={`Saved on this device (${keys.length})`} subtitle="Stored only in this browser. They are never sent to the server, so nobody else can link them to you.">
+      <Card flush title={`Saved on this device (${keys.length})`} subtitle="Kept in this browser only, never sent to the server.">
         {keys.length === 0 ? (
           <EmptyState icon={KeyRound} title="No keys saved here" text="When you send a report, choose “Save on this device”, or add a key you wrote down below." />
         ) : (

@@ -96,7 +96,7 @@ export default function PaySignOff() {
   return (
     <>
       <PageHeader icon={Banknote} title="Pay sign-off"
-        subtitle="HR has approved these promotions. Confirm each pay rise before anyone is told, or send it back to HR with a reason." />
+        subtitle="Approved promotions whose pay rise needs confirming." />
       {message && <p className="alert alert-success" role="status">{message}</p>}
 
       <div className="stat-grid">
@@ -146,7 +146,7 @@ export default function PaySignOff() {
         )}
       </Card>
 
-      <Card title="Signed off this year, by department" subtitle="How many promotion pay rises were confirmed, and their average.">
+      <Card title="Signed off this year, by department">
         {summary.by_department.length === 0 ? <p className="muted">None signed off yet this year.</p> : (
           <div className="table-wrap"><table>
             <thead><tr><th>Department</th><th>Promotions</th><th>Average pay rise</th></tr></thead>

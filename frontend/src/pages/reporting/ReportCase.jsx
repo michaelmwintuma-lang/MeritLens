@@ -97,11 +97,9 @@ export default function ReportCase() {
       </Card>
 
       <Card title="Why this priority"
-        subtitle={`Suggested when the report arrived: ${PRIORITY_LABELS[report.suggested_priority]}. It's a suggestion: you can change it below.`}>
+        subtitle={`Suggested on arrival: ${PRIORITY_LABELS[report.suggested_priority]}. You can change it below.`}>
         <ModelReading reading={report.triage.model} />
         <ul className="links">{report.triage.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
-        <p className="muted small">The language model learned from labelled example reports. Safety rules can raise its suggestion
-          (words suggesting danger or self-harm, and some categories), but never lower it.</p>
       </Card>
 
       <Card title="Photos and videos" subtitle={report.evidence.length ? `${report.evidence.length} added by the reporter. Location, device and time were removed before saving.` : undefined}>
@@ -109,7 +107,7 @@ export default function ReportCase() {
         {report.evidence.length > 0 && <details className="details"><summary>What was removed, and what wasn't</summary><EvidencePrivacy /></details>}
       </Card>
 
-      <Card title="Conversation" subtitle="The reporter sees you as “Investigator”. Don't sign with your name, and never ask who they are.">
+      <Card title="Conversation" subtitle="You appear as “Investigator”. Don't sign with your name or ask who they are.">
         <Conversation messages={report.conversation} me="investigator" />
         {!closed && (
           <form onSubmit={(e) => withSending(() => send(e))} style={{ marginTop: 16 }}>
@@ -121,7 +119,7 @@ export default function ReportCase() {
         )}
       </Card>
 
-      <Card title="Manage the case" subtitle="The outcome stays in the reporting part: it is never used by the promotion model.">
+      <Card title="Manage the case">
         <form onSubmit={(e) => withSaving(() => save(e))}>
           <div className="form-row">
             <label className="field">Priority

@@ -31,7 +31,7 @@ function PayPolicy() {
   }
 
   return (
-    <Card title="Promotion pay policy" subtitle={`Managers propose a pay rise between ${policy.min_raise}% and ${policy.max_raise}%. You set the final figure, and can go outside the range with a written reason. Only percentages are kept, never salaries.`}>
+    <Card title="Promotion pay policy" subtitle="Managers propose within this range. Going outside it needs a written reason.">
       <form onSubmit={(e) => withSaving(() => save(e))} className="row" style={{ alignItems: "flex-end", gap: 14 }}>
         <label className="field" style={{ marginBottom: 0 }}>Lowest rise (%)<input type="number" min={0} max={100} step="0.5" value={form.min_raise} onChange={(e) => setForm({ ...form, min_raise: e.target.value })} required /></label>
         <label className="field" style={{ marginBottom: 0 }}>Highest rise (%)<input type="number" min={0} max={100} step="0.5" value={form.max_raise} onChange={(e) => setForm({ ...form, max_raise: e.target.value })} required /></label>
@@ -52,13 +52,10 @@ export default function Nominations() {
   return (
     <>
       <PageHeader icon={ClipboardCheck} title={isHr ? "Nominations" : "My nominations"}
-        subtitle={isHr
-          ? "Managers' recommendations. Review one to see the model's view and make the final decision."
-          : "People you have recommended, and HR's decisions. To recommend someone, open them from My team."} />
+        subtitle={isHr ? undefined : "To recommend someone, open them from My team."} />
       {error && <p className="alert alert-error">{error}</p>}
       {!list && !error && <p className="muted">Loading…</p>}
-      {list && <NominationsTable nominations={list} isHr={isHr} title="Applications for promotion"
-        subtitle={isHr ? "Waiting ones need your decision." : "HR decides; the model only advises."} />}
+      {list && <NominationsTable nominations={list} isHr={isHr} title="Recommendations" />}
       {isHr && <PayPolicy />}
     </>
   );

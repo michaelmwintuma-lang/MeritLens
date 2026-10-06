@@ -14,7 +14,7 @@ from datetime import datetime
 from email.message import EmailMessage
 from email.utils import formataddr
 
-from app.core.config import APP_URL, OUTBOX_DIR, SMTP
+from app.core.config import APP_NAME, APP_URL, OUTBOX_DIR, SMTP
 
 
 def is_configured() -> bool:
@@ -33,7 +33,7 @@ def _text(mail: dict) -> str:
         lines += [f"{mail['button'][0]}: {mail['button'][1]}", ""]
     if mail.get("note"):
         lines += [mail["note"], ""]
-    lines.append("Promotion & Reporting")
+    lines.append(APP_NAME)
     return "\n".join(lines)
 
 
@@ -56,13 +56,13 @@ def _html(mail: dict) -> str:
     return f"""<!doctype html><html><body style="margin:0;background:#f5f7fa;font-family:Segoe UI,Arial,sans-serif;color:#0f172a">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:28px 12px"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e6e9ef;border-radius:16px">
-<tr><td style="padding:20px 28px;border-bottom:1px solid #e6e9ef;font-weight:800;font-size:15px">Promotion &amp; Reporting
+<tr><td style="padding:20px 28px;border-bottom:1px solid #e6e9ef;font-weight:800;font-size:15px">{html.escape(APP_NAME)}
 <span style="display:block;font-size:11px;letter-spacing:.08em;color:#64748b;font-weight:700">STAFF PLATFORM</span></td></tr>
 <tr><td style="padding:26px 28px 24px;font-size:15px;line-height:1.55">
 <h1 style="font-size:21px;margin:0 0 16px">{e(mail["heading"])}</h1>
 <p style="margin:0 0 14px">{e(mail["greeting"])}</p>{paragraphs}{details}{button}{note}
 </td></tr></table>
-<p style="color:#94a3b8;font-size:12px;margin:14px 0 0">Sent automatically by the Promotion &amp; Reporting platform.</p>
+<p style="color:#94a3b8;font-size:12px;margin:14px 0 0">Sent automatically by {html.escape(APP_NAME)}.</p>
 </td></tr></table></body></html>"""
 
 

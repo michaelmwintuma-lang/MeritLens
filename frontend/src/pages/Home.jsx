@@ -5,7 +5,6 @@ import { ArrowRight, LayoutGrid } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { percent } from "../format";
-import { ROLE_DESCRIPTIONS } from "../roles";
 import { Card, PageHeader, StatCard } from "../components/ui";
 import ScoreBar, { Verdict } from "../components/promotion/ScoreBar";
 import NominationsTable from "../components/promotion/NominationsTable";
@@ -43,7 +42,7 @@ function PromotionOverview({ data, isHr }) {
       </div>
       <NominationsTable nominations={nominations} isHr={isHr}
         title={isHr ? "Nominations" : "My nominations"}
-        subtitle={isHr ? "Review managers' nominations alongside the model's view." : "People you nominated and HR's decisions."} />
+        subtitle={isHr ? "Open one to see the model's view and decide." : undefined} />
     </>
   );
 }
@@ -57,7 +56,7 @@ function EmployeeOverview({ me }) {
         <StatCard label="Threshold" value={percent(me.threshold)} note="Where the model recommends promotion" />
         <StatCard label="Average employee" value={percent(me.average_employee_score)} note="For comparison" />
       </div>
-      <Card title="Where you stand" subtitle="The model only advises: HR makes promotion decisions." actions={<Verdict recommended={me.recommended} />}>
+      <Card title="Where you stand" actions={<Verdict recommended={me.recommended} />}>
         <ScoreBar score={me.score} threshold={me.threshold} />
         <p className="summary">{me.summary}</p>
         <Link className="btn btn-primary" to="/my-readiness">See why, try changes and get tips <ArrowRight size={16} /></Link>
@@ -94,7 +93,7 @@ function AdminOverview({ data }) {
         <StatCard label="Employees with a login" value={employees.filter((e) => e.login).length} note={`of ${employees.length} in the directory`} />
         <StatCard label="Must change password" value={users.filter((u) => u.must_change_password).length} note="New or reset accounts" />
       </div>
-      <Card title="Accounts" subtitle="Create accounts for every role, link employees to their records, and set managers' teams.">
+      <Card title="Accounts">
         <Link className="btn btn-primary" to="/admin/users">Manage users <ArrowRight size={16} /></Link>
       </Card>
     </>
@@ -109,7 +108,7 @@ export default function Home() {
 
   return (
     <>
-      <PageHeader icon={LayoutGrid} title="Overview" subtitle={`Welcome, ${user.full_name.split(" ")[0]}. ${ROLE_DESCRIPTIONS[user.role]}`} />
+      <PageHeader icon={LayoutGrid} title={`Hello, ${user.full_name.split(" ")[0]}`} />
       {error && <p className="alert alert-error">{error}</p>}
       {!data && !error && <p className="muted">Loading…</p>}
       {data && (user.role === "hr" || user.role === "manager") && <PromotionOverview data={data} isHr={user.role === "hr"} />}

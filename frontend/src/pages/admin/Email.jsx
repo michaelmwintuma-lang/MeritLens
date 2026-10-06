@@ -41,7 +41,7 @@ export default function Email() {
 
   return (
     <>
-      <PageHeader icon={Mail} title="Email" subtitle="Welcome emails, security alerts and notifications: check they're being delivered." />
+      <PageHeader icon={Mail} title="Email" subtitle="Delivery settings, a test email and the outbox." />
       {error && <p className="alert alert-error" role="alert">{error}</p>}
 
       {status && (status.configured ? (
@@ -60,7 +60,7 @@ export default function Email() {
       ))}
 
       <div className="two-columns">
-        <Card title="Send a test email" subtitle="Checks that emails really arrive. Use your own address.">
+        <Card title="Send a test email">
           <form onSubmit={(e) => withSending(() => sendTest(e))}>
             <label className="field">Send to<input type="email" value={to} onChange={(e) => setTo(e.target.value)} required placeholder="you@example.com" /></label>
             <Button icon={Send} busy={sending} busyText="Sending…">Send test email</Button>
@@ -74,7 +74,7 @@ export default function Email() {
         </Card>
       </div>
 
-      <Card flush title={`Outbox (${status?.outbox_count ?? 0})`} subtitle="Emails saved instead of sent, newest first. Once email is set up, new emails are sent instead.">
+      <Card flush title={`Outbox (${status?.outbox_count ?? 0})`} subtitle="Saved here while no mail server is set up.">
         {outbox.length === 0 ? <EmptyState icon={Inbox} title="The outbox is empty" text="Saved emails appear here when no mail server is set up." /> : (
           <ul className="outbox">
             {outbox.map((m) => (

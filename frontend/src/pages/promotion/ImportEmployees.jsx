@@ -59,7 +59,7 @@ export default function ImportEmployees() {
   return (
     <>
       <Link to="/employees" className="back"><ArrowLeft size={16} />Back to all employees</Link>
-      <PageHeader icon={FileUp} title="Import employees" subtitle="Add many employees at once from a spreadsheet saved as CSV, for example an export from your HR system." />
+      <PageHeader icon={FileUp} title="Import employees" subtitle="From a CSV file, such as an export from your HR system." />
       {error && <p className="alert alert-error" role="alert">{error}</p>}
       {saved && (
         <div className="alert alert-success">

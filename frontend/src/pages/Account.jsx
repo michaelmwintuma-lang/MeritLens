@@ -91,7 +91,7 @@ function ProfileDetails() {
   }
 
   return (
-    <Card title="Your details" subtitle="How you appear to others on the platform, and where emails are sent.">
+    <Card title="Your details">
       <ProfilePhoto />
       <form onSubmit={(e) => withWorking(() => submit(e))} style={{ marginTop: 20 }}>
         {message.text && <p className={`alert ${message.ok ? "alert-success" : "alert-error"}`} role="status">{message.text}</p>}
@@ -127,7 +127,7 @@ function WorkDetails() {
     user.created_at && ["Account created", user.created_at.slice(0, 10)],
   ].filter(Boolean);
   return (
-    <Card title="Work details" subtitle="Set by your organisation. Ask HR or an administrator if something is wrong.">
+    <Card title="Work details" subtitle="Kept by HR. Ask them if something is wrong.">
       <dl className="details-list">
         {rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
       </dl>
@@ -230,7 +230,7 @@ export default function Account() {
   }
   return (
     <>
-      <PageHeader icon={UserRound} title="My profile" subtitle="Your details, how you sign in, and your work information." />
+      <PageHeader icon={UserRound} title="My profile" />
       <div className="profile-grid">
         <ProfileDetails />
         <WorkDetails />

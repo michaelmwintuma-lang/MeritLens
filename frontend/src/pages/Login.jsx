@@ -1,9 +1,10 @@
-// Sign-in page: a frosted-glass card floating over soft, slowly drifting navy and teal lights.
+// Sign-in page.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, UserRound } from "lucide-react";
 import { useAuth } from "../auth";
-import { Button } from "../components/ui";
+import { BrandMark, Button } from "../components/ui";
+import { BRAND } from "../brand";
 import "./login.css";
 
 export default function Login() {
@@ -33,9 +34,9 @@ export default function Login() {
       <Link to="/" className="login-back"><ArrowLeft size={16} aria-hidden="true" />Back to the website</Link>
 
       <form className="login-box" onSubmit={submit}>
-        <div className="login-logo"><ShieldCheck size={24} aria-hidden="true" /></div>
+        <div className="login-logo"><BrandMark /></div>
         <h1>Welcome back</h1>
-        <p className="login-sub">Sign in to Promotion &amp; Reporting with the account your administrator gave you.</p>
+        <p className="login-sub">Sign in to {BRAND}.</p>
 
         {error && <p className="login-error" role="alert">{error}</p>}
 

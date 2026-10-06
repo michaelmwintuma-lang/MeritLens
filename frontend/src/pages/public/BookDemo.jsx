@@ -1,11 +1,10 @@
-// Book a demo: a short form. The request is emailed to the team and listed for the admin.
+// Book a demo: a short form. The request is emailed to the demo inbox and listed for the admin.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarCheck, CheckCircle2, Clock, MessagesSquare, MonitorPlay } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { api } from "../../api";
 import { useAction } from "../../useAction";
 import { Button } from "../../components/ui";
-import { PHOTOS } from "./parts";
 
 const EMPTY = { name: "", email: "", organisation: "", job_title: "", size: "", interest: "", message: "", website: "" };
 
@@ -31,15 +30,11 @@ export default function BookDemo() {
   return (
     <section className="demo-page">
       <div className="demo-info">
-        <div className="eyebrow">Book a demo</div>
-        <h1>See the platform in action</h1>
-        <p className="lead">Tell us a little about your organisation and we'll arrange a time that suits you.</p>
-        <ul className="demo-points">
-          <li><Clock size={20} aria-hidden="true" /><div><strong>30 minutes, online</strong><span>At a time that suits you.</span></div></li>
-          <li><MonitorPlay size={20} aria-hidden="true" /><div><strong>A live walkthrough</strong><span>Promotion readiness and anonymous reporting, as each role sees them.</span></div></li>
-          <li><MessagesSquare size={20} aria-hidden="true" /><div><strong>Your questions answered</strong><span>Fairness, privacy and how your own data would be used.</span></div></li>
-        </ul>
-        <img className="demo-photo" src={`${PHOTOS}/together.webp`} alt="Colleagues looking at a laptop together" loading="lazy" />
+        <h1>Book a demo</h1>
+        <p className="lead">
+          Half an hour online. We'll show the system as each role sees it, and answer your questions about fairness,
+          privacy and how your own data would be used.
+        </p>
       </div>
 
       <div className="demo-card">
@@ -82,7 +77,7 @@ export default function BookDemo() {
             </label>
             {/* Hidden from people; form-filling robots fill it in, and their requests are dropped */}
             <label className="hp" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={form.website} onChange={set("website")} /></label>
-            <Button icon={CalendarCheck} look="accent" busy={sending} busyText="Sending…" className="btn-lg demo-submit">Request a demo</Button>
+            <Button look="accent" busy={sending} busyText="Sending…" className="btn-lg demo-submit">Request a demo</Button>
           </form>
         )}
       </div>

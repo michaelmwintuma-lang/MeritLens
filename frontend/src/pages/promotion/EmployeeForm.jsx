@@ -64,8 +64,7 @@ export default function EmployeeForm() {
     <>
       <Link to={editing ? `/employees/${id}` : "/employees"} className="back"><ArrowLeft size={16} />{editing ? "Back to their readiness" : "Back to all employees"}</Link>
       <PageHeader icon={UserPlus} title={editing ? `Edit ${form.full_name}` : "Add an employee"}
-        subtitle={editing ? "Update their details, for example after a new review. Past decisions keep the score they were made with."
-          : "Enter their details from HR's records. They can be scored as soon as they're saved."} />
+        subtitle={editing ? "Past decisions keep the score they were made with." : undefined} />
       {error && <div className="alert alert-error" role="alert">{error}</div>}
 
       <form onSubmit={(e) => withSaving(() => save(e))} noValidate>

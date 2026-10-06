@@ -12,6 +12,7 @@ from app.reporting import routes as reporting_routes
 from app.reporting import routes_hr as reporting_hr_routes
 from app.reporting import routes_evidence as reporting_evidence_routes
 from app.demo import routes as demo_routes
+from app.core.config import APP_NAME
 from app.core.database import Base, SessionLocal, add_missing_columns, engine
 
 
@@ -26,7 +27,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Promotion & Reporting Platform", lifespan=lifespan)
+app = FastAPI(title=APP_NAME, lifespan=lifespan)
 app.include_router(routes_auth.router)
 app.include_router(routes_admin.router)
 app.include_router(routes_admin.employees_router)

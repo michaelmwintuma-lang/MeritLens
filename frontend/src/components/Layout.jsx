@@ -4,9 +4,11 @@
 // and "Menu" slides the full menu in from the side.
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChevronDown, ChevronsLeft, ChevronsRight, LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "../auth";
 import { ACCOUNT, PHONE_TABS, ROLE_NAMES, SHORT_LABELS, menuFor } from "../roles";
+import { BRAND } from "../brand";
+import { BrandMark } from "./ui";
 
 const NARROW_KEY = "sidebar-narrow";
 function readNarrow() {
@@ -74,19 +76,16 @@ export default function Layout() {
   return (
     <div className={`layout ${narrow ? "is-narrow" : ""}`}>
       <header className="phone-bar">
-        <div className="brand-logo"><ShieldCheck size={18} aria-hidden="true" /></div>
-        <span className="brand-name">Promotion &amp; Reporting</span>
+        <BrandMark small />
+        <span className="brand-name">{BRAND}</span>
         <button type="button" className="icon-btn" onClick={() => setDrawerOpen(true)} aria-label="Open the menu"><Menu size={18} /></button>
       </header>
 
       {drawerOpen && <div className="scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`}>
         <div className="brand">
-          <div className="brand-logo"><ShieldCheck size={20} aria-hidden="true" /></div>
-          <div className="brand-text">
-            <div className="brand-name">Promotion &amp; Reporting</div>
-            <div className="brand-sub">Staff platform</div>
-          </div>
+          <BrandMark />
+          <div className="brand-text"><div className="brand-name">{BRAND}</div></div>
           <button type="button" className="icon-btn drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close the menu"><X size={18} /></button>
         </div>
         <button type="button" className="narrow-toggle" onClick={toggleNarrow}

@@ -64,7 +64,7 @@ export default function Report() {
   return (
     <>
       <PageHeader icon={Megaphone} title="Report anonymously"
-        subtitle="Raise any workplace concern: how people are treated, safety and wellbeing, or honesty and the law. Your report is never linked to your account." />
+        subtitle="Your report isn't linked to your account." />
       <ol className="steps" aria-label="Steps">
         <li className={step === 1 ? "current" : ""}>1. Write</li>
         <li className={step === 2 ? "current" : ""}>2. Check what will be sent</li>

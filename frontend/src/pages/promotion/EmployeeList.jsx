@@ -34,7 +34,7 @@ export default function EmployeeList() {
   return (
     <>
       <PageHeader icon={Users} title={isManager ? "My team" : "All employees"}
-        subtitle={`${data.employees.length} employees · ${recommendedCount} above the ${percent(data.threshold)} threshold. Open a name to see why and what would help.`}
+        subtitle={`${data.employees.length} employees, ${recommendedCount} above the ${percent(data.threshold)} threshold`}
         actions={user.role === "hr" && (
           <>
             <Link to="/employees/import" className="btn btn-plain"><FileUp size={16} aria-hidden="true" />Import</Link>

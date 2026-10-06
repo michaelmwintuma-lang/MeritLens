@@ -164,7 +164,7 @@ export default function CheckReport() {
         {report.outcome && <p className="alert alert-success">This case is closed. Outcome: <strong>{report.outcome}</strong></p>}
         <Card title="Your report"><p className="cleaned">{report.text}</p></Card>
         <ReporterEvidence report={report} secret={key} onChange={(evidence) => setReport((r) => ({ ...r, evidence }))} />
-        <Card title="Conversation" subtitle="You appear as “Reporter”. HR never learns who you are, and you see them only as “Investigator”.">
+        <Card title="Conversation" subtitle="You appear as “Reporter” and HR as “Investigator”.">
           <Conversation messages={report.messages} me="reporter" />
           {report.status !== "closed" && <Reply caseId={report.case_id} secret={key} onSent={(messages) => { markSeen(report.case_id, messages.length, report.status); setReport({ ...report, messages }); }} />}
         </Card>
@@ -175,7 +175,7 @@ export default function CheckReport() {
 
   return (
     <>
-      <PageHeader icon={FileSearch} title="Check my report" subtitle="Open your report with the case ID and secret key you saved." />
+      <PageHeader icon={FileSearch} title="Check my report" />
       <form className="card narrow" onSubmit={(e) => { e.preventDefault(); withWorking(() => openCase(caseId, key)); }}>
         <p className="muted">Enter the case ID and secret key you saved when you sent the report, or open it from <Link to="/report-keys">My report keys</Link>. After five wrong keys, a case is locked for 15 minutes.</p>
         <p className="muted small">Tip: paste a copied “Case ID … Key …” into either box and both are filled in.</p>

@@ -1,37 +1,47 @@
-// Anonymous reporting: what the reporter sees, how a report travels, and what HR gets.
-import { DemoBand, Feature, PageIntro, Steps } from "./parts";
-
-const REPORT_STEPS = [
-  ["Write it down", "Describe what happened and choose a category, from harassment and discrimination to safety hazards, fraud and data breaches."],
-  ["Check the cleaned version", "Names, emails, phone numbers and dates are replaced before anything is sent. You see and approve exactly what HR will read."],
-  ["Keep your key", "You get a case ID and a secret key. Only a scrambled version of the key is stored, so nobody else can open your case."],
-  ["Talk it through", "Use the key to read replies and answer questions. HR sees you only as “Reporter”, and you see them as “Investigator”."],
-];
+// How anonymous reporting works, for the person reporting and for HR.
+import { PageIntro, Screenshot } from "./parts";
 
 export default function ReportingPage() {
   return (
     <>
-      <PageIntro eyebrow="Anonymous reporting" title="Speak up without revealing who you are">
-        Report harassment, discrimination, bullying, violence, safety hazards, fraud, data breaches and more. Your report is never linked to your
-        account, and before anything is sent you see exactly what HR will read.
+      <PageIntro title="Reporting a concern without giving your name">
+        Staff sign in, so only people in the organisation can report. The report itself is never linked to their
+        account.
       </PageIntro>
 
-      <Feature eyebrow="For the person reporting" title="Your words, without your identity"
-        text="Details that could point to you are removed automatically, and phrases that might still identify you are flagged so you can change them."
-        points={["Names, contacts and dates removed automatically", "Warnings about phrases that could identify you",
-          "A private case ID and key to follow up", "Talk with an investigator; neither side sees a name"]}
-        photo="speak-up.webp" alt="A person working calmly at their own desk" portrait
-        screen="/landing/report.webp" screenAlt="Checking a report before sending: names and dates replaced" />
+      <Screenshot src="/landing/report.webp" alt="The report form's check step, with a name, a date and a phone number replaced by tags">
+        Before sending, the reporter sees exactly what HR will get. The list of what was removed is shown only to them.
+      </Screenshot>
 
-      <Steps title="From concern to conversation" items={REPORT_STEPS} />
+      <section className="prose">
+        <h2>After it's sent</h2>
+        <p>
+          The reporter gets a case ID and a secret key, shown once. With those they can read HR's replies and answer
+          them. The key itself is never stored, and five wrong tries lock the case for 15 minutes.
+        </p>
+        <p>
+          They can attach photos or videos. Location, phone model, owner name and the time taken are stripped from
+          each file before it's saved. What's visible or audible can't be removed, so the reporter is asked to check
+          for faces, reflections and their own voice.
+        </p>
+        <p>
+          Reports can be about anything from harassment and bullying to safety hazards, fraud or data breaches. There
+          are 19 categories.
+        </p>
+      </section>
 
-      <Feature flip eyebrow="For HR" title="One clear place to listen and act"
-        text="Urgent reports come first, with the warning words marked, and every case has its own two-way conversation."
-        points={["Triage with reasons you can read", "A two-way conversation with the reporter", "Status and outcome recorded for every case"]}
-        photo="hr-conversation.webp" alt="Colleagues listening to each other in a meeting"
-        screen="/landing/case.webp" screenAlt="HR's case page: the report, its priority and the conversation" />
+      <Screenshot src="/landing/case.webp" alt="HR's view of a case, showing the suggested priority and how sure the model was">
+        HR's view of a case: the suggested priority, how sure the model is, and the words that drove it.
+      </Screenshot>
 
-      <DemoBand />
+      <section className="prose">
+        <h2>How urgent is it?</h2>
+        <p>
+          A text classifier trained on example reports suggests high, moderate or low priority. Some words always raise
+          it to high, such as anything suggesting violence or self-harm, and some categories have a minimum. HR sets the
+          final priority. Alerts to HR contain the case ID, category and priority, never the text.
+        </p>
+      </section>
     </>
   );
 }

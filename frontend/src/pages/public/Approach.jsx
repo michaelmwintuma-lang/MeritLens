@@ -1,60 +1,35 @@
-// Our approach: the three pillars, the design principle, and who the platform is for.
-import { Gauge, Quote, ShieldCheck, UserCog, Users } from "lucide-react";
-import { Cards, DemoBand, PageIntro, PHOTOS } from "./parts";
-
-const PILLARS = [
-  { photo: "together.webp", alt: "Colleagues looking at a laptop together", title: "Explain every score",
-    text: "Readiness always comes with its reasons, in plain words, and a second method checks the explanation." },
-  { photo: "planning.webp", alt: "A team planning together at a glass wall", title: "Check fairness first",
-    text: "Before a model is used, every gender, age group and education level must be recommended at a fair rate." },
-  { photo: "progress.webp", alt: "A woman smiling as she works through her tasks", title: "Protect every voice",
-    text: "Concerns are raised with names and dates removed, and nobody on either side of the conversation is named." },
-];
+// Who uses the system, and what each role sees and does.
+import { PageIntro } from "./parts";
 
 const ROLES = [
-  { icon: Gauge, title: "Employees", text: "See your readiness, what's behind it and how to improve. Raise a concern safely." },
-  { icon: Users, title: "Managers", text: "Follow your team's readiness and nominate people, with the reasons in plain words." },
-  { icon: ShieldCheck, title: "HR", text: "Decide on promotions with the model's view alongside, and handle reports in one inbox." },
-  { icon: UserCog, title: "Administrators", text: "Create accounts for everyone; each person gets a welcome email to sign in." },
+  ["Employee", "Their own readiness score and what's behind it", "Try what-if changes, report a concern, follow up on it"],
+  ["Manager", "Their team's scores", "Recommend someone, with ratings, examples and a proposed pay rise"],
+  ["HR", "All employees, recommendations, the decision log and the report inbox", "Decide on promotions, set the pay range, handle reports"],
+  ["Finance", "Approved pay rises and the pay range", "Confirm a pay rise or send it back to HR"],
+  ["Admin", "Accounts and the activity log", "Create accounts and set managers' teams"],
 ];
 
 export default function Approach() {
   return (
     <>
-      <PageIntro eyebrow="Our approach" title="Built around people, not just predictions">
-        Technology helps, but trust comes from openness, fairness and safety. Every part of the platform is designed
-        around those three.
+      <PageIntro title="Who uses it">
+        Five roles, each seeing only what it needs. A manager can't see other teams, Finance doesn't see scores, and
+        nobody can see who sent a report.
       </PageIntro>
 
-      <section className="section-block">
-        <div className="pillars">
-          {PILLARS.map((p) => (
-            <article key={p.title} className="pillar">
-              <img src={`${PHOTOS}/${p.photo}`} alt={p.alt} loading="lazy" />
-              <div className="pillar-body"><h3>{p.title}</h3><p>{p.text}</p></div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <div className="table-wrap roles-table">
+        <table>
+          <thead><tr><th>Role</th><th>Sees</th><th>Does</th></tr></thead>
+          <tbody>
+            {ROLES.map(([role, sees, does]) => <tr key={role}><td className="strong">{role}</td><td>{sees}</td><td>{does}</td></tr>)}
+          </tbody>
+        </table>
+      </div>
 
-      <section className="principle">
-        <Quote size={34} aria-hidden="true" />
-        <p className="principle-text">The model advises. People decide.</p>
-        <p className="principle-note">
-          The model never makes a promotion decision; HR does, and must write down why whenever they disagree with it.
-          Reports are read by people, and only people decide what happens next.
-        </p>
-      </section>
-
-      <section className="section-block" id="roles">
-        <div className="section-intro">
-          <div className="eyebrow">Who it's for</div>
-          <h2>Each person sees what their role needs</h2>
-        </div>
-        <Cards items={ROLES} columns={4} />
-      </section>
-
-      <DemoBand />
+      <p className="body-text">
+        The model never makes a decision on its own. Managers and HR can disagree with it, and when they do they write
+        down why. Those reasons are kept with the decision.
+      </p>
     </>
   );
 }

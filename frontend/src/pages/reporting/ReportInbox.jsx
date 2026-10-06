@@ -26,14 +26,14 @@ export default function ReportInbox() {
 
   return (
     <>
-      <PageHeader icon={Inbox} title="Report inbox" subtitle="Anonymous reports from members of the organisation. Nothing here identifies who sent them." />
+      <PageHeader icon={Inbox} title="Report inbox"  />
       <div className="stat-grid">
         <StatCard label="Open cases" value={notClosed.length} note="Open or being investigated" />
         <StatCard label="High priority" value={notClosed.filter((r) => r.priority === "high").length} note="Open cases marked high" />
         <StatCard label="Awaiting your reply" value={notClosed.filter((r) => r.reporter_wrote_last).length} note="The reporter wrote last" />
         <StatCard label="Closed" value={reports.length - notClosed.length} note="With an outcome recorded" />
       </div>
-      <Card flush title="Reports" subtitle="High priority first, then newest." actions={<Segmented label="Show" options={VIEWS} value={view} onChange={setView} />}>
+      <Card flush title="Reports" actions={<Segmented label="Show" options={VIEWS} value={view} onChange={setView} />}>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Case</th><th>Category</th><th>Priority</th><th>Status</th><th>Received</th><th>Conversation</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>

@@ -1,38 +1,34 @@
-// Privacy by design: the promises, and where the demo data comes from.
-import { CalendarDays, EyeOff, FileLock2, KeyRound, Lock, Scale } from "lucide-react";
-import { Cards, DemoBand, PageIntro } from "./parts";
+// What the system stores and what it doesn't.
+import { PageIntro } from "./parts";
 
-const PROMISES = [
-  { icon: EyeOff, title: "No identity with reports", text: "Reports have no column for who sent them. Not hidden: simply never stored." },
-  { icon: FileLock2, title: "Details removed first", text: "Names, emails, phone numbers and dates are replaced before anything is sent, and the reporter checks the result." },
-  { icon: KeyRound, title: "Only you hold the key", text: "Follow-ups use a case ID and a secret key. Only a hash is kept, so not even an administrator can read it." },
-  { icon: CalendarDays, title: "Dates, not times", text: "Only the day is kept, and the server keeps no request log, so a report can't be matched to a sign-in." },
-  { icon: Scale, title: "Checked for fairness", text: "The model is tested so every gender, age group and education level is recommended at a fair rate." },
-  { icon: Lock, title: "Kept apart", text: "Report data never reaches the promotion model. Tests prove the predictions are identical either way." },
+const RULES = [
+  ["Reports have no account column", "There is nowhere to record who sent a report, so it can't be looked up later, even by an administrator."],
+  ["Only the day is kept", "Reports, messages and the activity log store dates, not times, and the server keeps no log of requests."],
+  ["The reporter's key isn't stored", "Only a hash of it is saved. If the reporter loses the key, nobody can open the case for them."],
+  ["Photos and videos are cleaned", "GPS position, device, owner name and the time taken are removed before a file is saved."],
+  ["No protected characteristics in the model", "Gender, age, education and pay are not inputs. Gender, age and education are used only afterwards, to check the model treats groups fairly."],
+  ["Reports and promotions are kept apart", "The promotion model never reads report data, and pay is stored only as a percentage."],
 ];
 
 export default function Privacy() {
   return (
     <>
-      <PageIntro eyebrow="Privacy by design" title="Promises the system keeps, by how it's built">
-        Privacy here isn't a policy someone has to remember: it's how the system stores (and doesn't store) data. Each
-        promise below is checked by automated tests.
+      <PageIntro title="What we store, and what we don't">
+        These rules are part of how the data is stored, not just a policy, and the automated tests check each one.
       </PageIntro>
 
-      <section className="section-block">
-        <Cards items={PROMISES} />
-      </section>
+      <dl className="rules-list">
+        {RULES.map(([rule, detail]) => <div key={rule}><dt>{rule}</dt><dd>{detail}</dd></div>)}
+      </dl>
 
       <section className="note-band">
         <h2>About the data in this demo</h2>
         <p>
-          The model was trained and is demonstrated on synthetic (made-up) employee data. No real person's record is
-          used. An organisation using the platform would train it on its own history, and it would go live only if it
-          passed the same fairness check.
+          The model was trained on synthetic employee data: none of it describes a real person. An organisation using
+          the system would retrain it on its own promotion history, and it would only go live if it passed the same
+          fairness check.
         </p>
       </section>
-
-      <DemoBand />
     </>
   );
 }

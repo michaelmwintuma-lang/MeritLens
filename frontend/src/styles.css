@@ -101,9 +101,10 @@ h3 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
 }
 .brand { display: flex; align-items: center; gap: 12px; padding: 22px 22px 18px; }
 .brand-logo {
-  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
-  color: #fff; background: linear-gradient(135deg, #0f2a44, #0b7a6e); box-shadow: var(--shadow-btn);
+  width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--navy); color: var(--on-navy); font-weight: 800; font-size: 14px; letter-spacing: -0.02em;
 }
+.brand-logo.small { width: 30px; height: 30px; border-radius: 8px; font-size: 12.5px; }
 .brand-text { min-width: 0; }
 .brand-name { font-weight: 800; font-size: 15px; line-height: 1.15; }
 .brand-sub { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
@@ -173,8 +174,7 @@ nav > .nav-link.active::before, .rail-group > .nav-link.active::before {
     background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 1px 0 var(--border);
   }
-  .phone-bar .brand-logo { width: 34px; height: 34px; border-radius: 10px; }
-  .phone-bar .brand-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phone-bar .brand-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sidebar {
     position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw); height: 100%; z-index: 60;
     transform: translateX(-105%); transition: transform 0.25s ease; box-shadow: var(--shadow-lg);

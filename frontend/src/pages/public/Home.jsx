@@ -1,19 +1,10 @@
-// Home: the promise, the tested results, and a way into each part of the platform.
-// The numbers come from the last training run (/api/public/summary).
+// Home page. The first two results come from the last training run (/api/public/summary); the reporting results
+// are from results/reporting_evaluation.md.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BadgeCheck, CalendarCheck, Gauge, Megaphone, Quote } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { api } from "../../api";
-import { DemoBand, PHOTOS } from "./parts";
-
-const EXPLORE = [
-  { to: "/promotion", photo: "growth.webp", alt: "A smiling woman working on her laptop", title: "Promotion readiness",
-    text: "Every score comes with its reasons, a second opinion and realistic tips." },
-  { to: "/reporting", photo: "speak-up.webp", alt: "A person working calmly at their own desk", title: "Anonymous reporting",
-    text: "Raise a concern with names and dates removed, and follow up with a private key." },
-  { to: "/privacy", photo: "planning.webp", alt: "A team planning together at a glass wall", title: "Privacy by design",
-    text: "Six promises the system keeps because of how it's built, each checked by tests." },
-];
+import { BRAND, Screenshot } from "./parts";
 
 export default function Home() {
   const [facts, setFacts] = useState(null);
@@ -22,63 +13,59 @@ export default function Home() {
 
   return (
     <>
-      <section className="hero">
-        <div className="hero-text">
-          <span className="pill"><span className="dot" />Fair promotions · Safe reporting</span>
-          <h1>Promotions you can explain.<br />Concerns raised <span className="accent">without fear.</span></h1>
-          <p className="lead">
-            A people-first platform for two things that matter to every employee: a promotion process that shows its
-            reasons, and a safe way to report harassment, discrimination or unsafe work without revealing who you are.
-          </p>
-          <div className="row hero-actions">
-            <Link className="btn btn-accent btn-lg" to="/demo"><CalendarCheck size={18} aria-hidden="true" />Book a demo</Link>
-            <Link className="btn btn-plain btn-lg" to="/login">Sign in <ArrowRight size={18} aria-hidden="true" /></Link>
-          </div>
-          <ul className="hero-checks">
-            <li><BadgeCheck size={17} aria-hidden="true" />Every score comes with its reasons</li>
-            <li><BadgeCheck size={17} aria-hidden="true" />People decide, the model advises</li>
-            <li><BadgeCheck size={17} aria-hidden="true" />Reports never linked to accounts</li>
-          </ul>
-        </div>
-        <div className="hero-visual">
-          <img className="hero-photo" src={`${PHOTOS}/team-hero.webp`} alt="A diverse team smiling around a table as they work together" />
-          <div className="float float-a"><Gauge size={18} /><div><strong>Readiness 82%</strong><span>Recommended · see why</span></div></div>
-          <div className="float float-b"><Megaphone size={18} /><div><strong>Report sent anonymously</strong><span>Only you hold the key</span></div></div>
-        </div>
-      </section>
-
-      <section className="facts" aria-label="Results">
-        <div><strong>{trained ? facts.roc_auc.toFixed(2) : "–"}</strong><span>ROC-AUC on {trained ? facts.test_size.toLocaleString() : "unseen"} test employees</span></div>
-        <div><strong>{trained ? `${Math.round(facts.lowest_fairness_ratio * 100)}%` : "–"}</strong><span>lowest group ratio in the fairness check (80% needed)</span></div>
-        <div><strong>0</strong><span>details about the reporter stored with a report</span></div>
-        <div><strong>100%</strong><span>of promotion decisions made by people</span></div>
-      </section>
-
-      <section className="section-block">
-        <div className="section-intro">
-          <div className="eyebrow">Explore</div>
-          <h2>One platform, two jobs, done carefully</h2>
-        </div>
-        <div className="pillars">
-          {EXPLORE.map((p) => (
-            <Link key={p.to} to={p.to} className="pillar pillar-link">
-              <img src={`${PHOTOS}/${p.photo}`} alt={p.alt} loading="lazy" />
-              <div className="pillar-body"><h3>{p.title}</h3><p>{p.text}</p><span className="more">Learn more <ArrowRight size={16} aria-hidden="true" /></span></div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="principle">
-        <Quote size={34} aria-hidden="true" />
-        <p className="principle-text">The model advises. People decide.</p>
-        <p className="principle-note">
-          Our design principle. The model never makes a promotion decision; HR does, and must write down why whenever
-          they disagree with it. <Link to="/approach">Read about our approach</Link>.
+      <section className="home-intro">
+        <h1>Promotion decisions you can check, and a safe way to report misconduct.</h1>
+        <p className="lead">
+          {BRAND} scores how ready each employee is for promotion and shows what moved the score. A manager
+          recommends, HR decides and Finance confirms the pay rise. The same system lets staff report harassment,
+          fraud or unsafe work without their name attached.
         </p>
+        <div className="row intro-actions">
+          <Link className="btn btn-accent btn-lg" to="/demo">Book a demo</Link>
+          <Link className="btn btn-plain btn-lg" to="/login">Sign in</Link>
+        </div>
       </section>
 
-      <DemoBand />
+      <Screenshot wide src="/landing/readiness.webp" alt="An employee's readiness page, listing the factors that raised and lowered the score">
+        An employee's readiness page. Each factor shows its real value and how far it moved the score.
+      </Screenshot>
+
+      <section className="two-col">
+        <article>
+          <h2>Promotion readiness</h2>
+          <p>
+            The model looks at 21 performance and development measures. It never sees gender, age, education or pay.
+            Anyone looking at a score can open it and see the factors behind it, plus a few realistic things the person
+            could work on.
+          </p>
+          <Link className="text-link" to="/promotion">How a decision is made <ArrowRight size={16} aria-hidden="true" /></Link>
+        </article>
+        <article>
+          <h2>Anonymous reporting</h2>
+          <p>
+            Names, phone numbers and dates are taken out of a report before it is sent, and the reporter checks what's
+            left. They follow up with a case ID and a key. HR never finds out who they are.
+          </p>
+          <Link className="text-link" to="/reporting">How reporting works <ArrowRight size={16} aria-hidden="true" /></Link>
+        </article>
+      </section>
+
+      <section className="results-section">
+        <h2>How it did in testing</h2>
+        <p className="muted">Measured on synthetic (made-up) employee data and 50 hand-labelled test reports.</p>
+        <dl className="results">
+          <div><dt>{trained ? facts.roc_auc.toFixed(2) : "0.93"}</dt>
+            <dd>ROC-AUC for the promotion model on {trained ? facts.test_size.toLocaleString() : "20,000"} employees it hadn't seen during training.</dd></div>
+          <div><dt>{trained ? `${Math.round(facts.lowest_fairness_ratio * 100)}%` : "93%"}</dt>
+            <dd>Lowest selection ratio between groups (gender, age, education). The four-fifths rule asks for at least 80%.</dd></div>
+          <div><dt>87%</dt><dd>Of names, emails, phone numbers and dates removed automatically. The reporter reviews the rest before sending.</dd></div>
+          <div><dt>14 of 14</dt><dd>Urgent test reports given high priority. The trade-off: some less urgent ones were rated too high.</dd></div>
+        </dl>
+      </section>
+
+      <p className="closing">
+        Want to see it with your own questions? <Link to="/demo">Book a demo</Link>, or <Link to="/login">sign in</Link> if you have an account.
+      </p>
     </>
   );
 }

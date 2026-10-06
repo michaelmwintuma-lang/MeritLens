@@ -2,6 +2,12 @@
 import { Inbox, Loader2, Moon, Sun } from "lucide-react";
 import { useTheme } from "../theme";
 import NotificationBell from "./NotificationBell";
+import { MONOGRAM } from "../brand";
+
+/** The product's small square mark. */
+export function BrandMark({ small = false }) {
+  return <span className={`brand-logo ${small ? "small" : ""}`} aria-hidden="true">{MONOGRAM}</span>;
+}
 
 /** Big page title with an icon, a one-line explanation, and optional buttons on the right. */
 export function PageHeader({ icon: Icon, title, subtitle, actions }) {
