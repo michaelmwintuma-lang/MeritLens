@@ -28,8 +28,14 @@ UVICORN = "-m uvicorn app.main:app --port 8000 --no-access-log"
 
 
 def windows_can_load_libraries() -> bool:
-    """Smart App Control can block the compiled parts of pandas and scikit-learn; check before starting."""
-    check = subprocess.run([str(VENV_PYTHON), "-c", "import pandas, sklearn.linear_model"], capture_output=True)
+    """
+    Smart App Control can block the compiled parts of pandas and scikit-learn, or even Python itself; check
+    before starting.
+    """
+    try:
+        check = subprocess.run([str(VENV_PYTHON), "-c", "import pandas, sklearn.linear_model"], capture_output=True)
+    except OSError:  # Python itself was blocked from starting
+        return False
     return check.returncode == 0
 
 
