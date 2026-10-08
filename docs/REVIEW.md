@@ -131,17 +131,24 @@ Committed as `95d4aa4` and `1102b7f`, with your approval ("drop department, use 
 | P5 | `/api/admin/users` | Returns every user's profile photo (up to 300 kB each) in the list. |
 | P6 | Frontend bundle | One 443 kB file (133 kB gzipped): every page, including the admin pages and the public site, loads at once. No lazy loading. |
 
-## 7. Questions for you before Phase 2
+## 7. Decisions (answered 2026-10-08)
 
-1. **Compliance auditor.** The plan gives the feedback dashboard and aggregate ratings to "HR reviewer and
-   compliance auditor", but this project has no auditor role. Shall I **add an `auditor` role** (read-only:
-   dashboards, decision log, model and fairness; no names in reports, no editing)? Or give those views to HR (and
-   to admins with "can view employee data") only?
-2. **Report categories.** Shall I add the three promotion categories ("Biased rating or appraisal", "Wrong or
-   missing record", "Favouritism") as a new group "Promotion and appraisal"? I'd keep the existing ones, so old
-   reports still show their category. The plan's "Other workplace concern" maps to the existing "Something else".
-3. **Report keys in the browser (S1).** Shall I stop labelling saved keys with the user id (one shared, unlabelled
-   list per browser)? Or keep the current design and only document it in the threat model? Changing it means a
-   colleague signing in on the same PC could see that keys exist, though not whose they are.
-4. **Sign-in limit (S3).** Shall I add a lockout after 5 wrong passwords (15 minutes, like reports)? This changes a
-   security rule, so I'm asking first.
+1. **Compliance auditor:** add a read-only `auditor` role. It sees the dashboards, the decision log, the model and
+   its fairness, and only aggregated feedback. It never sees report texts or names in reports, and it can't edit
+   anything.
+2. **Reporting is aligned with the feedback channel.** New reports use the five promotion-focused categories:
+   "Biased rating or appraisal", "Favouritism", "Discrimination", "Wrong or missing record" and "Other workplace
+   concern". Old reports keep showing their original category.
+3. **No report keys are kept in the browser.** The "My report keys" page, saving keys on the device and the
+   reporter notifications that polled saved keys are removed (S1, S2, P4). Reporters keep their key by
+   downloading the receipt or using their password manager. Keys already saved in a browser are shown once, so
+   they can be kept elsewhere, and then removed from it.
+4. **Sign-in lockout:** an account is locked for 15 minutes after 5 wrong passwords in a row (S3).
+
+## 8. Phase 2: the bridge
+
+No "bridge" exists in this project. `git grep` finds no bridge, rater-bias, retaliation-monitor or
+`RATER_BIAS_MIN_CASES` code, settings, tests or docs. The git history has no such commits. The promotion code
+(`backend/app/promotion`) has no reference to the reporting module or its tables. There is no combined fairness
+overview that reads report data. Nothing had to be removed. The isolation guarantees are extended in Phase 4
+(isolation test and static import check).
