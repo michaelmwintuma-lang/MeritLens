@@ -38,8 +38,8 @@ class ImportIn(BaseModel):
 
 
 def departments() -> list[str]:
-    """The departments the model knows (it learned one weight per department)."""
-    return sorted(model().info["department_shares"])
+    """The departments in the training data. Department is not a model input; it only organises who sees whom."""
+    return model().info["departments"]
 
 
 def managers(db: Session) -> list[User]:

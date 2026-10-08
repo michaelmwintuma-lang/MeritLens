@@ -5,53 +5,53 @@
       "groups": {
         "Female": {
           "employees": 10075,
-          "selection_rate": 0.1228,
+          "selection_rate": 0.1464,
           "actual_promotion_rate": 0.0965
         },
         "Male": {
           "employees": 9925,
-          "selection_rate": 0.119,
+          "selection_rate": 0.1437,
           "actual_promotion_rate": 0.1036
         }
       },
-      "ratio": 0.9691,
+      "ratio": 0.9816,
       "passes": true
     },
     "age_group": {
       "groups": {
         "40+": {
           "employees": 10688,
-          "selection_rate": 0.1199,
+          "selection_rate": 0.1425,
           "actual_promotion_rate": 0.1015
         },
         "under 40": {
           "employees": 9312,
-          "selection_rate": 0.1221,
+          "selection_rate": 0.148,
           "actual_promotion_rate": 0.0983
         }
       },
-      "ratio": 0.982,
+      "ratio": 0.9628,
       "passes": true
     },
     "education": {
       "groups": {
         "Bachelor": {
           "employees": 12926,
-          "selection_rate": 0.1197,
+          "selection_rate": 0.143,
           "actual_promotion_rate": 0.0974
         },
         "Master": {
           "employees": 6038,
-          "selection_rate": 0.1221,
+          "selection_rate": 0.1467,
           "actual_promotion_rate": 0.1028
         },
         "PhD": {
           "employees": 1036,
-          "selection_rate": 0.1293,
+          "selection_rate": 0.1612,
           "actual_promotion_rate": 0.1158
         }
       },
-      "ratio": 0.9258,
+      "ratio": 0.8871,
       "passes": true
     }
   },

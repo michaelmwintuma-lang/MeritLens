@@ -2,8 +2,10 @@
 Train the promotion model:   python train.py   (from the backend folder)
 
 1. Load the data and split it 70 / 10 / 20 (training / validation / test).
-2. Train Logistic Regression, Random Forest and XGBoost.
-3. Choose one by validation PR-AUC (preferring the easy-to-explain logistic regression if it's close).
+2. Train a monotonic Explainable Boosting Machine (EBM), Logistic Regression, Random Forest and XGBoost, and
+   check each for common sense: does improving an input ever lower someone's score?
+3. Choose one: only models with no common-sense violations are eligible; among them, the easiest to explain whose
+   validation PR-AUC is within 0.01 of the best.
 4. Choose the decision threshold with the best F1 on the validation set.
 5. Test the chosen model once on the test set; save metrics and curve images to results/.
 6. Check fairness (four-fifths rule). Only a model that passes becomes the live model in models/.
@@ -20,7 +22,8 @@ from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay, average_pre
 
 from app.promotion.fairness import fairness_report
 from app.promotion.features import MODEL_FEATURES, NUMERIC_FEATURES, TARGET, load_dataset, split_data
-from app.promotion.modeling import best_f1_threshold, choose_model, make_models, test_metrics
+from app.promotion.modeling import (best_f1_threshold, choose_model, common_sense_violations, make_models,
+                                    test_metrics)
 
 BACKEND = Path(__file__).resolve().parent
 RESULTS = BACKEND.parent / "results"
@@ -61,8 +64,8 @@ def reference_statistics(train) -> dict:
         stats[column] = {"mean": round(float(values.mean()), 6), "std": round(float(values.std()), 6),
                          "p5": round(float(values.quantile(0.05)), 4), "p95": round(float(values.quantile(0.95)), 4),
                          "min": round(float(values.min()), 4), "max": round(float(values.max()), 4)}
-    shares = train["department"].value_counts(normalize=True)
-    return {"feature_stats": stats, "department_shares": {k: round(float(v), 6) for k, v in shares.items()}}
+    # Department is not a model input; the list is kept only so the record form can check what it is given
+    return {"feature_stats": stats, "departments": sorted(train["department"].unique().tolist())}
 
 
 def main():
@@ -75,20 +78,27 @@ def main():
           f"promoted {train[TARGET].mean():.1%} / {val[TARGET].mean():.1%} / {test[TARGET].mean():.1%}")
     print(f"   {len(MODEL_FEATURES)} model inputs; protected characteristics and pay are not among them")
 
-    print("2. Training three models")
+    print("2. Training four models and checking each for common sense")
     models, comparison = make_models(train[TARGET].mean()), {}
     for name, model in models.items():
         model.fit(train[MODEL_FEATURES], train[TARGET])
         scores = model.predict_proba(val[MODEL_FEATURES])[:, 1]
+        violations = common_sense_violations(model, val)
         comparison[name] = {"val_pr_auc": round(average_precision_score(val[TARGET], scores), 4),
-                            "val_roc_auc": round(roc_auc_score(val[TARGET], scores), 4)}
-        print(f"   {name:<20} validation PR-AUC {comparison[name]['val_pr_auc']:.4f}  ROC-AUC {comparison[name]['val_roc_auc']:.4f}")
+                            "val_roc_auc": round(roc_auc_score(val[TARGET], scores), 4),
+                            "common_sense_violations": violations["rate"],
+                            "violations_by_input": violations["by_input"]}
+        print(f"   {name:<20} validation PR-AUC {comparison[name]['val_pr_auc']:.4f}  ROC-AUC "
+              f"{comparison[name]['val_roc_auc']:.4f}  common-sense violations {violations['rate']:.1%}")
 
     print("3. Choosing the model")
-    chosen, reason = choose_model({name: m["val_pr_auc"] for name, m in comparison.items()})
+    chosen, reason = choose_model({name: m["val_pr_auc"] for name, m in comparison.items()},
+                                  {name: m["common_sense_violations"] for name, m in comparison.items()})
     model = models[chosen]
     print(f"   {chosen}: {reason}")
-    save_json(RESULTS / "model_comparison.json", {"validation": comparison, "chosen": chosen, "reason": reason})
+    save_json(RESULTS / "model_comparison.json", {"validation": comparison, "chosen": chosen, "reason": reason,
+                                                     "rule": "no common-sense violations on validation, then the "
+                                                             "easiest to explain within 0.01 PR-AUC of the best"})
 
     print("4. Choosing the decision threshold (best F1 on validation)")
     threshold = best_f1_threshold(val[TARGET], model.predict_proba(val[MODEL_FEATURES])[:, 1])

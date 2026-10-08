@@ -17,7 +17,7 @@ def employees(client, username="hr"):
     return client.get("/api/promotion/employees", headers=login(client, username)).json()["employees"]
 
 
-# ─── Exact contributions (SHAP) ───────────────────────────────────────────────
+# ─── Exact contributions ───────────────────────────────────────────────────
 def test_contributions_add_up_to_the_models_output(client):
     """base + sum of contributions = the model's log-odds, for every demo employee (checked on unrounded output)."""
     from app.core.database import SessionLocal
@@ -29,14 +29,14 @@ def test_contributions_add_up_to_the_models_output(client):
     assert len(records) == 120
     for record in records:
         total = model.base_logodds + sum(c["contribution"] for c in model.contributions(record))
-        # Each of the 21 contributions is rounded to 4 decimals: allow that rounding (21 x 0.00005) and nothing more
+        # Each of the 20 contributions is rounded to 4 decimals: allow that rounding (20 x 0.00005) and nothing more
         assert total == pytest.approx(logit(model.score(record)), abs=0.0011)
 
 
-def test_department_is_one_item_and_values_are_in_real_units(client):
+def test_department_is_not_an_input_and_values_are_in_real_units(client):
     x = client.get(f"/api/promotion/employees/{employees(client)[0]['id']}", headers=login(client, "hr")).json()
     features = [c["feature"] for c in x["contributions"]]
-    assert features.count("department") == 1 and len(features) == len(set(features)) == 21
+    assert "department" not in features and len(features) == len(set(features)) == 20
     shown = {c["feature"]: c["value_display"] for c in x["contributions"]}
     assert shown["attendance_rate"].endswith("%") and shown["manager_rating"].endswith("/ 5")
 
@@ -123,7 +123,7 @@ def test_tips_for_someone_already_recommended_are_empty(client):
 # ─── Overall importance ───────────────────────────────────────────────────────
 def test_importance_covers_every_input_and_sums_to_one(client):
     rows = client.get("/api/promotion/importance", headers=login(client, "employee")).json()["features"]
-    assert len(rows) == 21 and sum(r["share"] for r in rows) == pytest.approx(1, abs=0.001)
+    assert len(rows) == 20 and sum(r["share"] for r in rows) == pytest.approx(1, abs=0.001)
 
 
 # ─── Who may see what ─────────────────────────────────────────────────────────
@@ -182,3 +182,34 @@ def test_the_steps_follow_the_same_access_rules(client):
         assert client.get(f"/api/promotion/employees/{outsider}/{path}", headers=manager).status_code == 403
     for path in ["predict", "lime"]:
         assert client.post(f"/api/promotion/employees/{outsider}/{path}", headers=manager).status_code == 403
+
+
+def test_two_people_with_the_same_record_get_the_same_score_whatever_their_department():
+    model = get_model()
+    record = {f: model.stats[f]["mean"] for f in model.stats}
+    scores = {model.score(record | {"department": d}) for d in model.info["departments"]}
+    assert len(scores) == 1
+
+
+def test_improving_any_input_never_lowers_the_score():
+    """The monotonic model's promise, checked on the live model for a spread of records."""
+    model = get_model()
+    for record in model.background.sample(50, random_state=1).to_dict("records"):
+        before = model.score(record)
+        for feature in IMPROVABLE:
+            step = FEATURE_INFO[feature]["improve"] * model.stats[feature]["std"]
+            better = record | {feature: record[feature] + step}
+            if feature == "performance_score":  # this year's score also moves the change since last year
+                better["performance_change"] += step
+            assert model.score(better) >= before - 1e-9, feature
+
+
+def test_importance_directions_follow_the_constraints():
+    from app.promotion.features import MONOTONE
+    rows = {r["feature"]: r for r in get_model().importance}
+    assert abs(sum(r["share"] for r in rows.values()) - 1) < 0.001
+    for feature, direction in MONOTONE.items():
+        if direction > 0:
+            assert rows[feature]["direction"] in ("higher raises readiness", "no effect")
+        elif direction < 0:
+            assert rows[feature]["direction"] in ("higher lowers readiness", "no effect")

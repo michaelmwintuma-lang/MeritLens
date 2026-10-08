@@ -32,7 +32,7 @@ def demo_rows() -> list[dict]:
     """The demo employees' records from the test split (read once and kept in memory)."""
     _, _, test = split_data(load_dataset())
     sample = test.sample(DEMO_SIZE, random_state=42)
-    return sample[["employee_id", *MODEL_FEATURES]].to_dict("records")
+    return sample[["employee_id", "department", *MODEL_FEATURES]].to_dict("records")
 
 
 def unique_names(count: int) -> list[str]:

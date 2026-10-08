@@ -1,13 +1,15 @@
 """
 Predictions and their explanations, for one employee at a time.
 
-The live model is logistic regression, so its output is easy to take apart exactly:
+The live model is additive: a monotonic Explainable Boosting Machine (EBM) adds up one learned curve per input
+(logistic regression, the fallback, adds up one straight line per input). So its output is easy to take apart
+exactly:
 
-    log-odds = base + sum over inputs of  weight × (value − average value)
+    log-odds = base + sum over inputs of  (the input's term for this employee − its average term)
 
-Each term in that sum is the input's contribution (this equals its SHAP value for a linear model). "base" is
-the log-odds of an employee with average values on every input. The contributions add up exactly to the
-prediction, so nothing is hidden or approximated.
+Each part of that sum is the input's contribution: how much this employee's value moves the score compared with
+an average employee (for an additive model this equals the input's SHAP value). "base" is the log-odds of that
+average employee. The contributions add up exactly to the prediction, so nothing is hidden or approximated.
 """
 import json
 import math
@@ -18,14 +20,16 @@ import joblib
 import numpy as np
 import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
+from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 
-from app.promotion.features import CATEGORICAL_FEATURES, MODEL_FEATURES, NUMERIC_FEATURES
+from app.promotion.features import MODEL_FEATURES
 from app.promotion.labels import FEATURE_INFO, IMPROVABLE, UPPER_LIMIT, format_value, label
 
 MODELS = Path(__file__).resolve().parents[2] / "models"
 LOW_LIME_FIT = 0.5  # below this R², LIME's simple local model copies the real one poorly
 TIPS_MARGIN = 0.01  # log-odds
+TIP_STEPS = 20      # how finely the tips try out improvements of an input that isn't counted in whole numbers
 
 
 class ModelNotTrained(Exception):
@@ -52,24 +56,25 @@ class PromotionModel:
         self.stats = self.info["feature_stats"]
         self.background = pd.read_csv(MODELS / "background.csv")
 
-        prepare, model = self.pipeline.named_steps["prepare"], self.pipeline.named_steps["model"]
-        if not isinstance(model, LogisticRegression):
-            raise ValueError("Exact contributions need the logistic regression model.")
-        self.prepare = prepare
-        self.weights = model.coef_[0]
-        # Which input each prepared column comes from: "numeric__late_days" -> late_days,
-        # "department__department_Finance" -> department (the one-hot columns are combined into one item)
-        names = prepare.get_feature_names_out()
-        self.column_feature = [n.split("__", 1)[1] if n.startswith("numeric__") else "department" for n in names]
-        # Average of each prepared column over the training data: 0 for scaled numbers (scaling centres them),
-        # and each department's share of employees for the department columns
-        shares = self.info["department_shares"]
-        self.column_means = np.array([0.0 if n.startswith("numeric__") else shares.get(n.split("department_", 1)[1], 0.0)
-                                      for n in names])
-        self.base_logodds = float(model.intercept_[0] + self.weights @ self.column_means)
-        # Weight of each number in its own units (change in log-odds per 1 unit), used by the tips
-        scale = prepare.named_transformers_["numeric"].scale_
-        self.unit_weight = {f: self.weights[i] / scale[i] for i, f in enumerate(NUMERIC_FEATURES)}
+        self.prepare, self.model = self.pipeline.named_steps["prepare"], self.pipeline.named_steps["model"]
+        if isinstance(self.model, ExplainableBoostingClassifier):
+            if any(len(term) != 1 for term in self.model.term_features_):
+                raise ValueError("Exact contributions need an EBM without interaction terms.")
+            self.intercept = float(np.ravel(self.model.intercept_)[0])
+        elif isinstance(self.model, LogisticRegression):
+            self.intercept = float(self.model.intercept_[0])
+        else:
+            raise ValueError("Exact contributions need an additive model (EBM or logistic regression).")
+        # Each input's average term over the training sample: the "average employee" that explanations compare with
+        self.average_terms = self.terms(self.background).mean(axis=0)
+        self.base_logodds = self.intercept + float(self.average_terms.sum())
+
+    def terms(self, records: pd.DataFrame) -> np.ndarray:
+        """Each input's term in the log-odds, one row per record and one column per input (MODEL_FEATURES order)."""
+        prepared = self.prepare.transform(records[MODEL_FEATURES])
+        if isinstance(self.model, ExplainableBoostingClassifier):
+            return np.asarray(self.model.eval_terms(prepared), dtype=float)
+        return prepared * self.model.coef_[0]
 
     # ─── Prediction ────────────────────────────────────────────────────────────
     def score(self, record: dict) -> float:
@@ -79,11 +84,8 @@ class PromotionModel:
     # ─── SHAP: exact contributions ─────────────────────────────────────────────
     def contributions(self, record: dict) -> list[dict]:
         """Each input's contribution in log-odds, biggest first, with the employee's real value."""
-        prepared = self.prepare.transform(pd.DataFrame([record])[MODEL_FEATURES])[0]
-        per_column = self.weights * (prepared - self.column_means)
-        totals = {}
-        for feature, value in zip(self.column_feature, per_column):
-            totals[feature] = totals.get(feature, 0.0) + float(value)
+        centred = self.terms(pd.DataFrame([record]))[0] - self.average_terms
+        totals = {feature: float(value) for feature, value in zip(MODEL_FEATURES, centred)}
         items = [{
             "feature": feature,
             "label": label(feature),
@@ -100,25 +102,16 @@ class PromotionModel:
         LIME builds a small, simple model around this one employee by trying many slightly different versions
         of their record, then reads simple rules from it. It is an independent check on the explanation.
         """
-        departments = sorted(self.info["department_shares"])
-        dept_index = MODEL_FEATURES.index("department")
-
-        def encode(df):  # department name -> number, as LIME needs numbers only
-            out = df[MODEL_FEATURES].copy()
-            out["department"] = out["department"].map(departments.index)
-            return out.to_numpy(dtype=float)
-
-        def predict(rows):  # numbers back to a table the model understands
-            df = pd.DataFrame(rows, columns=MODEL_FEATURES)
-            df["department"] = [departments[int(round(v)) % len(departments)] for v in df["department"]]
-            return self.pipeline.predict_proba(df)
+        def predict(rows):  # LIME works on plain numbers; the model wants a table
+            return self.pipeline.predict_proba(pd.DataFrame(rows, columns=MODEL_FEATURES))
 
         explainer = LimeTabularExplainer(
-            encode(self.background), feature_names=[label(f) for f in MODEL_FEATURES], class_names=["not promoted", "promoted"],
-            categorical_features=[dept_index], categorical_names={dept_index: departments},
-            discretize_continuous=True, random_state=42,  # same answer every time for the same employee
+            self.background[MODEL_FEATURES].to_numpy(dtype=float), feature_names=[label(f) for f in MODEL_FEATURES],
+            class_names=["not promoted", "promoted"], discretize_continuous=True,
+            random_state=42,  # same answer every time for the same employee
         )
-        result = explainer.explain_instance(encode(pd.DataFrame([record]))[0], predict, num_features=5, num_samples=2000)
+        row = pd.DataFrame([record])[MODEL_FEATURES].to_numpy(dtype=float)[0]
+        result = explainer.explain_instance(row, predict, num_features=5, num_samples=2000)
         fit = float(result.score)
         return {
             "rules": [{"rule": rule, "weight": round(float(w), 4), "effect": "raises" if w > 0 else "lowers"}
@@ -174,7 +167,9 @@ class PromotionModel:
         - only inputs a person can work on, and only in the improving direction;
         - only inputs where improving actually raises the score;
         - each by at most one standard deviation, and not past what the top 5% of employees achieve;
-        - the inputs with the biggest possible effect first.
+        - the inputs with the biggest possible effect first, each improved only as far as needed.
+        The model's curves needn't be straight lines, so each improvement is tried out on the model itself. As the
+        model is additive, the gains from different inputs simply add up.
         """
         current = self.score(record)
         gap = logit(self.threshold) - logit(current)
@@ -182,35 +177,44 @@ class PromotionModel:
             return {"already_recommended": True, "tips": [], "reaches_threshold": True,
                     "current_score": round(current, 4), "projected_score": round(current, 4)}
 
-        options = []
+        # Every improvement worth trying: (input, new value)
+        trials = []
         for feature in IMPROVABLE:
-            direction = FEATURE_INFO[feature]["improve"]
-            # Effect of a 1-unit improvement; this year's score also moves the change-since-last-year
-            per_unit = direction * self.unit_weight[feature]
-            if feature == "performance_score":
-                per_unit += self.unit_weight["performance_change"]
-            if per_unit <= 0:
-                continue  # improving this wouldn't raise the score, so it's never suggested
-            stats = self.stats[feature]
+            direction, stats = FEATURE_INFO[feature]["improve"], self.stats[feature]
             bound = stats["p95"] if direction > 0 else stats["p5"]
             bound = min(bound, UPPER_LIMIT.get(FEATURE_INFO[feature]["unit"], bound))
             room = min(stats["std"], max(0.0, (bound - record[feature]) * direction))
             if FEATURE_INFO[feature]["whole"]:
-                room = math.floor(room)
-            if room > 0:
-                options.append((per_unit * room, feature, per_unit, room, direction))
+                steps = range(1, math.floor(room) + 1)
+            else:
+                steps = [room * i / TIP_STEPS for i in range(1, TIP_STEPS + 1)] if room > 0 else []
+            trials += [(feature, record[feature] + direction * step) for step in steps]
+        if not trials:
+            return self._tips_result(record, current, {})
 
-        # Aim a little past the threshold, so rounding the suggested values can't leave the result just short
+        # All of them scored in one go; the gain is the rise in log-odds each would bring on its own
+        tried = pd.DataFrame([self.apply_changes(record, {f: v}) for f, v in trials])
+        scores = np.clip(self.pipeline.predict_proba(tried[MODEL_FEATURES])[:, 1], 1e-12, 1 - 1e-12)
+        gains = np.log(scores / (1 - scores)) - logit(current)
+        options = {}
+        for (feature, value), gain in zip(trials, gains):
+            options.setdefault(feature, []).append((value, float(gain)))
+
+        # Aim a little past the threshold, so rounding can't leave the result just short
         changes, remaining = {}, gap + TIPS_MARGIN
-        for _max_gain, feature, per_unit, room, direction in sorted(options, reverse=True):
+        for feature, tried_values in sorted(options.items(), key=lambda kv: max(g for _, g in kv[1]), reverse=True):
             if remaining <= 1e-9:  # gap closed (the tolerance ignores floating-point crumbs)
                 break
-            step = min(room, remaining / per_unit)
-            if FEATURE_INFO[feature]["whole"]:
-                step = min(room, math.ceil(step))
-            changes[feature] = record[feature] + direction * step
-            remaining -= per_unit * step
+            useful = [(value, gain) for value, gain in tried_values if gain > 1e-9]
+            if not useful:
+                continue  # improving this wouldn't raise the score, so it's never suggested
+            enough = [(value, gain) for value, gain in useful if gain >= remaining]
+            value, gain = enough[0] if enough else max(useful, key=lambda vg: vg[1])
+            changes[feature] = value
+            remaining -= gain
+        return self._tips_result(record, current, changes)
 
+    def _tips_result(self, record: dict, current: float, changes: dict) -> dict:
         projected = self.score(self.apply_changes(record, changes)) if changes else current
         return {
             "already_recommended": False,
@@ -225,23 +229,30 @@ class PromotionModel:
     # ─── Overall importance ────────────────────────────────────────────────────
     @cached_property
     def importance(self) -> list[dict]:
-        """Which inputs matter most across all employees: the average size of each input's contribution."""
-        prepared = self.prepare.transform(self.background[MODEL_FEATURES])
-        per_column = np.abs(self.weights * (prepared - self.column_means))
-        totals = {}
-        for i, feature in enumerate(self.column_feature):
-            totals[feature] = totals.get(feature, 0.0) + per_column[:, i]
-        means = {feature: float(np.mean(values)) for feature, values in totals.items()}
+        """
+        Which inputs matter most across all employees: the average size of each input's contribution. The direction
+        comes from the shape of the input's curve, read across its realistic range.
+        """
+        centred = np.abs(self.terms(self.background) - self.average_terms)
+        means = dict(zip(MODEL_FEATURES, centred.mean(axis=0)))
         grand_total = sum(means.values())
-        rows = []
-        for feature, mean in sorted(means.items(), key=lambda kv: kv[1], reverse=True):
-            if feature in CATEGORICAL_FEATURES:
-                direction = "depends on the department"
-            else:
-                direction = "higher raises readiness" if self.unit_weight[feature] > 0 else "higher lowers readiness"
-            rows.append({"feature": feature, "label": label(feature), "share": round(mean / grand_total, 4),
-                         "direction": direction})
-        return rows
+        return [{"feature": feature, "label": label(feature), "share": round(float(mean / grand_total), 4),
+                 "direction": self.direction(feature)}
+                for feature, mean in sorted(means.items(), key=lambda kv: kv[1], reverse=True)]
+
+    def direction(self, feature: str) -> str:
+        """'higher raises readiness', 'higher lowers readiness', 'depends on the level' or 'no effect'."""
+        grid = self.background[feature].quantile(np.linspace(0.01, 0.99, 25)).to_numpy()
+        rows = pd.DataFrame([self.background[MODEL_FEATURES].median()] * len(grid))
+        rows[feature] = grid
+        steps = np.diff(self.terms(rows)[:, MODEL_FEATURES.index(feature)])
+        if np.all(np.abs(steps) < 1e-9):
+            return "no effect"
+        if np.all(steps >= -1e-9):
+            return "higher raises readiness"
+        if np.all(steps <= 1e-9):
+            return "higher lowers readiness"
+        return "depends on the level"
 
     # ─── Everything for one employee ───────────────────────────────────────────
     def explain(self, record: dict, with_lime: bool = True) -> dict:

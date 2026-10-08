@@ -1,7 +1,7 @@
 {
-  "model": "Logistic Regression",
-  "reason": "Logistic Regression has the highest validation PR-AUC.",
-  "threshold": 0.7887,
+  "model": "EBM (monotonic)",
+  "reason": "Logistic Regression, Random Forest, XGBoost lowered some scores when an input improved, so they were not eligible. EBM (monotonic) has the highest validation PR-AUC among the eligible models.",
+  "threshold": 0.2283,
   "features": [
     "performance_score",
     "performance_change",
@@ -22,10 +22,9 @@
     "attendance_rate",
     "late_days",
     "years_since_last_promotion",
-    "years_in_current_role",
-    "department"
+    "years_in_current_role"
   ],
-  "trained_at": "2026-10-04T00:40:04+00:00",
+  "trained_at": "2026-10-08T21:53:10+00:00",
   "feature_stats": {
     "performance_score": {
       "mean": 70.124796,
@@ -188,13 +187,13 @@
       "max": 28.0
     }
   },
-  "department_shares": {
-    "Finance": 0.1447,
-    "HR": 0.144329,
-    "Sales": 0.142986,
-    "Marketing": 0.1427,
-    "Support": 0.142271,
-    "Operations": 0.141743,
-    "Engineering": 0.141271
-  }
+  "departments": [
+    "Engineering",
+    "Finance",
+    "HR",
+    "Marketing",
+    "Operations",
+    "Sales",
+    "Support"
+  ]
 }

@@ -1,19 +1,19 @@
 {
-  "model": "Logistic Regression",
-  "threshold": 0.7887,
-  "accuracy": 0.9101,
-  "precision": 0.5418,
-  "recall": 0.655,
-  "f1": 0.593,
-  "roc_auc": 0.9295,
-  "pr_auc": 0.6325,
+  "model": "EBM (monotonic)",
+  "threshold": 0.2283,
+  "accuracy": 0.874,
+  "precision": 0.4102,
+  "recall": 0.595,
+  "f1": 0.4856,
+  "roc_auc": 0.8833,
+  "pr_auc": 0.4736,
   "pr_auc_baseline": 0.1,
-  "share_recommended": 0.1209,
+  "share_recommended": 0.1451,
   "confusion_matrix": {
-    "true_positives": 1310,
-    "false_positives": 1108,
-    "false_negatives": 690,
-    "true_negatives": 16892
+    "true_positives": 1190,
+    "false_positives": 1711,
+    "false_negatives": 810,
+    "true_negatives": 16289
   },
   "test_size": 20000
 }

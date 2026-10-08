@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "employee_promotion_dataset_100000.csv"
 TARGET = "promoted"
@@ -42,12 +42,26 @@ NUMERIC_FEATURES = [
     "years_since_last_promotion",
     "years_in_current_role",
 ]
-CATEGORICAL_FEATURES = ["department"]
-MODEL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+MODEL_FEATURES = NUMERIC_FEATURES
+
+# Direction in which the model may use each input (monotonic constraints): +1 a higher value can only raise readiness,
+# -1 it can only lower it, 0 no constraint. Improving anything a person controls (more training, fewer late days)
+# can therefore never lower their score, and a bigger rise in performance never counts against them.
+# Time in role and since last promotion stay free: the data decides how they matter.
+MONOTONE = {
+    "performance_score": +1, "performance_change": +1, "manager_rating": +1, "peer_feedback_score": +1,
+    "kpi_achievement_percent": +1, "projects_completed": +1, "tasks_completed": +1, "deadline_adherence_rate": +1,
+    "innovation_score": +1, "leadership_score": +1, "problem_solving_score": +1, "skill_assessment_score": +1,
+    "training_hours_last_year": +1, "certifications_count": +1, "cross_department_projects": +1,
+    "mentoring_sessions": +1, "attendance_rate": +1, "late_days": -1,
+    "years_since_last_promotion": 0, "years_in_current_role": 0,
+}
 
 # ─── Kept out of the model, and why ───────────────────────────────────────────
 FAIRNESS_ONLY = ["gender", "age", "education_level"]          # protected: used only to audit fairness
 EXCLUDED = {
+    "department": "where someone works says nothing about how well they work; with it, two people with the same "
+                  "record could get different scores only because of their department",
     "gender": "protected characteristic",
     "age": "protected characteristic",
     "education_level": "protected characteristic (audited for fairness)",
@@ -100,8 +114,5 @@ def split_data(df: pd.DataFrame):
 
 
 def build_preprocessor() -> ColumnTransformer:
-    """Scale numbers to a common range and turn department into yes/no columns (one-hot encoding)."""
-    return ColumnTransformer([
-        ("numeric", StandardScaler(), NUMERIC_FEATURES),
-        ("department", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CATEGORICAL_FEATURES),
-    ])
+    """Scale every input to a common range (average 0, spread 1), in the order of NUMERIC_FEATURES."""
+    return ColumnTransformer([("numeric", StandardScaler(), NUMERIC_FEATURES)])

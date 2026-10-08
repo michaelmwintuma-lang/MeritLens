@@ -9,7 +9,7 @@ import pytest
 
 from app.promotion.fairness import age_group, check_attribute
 from app.promotion.features import EXCLUDED, FAIRNESS_ONLY, MODEL_FEATURES, TARGET, load_dataset, split_data
-from app.promotion.modeling import LOGISTIC_REGRESSION, best_f1_threshold, choose_model
+from app.promotion.modeling import EBM, LOGISTIC_REGRESSION, best_f1_threshold, choose_model
 
 BACKEND = Path(__file__).resolve().parents[1]
 RESULTS = BACKEND.parent / "results"
@@ -67,6 +67,26 @@ def test_a_clearly_better_model_wins():
     assert chosen == "XGBoost"
 
 
+def test_a_model_that_lowers_scores_when_inputs_improve_is_not_eligible():
+    chosen, reason = choose_model({EBM: 0.46, LOGISTIC_REGRESSION: 0.46, "XGBoost": 0.50},
+                                  {EBM: 0.0, LOGISTIC_REGRESSION: 0.17, "XGBoost": 0.22})
+    assert chosen == EBM and "not eligible" in reason
+
+
+def test_the_ebm_is_preferred_over_logistic_regression_when_both_are_eligible_and_close():
+    chosen, _ = choose_model({EBM: 0.640, LOGISTIC_REGRESSION: 0.645}, {EBM: 0.0, LOGISTIC_REGRESSION: 0.0})
+    assert chosen == EBM
+
+
+def test_if_no_model_has_common_sense_all_stay_eligible():
+    chosen, reason = choose_model({LOGISTIC_REGRESSION: 0.60, "XGBoost": 0.65}, {LOGISTIC_REGRESSION: 0.1, "XGBoost": 0.2})
+    assert chosen == "XGBoost" and "all stayed eligible" in reason
+
+
+def test_department_is_not_a_model_input():
+    assert "department" not in MODEL_FEATURES and "department" in EXCLUDED
+
+
 def test_best_f1_threshold_separates_clean_data():
     y = np.array([0, 0, 0, 0, 1, 1])
     scores = np.array([0.1, 0.2, 0.3, 0.4, 0.8, 0.9])
@@ -113,3 +133,9 @@ def test_live_model_passed_the_fairness_check_and_predicts(data):
     model = joblib.load(MODELS / "model.joblib")
     scores = model.predict_proba(data[MODEL_FEATURES].head(5))[:, 1]
     assert ((scores >= 0) & (scores <= 1)).all()
+
+
+@needs_training
+def test_live_model_was_chosen_with_no_common_sense_violations():
+    comparison = json.loads((RESULTS / "model_comparison.json").read_text())
+    assert comparison["validation"][comparison["chosen"]]["common_sense_violations"] == 0.0
