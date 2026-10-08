@@ -7,6 +7,8 @@ Who sees what (checked here, on every request):
 - Employee: only themselves
 - Admin: none of it (admins manage accounts, not promotions), unless an admin has given them
   "can view employee data": then they see everyone, read-only (they can't nominate, decide or edit)
+- Auditor: no individual employees; the model's overall importance (and the decision log, in
+  routes_decisions.py)
 """
 import time
 
@@ -17,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.models import User
 from app.core.database import get_db
-from app.core.roles import ADMIN, EMPLOYEE, HR, MANAGER
+from app.core.roles import ADMIN, AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import get_current_user
 from app.promotion.explain import ModelNotTrained, get_model
 from app.promotion.models import Employee
@@ -146,7 +148,12 @@ def tips(employee_id: int, user: User = Depends(promotion_roles), db: Session = 
     return model().tips(employee.record)
 
 
+def importance_roles(user: User = Depends(get_current_user)) -> User:
+    """Everyone who uses the promotion pages, plus the auditor: how the model works is not about any one person."""
+    return user if user.role == AUDITOR else promotion_roles(user)
+
+
 @router.get("/importance")
-def importance(_: User = Depends(promotion_roles)):
+def importance(_: User = Depends(importance_roles)):
     """Which inputs matter most across all employees."""
     return {"features": model().importance}

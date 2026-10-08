@@ -19,6 +19,10 @@ async function loadOverview(user) {
     return { people, nominations, decisions };
   }
   if (user.role === "finance") return { finance: await api("/finance/pay-reviews") };
+  if (user.role === "auditor") {
+    const [decisions, model] = await Promise.all([api("/promotion/decisions"), api("/public/summary")]);
+    return { decisions, model };
+  }
   if (user.role === "employee") {
     return { me: user.employee_id ? await api(`/promotion/employees/${user.employee_id}`) : null };
   }
@@ -83,6 +87,30 @@ function FinanceOverview({ finance }) {
   );
 }
 
+function AuditorOverview({ data }) {
+  const { decisions, model } = data;
+  const differ = decisions.filter((d) => !d.agrees_with_model).length;
+  return (
+    <>
+      <div className="stat-grid">
+        <StatCard label="Decisions" value={decisions.length} note="Promotion decisions in the log" />
+        <StatCard label="Differ from the model" value={differ}
+          note={decisions.length ? `${percent(differ / decisions.length)} of decisions, each with a written reason` : "No decisions yet"} />
+        <StatCard label="Fairness check" value={model.trained ? (model.fairness_passes ? "Passed" : "Failed") : "–"}
+          note={model.trained ? `Lowest group ratio ${percent(model.lowest_fairness_ratio)} (needs 80%)` : "No model trained yet"} />
+        <StatCard label="Model" value={model.trained ? `ROC-AUC ${model.roc_auc.toFixed(2)}` : "–"}
+          note={model.trained ? `${model.model}, tested on ${model.test_size.toLocaleString()} unseen records` : "No model trained yet"} />
+      </div>
+      <Card title="Oversight" subtitle="Read-only. You see decisions and the model, never anonymous reports.">
+        <div className="row">
+          <Link className="btn btn-primary" to="/decisions">Open the decision log <ArrowRight size={16} /></Link>
+          <Link className="btn btn-plain" to="/model">How the model works</Link>
+        </div>
+      </Card>
+    </>
+  );
+}
+
 function AdminOverview({ data }) {
   const { users, employees } = data;
   return (
@@ -115,6 +143,7 @@ export default function Home() {
       {data && user.role === "employee" && <EmployeeOverview me={data.me} />}
       {data && user.role === "admin" && <AdminOverview data={data} />}
       {data && user.role === "finance" && <FinanceOverview finance={data.finance} />}
+      {data && user.role === "auditor" && <AuditorOverview data={data} />}
     </>
   );
 }

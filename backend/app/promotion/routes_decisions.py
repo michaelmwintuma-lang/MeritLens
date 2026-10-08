@@ -30,7 +30,7 @@ from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
 from app.core.database import get_db
-from app.core.roles import EMPLOYEE, HR, MANAGER
+from app.core.roles import AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import require_roles
 from app.promotion.models import Decision, Employee, Nomination, PayPolicy, PayReview
 from app.promotion.routes import model
@@ -356,8 +356,8 @@ def log_entry(db: Session, decision: Decision) -> dict:
 
 
 @router.get("/decisions")
-def decision_log(_: User = Depends(require_roles(HR)), db: Session = Depends(get_db)):
-    """Every decision, newest first."""
+def decision_log(_: User = Depends(require_roles(HR, AUDITOR)), db: Session = Depends(get_db)):
+    """Every decision, newest first. HR, and the compliance auditor (read-only)."""
     return [log_entry(db, d) for d in db.scalars(select(Decision).order_by(Decision.decided_at.desc(), Decision.id.desc()))]
 
 

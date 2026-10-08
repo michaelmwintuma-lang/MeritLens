@@ -1,4 +1,4 @@
-// The four roles, how they're named on screen, and the menu each one sees.
+// The six roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
 import { Banknote, BookCheck, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
 
@@ -8,6 +8,7 @@ export const ROLE_NAMES = {
   hr: "HR",
   admin: "Admin",
   finance: "Finance",
+  auditor: "Compliance auditor",
 };
 
 export const ROLE_DESCRIPTIONS = {
@@ -16,6 +17,7 @@ export const ROLE_DESCRIPTIONS = {
   hr: "See all employees, decide on nominations, and handle anonymous reports.",
   admin: "Create and manage user accounts, and view the activity log.",
   finance: "Sign off the pay rise of each approved promotion, or send it back to HR with a reason.",
+  auditor: "Check promotion decisions, the model and its fairness, read-only. Never sees anonymous reports.",
 };
 
 // Who uses the anonymous reporting pages (HR handles reports in the report inbox instead)
@@ -55,6 +57,9 @@ export const MENU = {
       { to: "/admin/demo-requests", label: "Demo requests", icon: CalendarCheck }] }],
   finance: [OVERVIEW,
     { group: "Finance", icon: Banknote, items: [{ to: "/finance", label: "Pay sign-off", icon: Banknote }] }],
+  auditor: [OVERVIEW,
+    { group: "Oversight", icon: ShieldCheck, items: [
+      { to: "/decisions", label: "Decision log", icon: BookCheck }, MODEL] }],
 };
 
 // Admins an admin has allowed to view employee data (read-only) get the employee pages too
@@ -74,9 +79,11 @@ export const PHONE_TABS = {
   hr: ["/", "/nominations", "/reports"],
   admin: ["/", "/admin/users", "/admin/activity"],
   finance: ["/", "/finance"],
+  auditor: ["/", "/decisions", "/model"],
 };
 // Short names that fit under a tab icon
 export const SHORT_LABELS = {
   "/": "Home", "/my-readiness": "Readiness", "/report": "Report", "/team": "Team",
   "/nominations": "Nominations", "/reports": "Inbox", "/admin/users": "Users", "/admin/activity": "Activity", "/finance": "Pay",
+  "/decisions": "Decisions", "/model": "Model",
 };

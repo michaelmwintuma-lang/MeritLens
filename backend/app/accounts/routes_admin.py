@@ -1,4 +1,4 @@
-"""Account management. Only administrators can create accounts (for any of the four roles) and edit them."""
+"""Account management. Only administrators can create accounts (for any role) and edit them."""
 from email import message_from_bytes
 from email.policy import default as default_policy
 
@@ -12,7 +12,7 @@ from app.accounts.contacts import notify_new_team_members
 from app.accounts.schemas import CreateUserIn, CreateUserOut, EditUserIn, PermissionIn, SetActiveIn, UserOut
 from app.core.config import OUTBOX_DIR, SMTP
 from app.core.database import get_db
-from app.core.roles import ADMIN, FINANCE, HR, MANAGER
+from app.core.roles import ADMIN, AUDITOR, FINANCE, HR, MANAGER
 from app.core.security import hash_password, require_roles, temporary_password, withdraw_tokens
 from app.core import email_templates as templates
 from app.core import mailer
@@ -22,7 +22,7 @@ from app.promotion.models import Decision, Employee, Nomination
 router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 employees_router = APIRouter(prefix="/api/admin/employees", tags=["admin"])
 admin_only = require_roles(ADMIN)
-STAFF_ROLES = (ADMIN, HR, FINANCE)  # "Administration" accounts: not linked to an employee record
+STAFF_ROLES = (ADMIN, HR, FINANCE, AUDITOR)  # "Administration" accounts: not linked to an employee record
 
 
 @router.get("", response_model=list[UserOut])
@@ -49,8 +49,8 @@ def create_user(body: CreateUserIn, db: Session = Depends(get_db), admin: User =
     email = body.email.strip().lower()
     check_unique(db, username=username, email=email)
     if body.employee_id is not None and body.role in STAFF_ROLES:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Administration accounts (Admin and HR) aren't linked "
-                            "to an employee record. Create an Employee or Manager account for that.")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Administration accounts (Admin, HR, Finance and "
+                            "Auditor) aren't linked to an employee record. Create an Employee or Manager account for that.")
     if body.employee_id is not None:
         if db.get(Employee, body.employee_id) is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "There is no employee with that number.")

@@ -82,10 +82,10 @@ export default function App() {
         <Route path="employees/import" element={<OnlyFor roles={["hr"]}><ImportEmployees /></OnlyFor>} />
         <Route path="employees/:id/edit" element={<OnlyFor roles={["hr"]}><EmployeeForm /></OnlyFor>} />
         <Route path="employees/:id" element={<OnlyFor roles={[...viewAll, "manager"]}><Readiness /></OnlyFor>} />
-        <Route path="model" element={<OnlyFor roles={["employee", "manager", ...viewAll]}><ModelOverview /></OnlyFor>} />
+        <Route path="model" element={<OnlyFor roles={["employee", "manager", "auditor", ...viewAll]}><ModelOverview /></OnlyFor>} />
         <Route path="nominations" element={<OnlyFor roles={["manager", "hr"]}><Nominations /></OnlyFor>} />
         <Route path="nominations/:id" element={<OnlyFor roles={["hr"]}><ReviewNomination /></OnlyFor>} />
-        <Route path="decisions" element={<OnlyFor roles={["hr"]}><DecisionLog /></OnlyFor>} />
+        <Route path="decisions" element={<OnlyFor roles={["hr", "auditor"]}><DecisionLog /></OnlyFor>} />
         <Route path="finance" element={<OnlyFor roles={["finance"]}><PaySignOff /></OnlyFor>} />
         {/* Anonymous reporting: employees and managers. HR handles reports in the inbox. */}
         <Route path="report" element={<OnlyFor roles={REPORTER_ROLES}><Report /></OnlyFor>} />
