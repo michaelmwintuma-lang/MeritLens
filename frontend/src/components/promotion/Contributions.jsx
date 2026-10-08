@@ -1,4 +1,4 @@
-// The exact contributions (SHAP): what raised and what lowered the score, compared with an average employee.
+// The exact contributions: what raised and what lowered the score, compared with an average employee.
 
 function Row({ item, max }) {
   const width = `${(Math.abs(item.contribution) / max) * 100}%`;
@@ -36,7 +36,7 @@ export default function Contributions({ contributions, limit = 6 }) {
       <details className="details">
         <summary>All {contributions.length} factors with exact numbers</summary>
         <p className="muted small">
-          Each number is the factor's contribution in log-odds: weight × (this employee's value − the average value).
+          Each number is the factor's contribution in log-odds: how far this employee's value moves the score compared with an average employee, read from the model's own curve for that factor.
           Added to the average employee's starting point, they give exactly the model's score.
         </p>
         <table>
