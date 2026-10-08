@@ -1,16 +1,13 @@
 // The bell at the top right. HR is told about new reports and replies, and about pay rises Finance sent back;
-// Finance about pay rises waiting for sign-off; reporters about replies on their cases.
+// Finance about pay rises waiting for sign-off.
 //
-// Reporters' notifications are worked out in their own browser: it checks only the cases saved on this device
-// (My report keys) and compares them with what the reporter has already seen. The server never stores which
-// account follows which case, so these notifications can't link a report to anyone.
+// Reporters get no notifications: that would need the website to know which cases are theirs. They open a case
+// with its ID and key when they want to check it.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { savedKeys, seenCases } from "../keyStore";
-import { REPORTER_ROLES } from "../roles";
 
 const CHECK_EVERY_MS = 60_000;
 
@@ -27,35 +24,17 @@ async function financeItems() {
     id: `pay-${r.id}`, text: `Pay rise to sign off: ${r.raise}%`, detail: `${r.employee.full_name} · ${r.new_title || "promotion"}`, to: "/finance" }));
 }
 
-async function reporterItems() {
-  const keys = savedKeys();
-  if (!keys.length) return [];
-  const updates = await api("/reports/updates", { method: "POST", body: { cases: keys.map(({ case_id, key }) => ({ case_id, key })) } });
-  const seen = seenCases();
-  const items = [];
-  for (const u of updates) {
-    const before = seen[u.case_id] || { messages: 0, status: "open" };
-    const key = keys.find((k) => k.case_id === u.case_id).key;
-    if (u.investigator_wrote_last && u.messages > before.messages) {
-      items.push({ id: `${u.case_id}-reply`, text: "The investigator replied", detail: `Case ${u.case_id}`, open: { case_id: u.case_id, key } });
-    } else if (u.status !== before.status && u.status === "closed") {
-      items.push({ id: `${u.case_id}-closed`, text: "Your case was closed, with an outcome", detail: `Case ${u.case_id}`, open: { case_id: u.case_id, key } });
-    }
-  }
-  return items;
-}
-
 export default function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const box = useRef(null);
-  const role = ["hr", "finance"].includes(user.role) ? user.role : REPORTER_ROLES.includes(user.role) ? "reporter" : null;
+  const role = ["hr", "finance"].includes(user.role) ? user.role : null;
 
   useEffect(() => {
     if (!role) return undefined;
-    const load = () => ({ hr: hrItems, finance: financeItems }[role] || reporterItems)().then(setItems).catch(() => {});
+    const load = () => ({ hr: hrItems, finance: financeItems }[role])().then(setItems).catch(() => {});
     load();
     const timer = setInterval(load, CHECK_EVERY_MS);
     return () => clearInterval(timer);
@@ -72,8 +51,7 @@ export default function NotificationBell() {
 
   function go(item) {
     setOpen(false);
-    if (item.to) navigate(item.to);
-    else navigate("/my-report", { state: item.open }); // the key travels inside the app, never in the address
+    navigate(item.to);
   }
 
   return (
@@ -93,7 +71,6 @@ export default function NotificationBell() {
               <strong>{item.text}</strong><span className="muted small">{item.detail}</span>
             </button>
           ))}
-          {role === "reporter" && <p className="muted small bell-foot">Only cases saved under My report keys on this device are checked.</p>}
         </div>
       )}
     </div>

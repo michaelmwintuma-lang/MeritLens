@@ -141,8 +141,9 @@ Committed as `95d4aa4` and `1102b7f`, with your approval ("drop department, use 
    concern". Old reports keep showing their original category.
 3. **No report keys are kept in the browser.** The "My report keys" page, saving keys on the device and the
    reporter notifications that polled saved keys are removed (S1, S2, P4). Reporters keep their key by
-   downloading the receipt or using their password manager. Keys already saved in a browser are shown once, so
-   they can be kept elsewhere, and then removed from it.
+   downloading the receipt or using their password manager. Keys an earlier version saved in a browser are shown
+   on "Check my report", with a download button, until the reporter removes them. They are never deleted
+   unseen, because a lost key can't be recovered.
 4. **Sign-in lockout:** an account is locked for 15 minutes after 5 wrong passwords in a row (S3).
 
 ## 8. Phase 2: the bridge

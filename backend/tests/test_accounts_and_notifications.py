@@ -87,13 +87,12 @@ def test_hr_notifications_hold_nothing_about_the_reporter(client):
     assert set(item) == {"case_id", "kind", "priority", "text"}  # no names, accounts or times
 
 
-def test_reporters_check_their_saved_cases_for_replies(client):
+def test_there_is_no_bulk_check_of_saved_cases(client):
+    """Review S2: the browser used to send every saved case ID and key with the login token each minute."""
     case = report(client)
-    client.post(f"/api/hr/reports/{case['case_id']}/messages", headers=login(client, "hr"), json={"text": "Can you tell us more?"})
     res = client.post("/api/reports/updates", headers=login(client, "employee"),
-                      json={"cases": [{"case_id": case["case_id"], "key": case["key"]},
-                                      {"case_id": "R-AAAA-AAAA", "key": "AAAA-AAAA-AAAA-AAAA"}]}).json()
-    assert res == [{"case_id": case["case_id"], "status": "investigating", "messages": 1, "investigator_wrote_last": True}]
+                      json={"cases": [{"case_id": case["case_id"], "key": case["key"]}]})
+    assert res.status_code in (404, 405)
 
 
 @pytest.mark.parametrize("username", ["employee", "manager", "admin"])

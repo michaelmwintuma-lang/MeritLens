@@ -160,7 +160,7 @@ export default function Report() {
           <h3>Choose how to keep it</h3>
           <KeepKey caseId={receipt.case_id} secret={receipt.key} />
           <label className="check" style={{ marginTop: 16 }}><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> I've kept my case ID and key.</label>
-          {saved && <p className="row"><Link to="/my-report">Check my report</Link> · <Link to="/report-keys">My report keys</Link> · <button className="btn btn-plain" onClick={() => { setReceipt(null); setSaved(false); setCategory(""); setFiles([]); setStep(1); }}>Make another report</button></p>}
+          {saved && <p className="row"><Link to="/my-report">Check my report</Link> · <button className="btn btn-plain" onClick={() => { setReceipt(null); setSaved(false); setCategory(""); setFiles([]); setStep(1); }}>Make another report</button></p>}
         </div>
       )}
     </>

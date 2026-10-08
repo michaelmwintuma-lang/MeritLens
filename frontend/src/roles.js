@@ -1,6 +1,6 @@
 // The four roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
-import { Banknote, BookCheck, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, KeyRound, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
+import { Banknote, BookCheck, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
 
 export const ROLE_NAMES = {
   employee: "Employee",
@@ -27,7 +27,6 @@ const REPORTING = {
   group: "Reporting", icon: ShieldCheck, items: [
     { to: "/report", label: "Report anonymously", icon: Megaphone },
     { to: "/my-report", label: "Check my report", icon: FileSearch },
-    { to: "/report-keys", label: "My report keys", icon: KeyRound },
   ],
 };
 export const ACCOUNT = { group: "Account", icon: UserRound, items: [{ to: "/account", label: "My profile", icon: UserRound }] };

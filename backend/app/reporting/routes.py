@@ -11,6 +11,9 @@ A report is linked to its reporter only by the secret key, which only the report
 3. access:  case ID + key opens the case later. Wrong attempts lock the case for 15 minutes.
 4. messages: the reporter replies to the investigator, with the same anonymising rules.
 (Photos and videos as evidence: routes_evidence.py, also opened with the case ID and key.)
+
+The server never checks cases in bulk or in the background: a reporter opens one case at a time by typing its ID
+and key. Keys are never kept by the website either (see frontend/src/keyStore.js).
 """
 import secrets
 from datetime import date, datetime, timedelta, timezone
@@ -221,27 +224,3 @@ def reporter_message(body: ReporterMessageIn, db: Session = Depends(get_db), _: 
     add_message(db, report.case_id, "reporter", body.text)
     db.commit()
     return {"messages": conversation(db, report.case_id)}
-
-
-# ─── 5. News on saved cases (for the reporter's notifications) ────────────────
-class SavedCasesIn(BaseModel):
-    cases: list[AccessIn] = Field(max_length=20)
-
-
-@router.post("/updates")
-def updates(body: SavedCasesIn, db: Session = Depends(get_db), _: User = Depends(reporters)):
-    """
-    For the cases a reporter has saved on their own device: how many messages each has, who wrote last, and the
-    status. The page compares this with what it saw last time and shows a notification. Nothing about these
-    checks is stored, so notifications for reporters exist only in their own browser.
-    """
-    result = []
-    for case in body.cases:
-        try:
-            report = open_case(case.case_id, case.key, db)
-        except HTTPException:
-            continue  # a mistyped or locked case is simply skipped
-        messages = conversation(db, report.case_id)
-        result.append({"case_id": report.case_id, "status": report.status, "messages": len(messages),
-                       "investigator_wrote_last": bool(messages and messages[-1]["sender"] == "investigator")})
-    return result

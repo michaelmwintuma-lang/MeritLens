@@ -1,61 +1,29 @@
-// Keeping report keys on the reporter's own device. Nothing here is ever sent to the server: saving a key on the
-// server would link the report to the reporter's account, which is exactly what anonymity rules out.
-//
-// Keys are kept separately for each account that signs in on this device, so someone else signing in here
-// (for example a colleague, or HR) doesn't see them in the app.
+// Keeping a report's case ID and key: only ways that stay with the reporter. The website itself never stores a
+// key. It used to offer "save on this device", but the saved list was labelled with the account's id, so anyone
+// with access to the browser could see which account held which case (docs/REVIEW.md, S1).
 
-let owner = null; // the signed-in account's id, set by auth.jsx
+let owner = null; // the signed-in account's id, set by auth.jsx; used only to find keys saved by that old version
 export function setKeyOwner(userId) { owner = userId ?? null; }
 
-const storageKey = (kind) => `${kind}:${owner}`;
-
-function read(kind, fallback) {
-  if (owner === null) return fallback;
+/** Keys this account saved in this browser with the old version: [{ case_id, key, saved_on, note }]. */
+export function legacyKeys() {
+  if (owner === null) return [];
   try {
-    const value = JSON.parse(localStorage.getItem(storageKey(kind)) || "null");
-    return value ?? fallback;
+    const list = JSON.parse(localStorage.getItem(`report-keys:${owner}`) || "[]");
+    return Array.isArray(list) ? list : [];
   } catch {
-    return fallback;
+    return [];
   }
 }
 
-function store(kind, value) {
-  if (owner === null) return false;
+/** Remove those old keys (and what the old notifications remembered) from this browser. */
+export function removeLegacyKeys() {
+  if (owner === null) return;
   try {
-    localStorage.setItem(storageKey(kind), JSON.stringify(value));
-    return true;
-  } catch {
-    return false; // storage blocked (e.g. private window): the other ways of keeping the key still work
-  }
+    localStorage.removeItem(`report-keys:${owner}`);
+    localStorage.removeItem(`report-seen:${owner}`);
+  } catch { /* storage unavailable: nothing to remove */ }
 }
-
-/** Keys this account saved on this device: [{ case_id, key, saved_on, note }]. */
-export function savedKeys() {
-  const list = read("report-keys", []);
-  return Array.isArray(list) ? list : [];
-}
-
-const write = (list) => store("report-keys", list);
-
-/** What the reporter has already seen of each case: { case_id: { messages, status } }. Used for notifications. */
-export const seenCases = () => read("report-seen", {});
-export function markSeen(caseId, messages, status) {
-  store("report-seen", { ...seenCases(), [caseId]: { messages, status } });
-}
-
-/** Save (or update) a case on this device. Returns false if the browser won't store it. */
-export function saveKey(caseId, key, note = "") {
-  const rest = savedKeys().filter((k) => k.case_id !== caseId);
-  return write([{ case_id: caseId, key, note: note.trim(), saved_on: new Date().toISOString().slice(0, 10) }, ...rest]);
-}
-
-export function forgetKey(caseId) {
-  write(savedKeys().filter((k) => k.case_id !== caseId));
-  const { [caseId]: _gone, ...rest } = seenCases();
-  store("report-seen", rest);
-}
-
-export const isSaved = (caseId) => savedKeys().some((k) => k.case_id === caseId);
 
 /** A small text file with the case ID, key and how to use them. */
 export function downloadReceipt(caseId, key) {

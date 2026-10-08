@@ -30,7 +30,6 @@ import Report from "./pages/reporting/Report";
 import CheckReport from "./pages/reporting/CheckReport";
 import ReportInbox from "./pages/reporting/ReportInbox";
 import ReportCase from "./pages/reporting/ReportCase";
-import ReportKeys from "./pages/reporting/ReportKeys";
 
 /** Shows the page only to the listed roles. The backend enforces the same rule on every request. */
 function OnlyFor({ roles, children }) {
@@ -91,7 +90,6 @@ export default function App() {
         {/* Anonymous reporting: employees and managers. HR handles reports in the inbox. */}
         <Route path="report" element={<OnlyFor roles={REPORTER_ROLES}><Report /></OnlyFor>} />
         <Route path="my-report" element={<OnlyFor roles={REPORTER_ROLES}><CheckReport /></OnlyFor>} />
-        <Route path="report-keys" element={<OnlyFor roles={REPORTER_ROLES}><ReportKeys /></OnlyFor>} />
         <Route path="reports" element={<OnlyFor roles={["hr"]}><ReportInbox /></OnlyFor>} />
         <Route path="reports/:caseId" element={<OnlyFor roles={["hr"]}><ReportCase /></OnlyFor>} />
         <Route path="*" element={<Navigate to="/" replace />} />

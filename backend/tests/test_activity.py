@@ -68,7 +68,6 @@ def test_nothing_a_reporter_does_is_logged(client):
     case = client.post("/api/reports", headers=employee, json={"category": "bullying", "text": text}).json()
     client.post("/api/reports/access", headers=employee, json={"case_id": case["case_id"], "key": case["key"]})
     client.post("/api/reports/messages", headers=employee, json={"case_id": case["case_id"], "key": case["key"], "text": "It happened again."})
-    client.post("/api/reports/updates", headers=employee, json={"cases": [{"case_id": case["case_id"], "key": case["key"]}]})
     with SessionLocal() as db:
         assert db.query(ActivityEntry).count() == before
 

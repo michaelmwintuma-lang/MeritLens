@@ -1,11 +1,10 @@
 // Open your report with its case ID and secret key, read the investigator's replies, and reply.
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { FileSearch } from "lucide-react";
+import { useState } from "react";
+import { Download, FileSearch } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
 import { Button, Card, PageHeader } from "../../components/ui";
-import { markSeen } from "../../keyStore";
+import { downloadReceipt, legacyKeys, removeLegacyKeys } from "../../keyStore";
 import Conversation, { CaseStatus } from "../../components/reporting/Conversation";
 import { EvidenceGallery, EvidencePicker, EvidenceUploader, MAX_FILES, loadAsReporter } from "../../components/reporting/Evidence";
 import { useAction } from "../../useAction";
@@ -110,19 +109,47 @@ function ReporterEvidence({ report, secret, onChange }) {
   );
 }
 
-// What's been typed or pasted so far, kept in memory while moving between pages (e.g. to "My report keys" to copy
-// the key after pasting the case ID). Never written to storage; gone when the tab closes, and never shown to
+// What's been typed or pasted so far, kept in memory while moving between pages (e.g. to fetch the key from a
+// password manager after pasting the case ID). Never written to storage; gone when the tab closes, and never shown to
 // another account signing in on the same tab.
 const draft = { owner: null, caseId: "", key: "" };
 const CASE_IN_TEXT = /R-[A-Z2-9]{4}-[A-Z2-9]{4}/i;
 const KEY_IN_TEXT = /\b(?:[A-Z2-9]{4}-){3}[A-Z2-9]{4}\b/i;
 
+/**
+ * Keys an earlier version of the website saved in this browser. They are shown so the reporter can keep them
+ * somewhere safe, and removed from the browser when the reporter says so (never silently: a lost key can't be
+ * recovered, so deleting it unseen could lock someone out of their case for good).
+ */
+function OldSavedKeys({ onOpen }) {
+  const [keys, setKeys] = useState(legacyKeys);
+  if (!keys.length) return null;
+  return (
+    <Card title="Keys saved in this browser by an earlier version"
+      subtitle="The website no longer keeps report keys. Download each one, or put it in your password manager, then remove them from this browser.">
+      <ul className="plain-list">
+        {keys.map((k) => (
+          <li key={k.case_id} className="row spread">
+            <span className="mono">{k.case_id}{k.note ? <span className="muted small"> · {k.note}</span> : null}</span>
+            <span className="row">
+              <button type="button" className="btn btn-plain" onClick={() => downloadReceipt(k.case_id, k.key)}><Download size={16} aria-hidden="true" />Download</button>
+              <button type="button" className="btn btn-plain" onClick={() => onOpen(k.case_id, k.key)}>Open</button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="btn btn-primary" onClick={() => { removeLegacyKeys(); setKeys([]); }}>
+        I've kept them: remove them from this browser
+      </button>
+    </Card>
+  );
+}
+
 export default function CheckReport() {
-  const { state } = useLocation(); // set when opened from "My report keys"; never put in the address bar
   const { user } = useAuth();
   if (draft.owner !== user.id) Object.assign(draft, { owner: user.id, caseId: "", key: "" });
-  const [caseId, setCaseIdState] = useState(state?.case_id || draft.caseId);
-  const [key, setKeyState] = useState(state?.key || draft.key);
+  const [caseId, setCaseIdState] = useState(draft.caseId);
+  const [key, setKeyState] = useState(draft.key);
   const setCaseId = (value) => { draft.caseId = value; setCaseIdState(value); };
   const setKey = (value) => { draft.key = value; setKeyState(value); };
 
@@ -145,16 +172,12 @@ export default function CheckReport() {
     setError("");
     try {
       const opened = await api("/reports/access", { method: "POST", body: { case_id: id, key: secret } });
-      markSeen(opened.case_id, opened.messages.length, opened.status);
       draft.caseId = ""; draft.key = ""; // opened: nothing left to remember
       setReport(opened);
     } catch (err) {
       setError(err.message);
     }
   }
-
-  // Opened from a saved key: go straight to the case
-  useEffect(() => { if (state?.case_id && state?.key) openCase(state.case_id, state.key); }, [state]);
 
   if (report) {
     return (
@@ -166,7 +189,7 @@ export default function CheckReport() {
         <ReporterEvidence report={report} secret={key} onChange={(evidence) => setReport((r) => ({ ...r, evidence }))} />
         <Card title="Conversation" subtitle="You appear as “Reporter” and HR as “Investigator”.">
           <Conversation messages={report.messages} me="reporter" />
-          {report.status !== "closed" && <Reply caseId={report.case_id} secret={key} onSent={(messages) => { markSeen(report.case_id, messages.length, report.status); setReport({ ...report, messages }); }} />}
+          {report.status !== "closed" && <Reply caseId={report.case_id} secret={key} onSent={(messages) => setReport({ ...report, messages })} />}
         </Card>
         <button className="btn btn-plain" onClick={() => { setReport(null); setKey(""); }}>Close this case</button>
       </>
@@ -176,8 +199,9 @@ export default function CheckReport() {
   return (
     <>
       <PageHeader icon={FileSearch} title="Check my report" />
+      <OldSavedKeys onOpen={(id, secret) => { setCaseId(id); setKey(secret); withWorking(() => openCase(id, secret)); }} />
       <form className="card narrow" onSubmit={(e) => { e.preventDefault(); withWorking(() => openCase(caseId, key)); }}>
-        <p className="muted">Enter the case ID and secret key you saved when you sent the report, or open it from <Link to="/report-keys">My report keys</Link>. After five wrong keys, a case is locked for 15 minutes.</p>
+        <p className="muted">Enter the case ID and secret key you kept when you sent the report (from the receipt or your password manager). After five wrong keys, a case is locked for 15 minutes.</p>
         <p className="muted small">Tip: paste a copied “Case ID … Key …” into either box and both are filled in.</p>
         {error && <p className="alert alert-error" role="alert">{error}</p>}
         <label className="field">Case ID<input className="mono" value={caseId} onChange={(e) => setCaseId(e.target.value)} onPaste={smartPaste} placeholder="R-XXXX-XXXX" required autoComplete="username" /></label>
