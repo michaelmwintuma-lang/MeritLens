@@ -14,6 +14,8 @@ from app.core.config import SECRET_KEY, TOKEN_MINUTES
 from app.core.database import get_db
 
 PBKDF2_ITERATIONS = 200_000
+MAX_FAILED_LOGINS = 5     # wrong passwords in a row before the account is locked
+LOCK_MINUTES = 15
 
 
 # ─── Passwords ────────────────────────────────────────────────────────────────
@@ -40,10 +42,18 @@ def temporary_password() -> str:
 
 
 # ─── Login tokens ─────────────────────────────────────────────────────────────
-def create_token(user_id: int) -> str:
-    """Signed token that proves who the user is. It expires after TOKEN_MINUTES."""
+def create_token(user) -> str:
+    """
+    Signed token that proves who the user is. It expires after TOKEN_MINUTES, or earlier when the user's
+    token_version goes up (password changed or reset, or signed out).
+    """
     expires = datetime.now(timezone.utc) + timedelta(minutes=TOKEN_MINUTES)
-    return jwt.encode({"sub": str(user_id), "exp": expires}, SECRET_KEY, algorithm="HS256")
+    return jwt.encode({"sub": str(user.id), "ver": user.token_version or 0, "exp": expires}, SECRET_KEY, algorithm="HS256")
+
+
+def withdraw_tokens(user) -> None:
+    """Make every login token this user already has stop working. The caller commits."""
+    user.token_version = (user.token_version or 0) + 1
 
 
 bearer = HTTPBearer(auto_error=False)
@@ -59,11 +69,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
         raise NOT_SIGNED_IN
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
-        user_id = int(payload["sub"])
-    except (jwt.PyJWTError, KeyError, ValueError):
+        user_id, version = int(payload["sub"]), int(payload.get("ver", 0))
+    except (jwt.PyJWTError, KeyError, ValueError, TypeError):
         raise NOT_SIGNED_IN
     user = db.get(User, user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or version != (user.token_version or 0):
         raise NOT_SIGNED_IN
     return user
 

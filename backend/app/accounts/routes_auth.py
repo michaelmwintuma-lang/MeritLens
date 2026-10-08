@@ -1,4 +1,6 @@
 """Sign in, see who you are, update your profile, change your password or username."""
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -8,7 +10,8 @@ from app.accounts.schemas import ChangePasswordIn, ChangeUsernameIn, LoginIn, Lo
 from app.core.roles import MANAGER
 from app.promotion.models import Employee
 from app.core.database import get_db
-from app.core.security import create_token, get_current_user, hash_password, verify_password
+from app.core.security import (LOCK_MINUTES, MAX_FAILED_LOGINS, create_token, get_current_user, hash_password,
+                               verify_password, withdraw_tokens)
 from app.core.activity import record
 from app.core import email_templates as templates
 from app.core import mailer
@@ -16,19 +19,46 @@ from app.core import mailer
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+# One message for every failed sign-in (unknown username, wrong password, locked account), so nobody can tell
+# whether an account exists or is locked
+SIGN_IN_FAILED = (f"Wrong username or password. After {MAX_FAILED_LOGINS} wrong attempts in a row, an account is "
+                  f"locked for {LOCK_MINUTES} minutes.")
+_DUMMY_HASH = hash_password("not-a-real-password")
+
+
 @router.post("/login", response_model=LoginOut)
 def login(body: LoginIn, db: Session = Depends(get_db)):
-    """Check the username and password and return a login token."""
+    """
+    Check the username and password and return a login token. After MAX_FAILED_LOGINS wrong passwords in a row,
+    the account is locked for LOCK_MINUTES: even the right password is refused until then.
+    """
     user = db.scalar(select(User).where(User.username == body.username.strip().lower()))
-    # The same message for an unknown username and a wrong password, so usernames can't be guessed
-    if user is None or not user.is_active or not verify_password(body.password, user.password_hash):
-        if user is not None:  # a wrong password on a real account is worth knowing about
-            record(db, user, "sign_in_failed")
-            db.commit()
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Wrong username or password.")
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if user is None:
+        verify_password(body.password, _DUMMY_HASH)  # take as long as a real check
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
+    if user.locked_until and user.locked_until > now:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
+    if not user.is_active or not verify_password(body.password, user.password_hash):
+        user.failed_logins = (user.failed_logins or 0) + 1
+        record(db, user, "sign_in_failed")  # a wrong password on a real account is worth knowing about
+        if user.failed_logins >= MAX_FAILED_LOGINS:
+            user.locked_until, user.failed_logins = now + timedelta(minutes=LOCK_MINUTES), 0
+            record(db, user, "account_locked")
+        db.commit()
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
+    user.failed_logins, user.locked_until = 0, None
     record(db, user, "sign_in")
     db.commit()
-    return LoginOut(access_token=create_token(user.id), user=UserOut.model_validate(user))
+    return LoginOut(access_token=create_token(user), user=UserOut.model_validate(user))
+
+
+@router.post("/logout")
+def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Sign out everywhere: every login token this account has stops working."""
+    withdraw_tokens(user)
+    db.commit()
+    return {"signed_out": True}
 
 
 @router.get("/me", response_model=UserOut)
@@ -37,19 +67,23 @@ def me(user: User = Depends(get_current_user)):
     return user
 
 
-@router.post("/change-password", response_model=UserOut)
+@router.post("/change-password", response_model=LoginOut)
 def change_password(body: ChangePasswordIn, background: BackgroundTasks, user: User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
-    """Replace your password. You must know the current one."""
+    """
+    Replace your password. You must know the current one. Every other device is signed out; this one gets a new
+    login token in the answer.
+    """
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Your current password is wrong.")
     user.password_hash = hash_password(body.new_password)
     user.must_change_password = False
+    withdraw_tokens(user)  # signed out everywhere else; this device gets a fresh token below
     record(db, user, "password_changed")
     db.commit()
     if user.email:  # a security alert, so the person notices if it wasn't them
         background.add_task(mailer.send, user.email, templates.password_changed(user.full_name))
-    return user
+    return LoginOut(access_token=create_token(user), user=UserOut.model_validate(user))
 
 
 @router.post("/change-username", response_model=UserOut)

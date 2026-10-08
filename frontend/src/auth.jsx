@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    api("/auth/logout", { method: "POST" }).catch(() => {}); // the token stops working on the server too
     setToken(null);
     setUser(null);
   }

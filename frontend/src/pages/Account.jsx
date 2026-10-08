@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Lock, Trash2, UserRound } from "lucide-react";
-import { api } from "../api";
+import { api, setToken } from "../api";
 import { useAuth } from "../auth";
 import { ROLE_NAMES } from "../roles";
 import { Button, Card, PageHeader } from "../components/ui";
@@ -185,7 +185,10 @@ function ChangePassword() {
     e.preventDefault();
     if (next !== repeat) return setMessage({ text: "The new passwords don't match.", ok: false });
     try {
-      setUser(await api("/auth/change-password", { method: "POST", body: { current_password: current, new_password: next } }));
+      // Changing the password signs out every other device; this one gets a new token
+      const res = await api("/auth/change-password", { method: "POST", body: { current_password: current, new_password: next } });
+      setToken(res.access_token);
+      setUser(res.user);
       setCurrent(""); setNext(""); setRepeat("");
       if (firstTime) navigate("/");
       else setMessage({ text: "Password changed.", ok: true });

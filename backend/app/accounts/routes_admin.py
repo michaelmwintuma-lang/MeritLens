@@ -13,7 +13,7 @@ from app.accounts.schemas import CreateUserIn, CreateUserOut, EditUserIn, Permis
 from app.core.config import OUTBOX_DIR, SMTP
 from app.core.database import get_db
 from app.core.roles import ADMIN, FINANCE, HR, MANAGER
-from app.core.security import hash_password, require_roles, temporary_password
+from app.core.security import hash_password, require_roles, temporary_password, withdraw_tokens
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import ACTIONS, ActivityEntry, record
@@ -166,6 +166,8 @@ def reset_password(user_id: int, db: Session = Depends(get_db), admin: User = De
     password = temporary_password()
     user.password_hash = hash_password(password)
     user.must_change_password = True
+    user.failed_logins, user.locked_until = 0, None  # a reset also unlocks the account
+    withdraw_tokens(user)                            # and signs the person out everywhere
     record(db, admin, "password_reset", user.username)
     db.commit()
     if user.email:

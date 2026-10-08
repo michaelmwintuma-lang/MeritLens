@@ -102,3 +102,64 @@ def test_admin_resets_a_forgotten_password(client):
     user_id = client.get("/api/auth/me", headers=login(client, "manager")).json()["id"]
     temp = client.post(f"/api/admin/users/{user_id}/reset-password", headers=admin).json()["temporary_password"]
     assert client.get("/api/auth/me", headers=login(client, "manager", temp)).json()["must_change_password"] is True
+
+
+# ─── Sign-in lockout and withdrawn tokens (review S3, S4) ─────────────────────
+def test_five_wrong_passwords_lock_the_account_for_15_minutes(client):
+    for _ in range(5):
+        assert client.post("/api/auth/login", json={"username": "hr", "password": "nope"}).status_code == 401
+    # Locked: even the right password is refused, with the same message as any failed sign-in
+    locked = client.post("/api/auth/login", json={"username": "hr", "password": "demo1234"})
+    unknown = client.post("/api/auth/login", json={"username": "nobody", "password": "nope"})
+    assert locked.status_code == 401 and locked.json() == unknown.json()
+    # After 15 minutes it opens again
+    from datetime import datetime, timedelta
+    from app.accounts.models import User
+    from app.core.database import SessionLocal
+    with SessionLocal() as db:
+        user = db.query(User).filter_by(username="hr").one()
+        assert user.locked_until - datetime.utcnow() > timedelta(minutes=14)
+        user.locked_until = datetime.utcnow() - timedelta(seconds=1)
+        db.commit()
+    login(client, "hr")
+
+
+def test_a_right_password_resets_the_count_of_wrong_ones(client):
+    for _ in range(4):
+        client.post("/api/auth/login", json={"username": "hr", "password": "nope"})
+    login(client, "hr")
+    for _ in range(4):
+        client.post("/api/auth/login", json={"username": "hr", "password": "nope"})
+    login(client, "hr")  # still not locked: the count started again
+
+
+def test_an_admin_password_reset_unlocks_the_account(client):
+    for _ in range(5):
+        client.post("/api/auth/login", json={"username": "employee", "password": "nope"})
+    admin = login(client, "admin")
+    user_id = next(u["id"] for u in client.get("/api/admin/users", headers=admin).json() if u["username"] == "employee")
+    temporary = client.post(f"/api/admin/users/{user_id}/reset-password", headers=admin).json()["temporary_password"]
+    login(client, "employee", temporary)
+
+
+def test_signing_out_withdraws_the_token(client):
+    headers = login(client, "manager")
+    assert client.post("/api/auth/logout", headers=headers).status_code == 200
+    assert client.get("/api/auth/me", headers=headers).status_code == 401
+
+
+def test_changing_the_password_signs_out_other_devices_but_not_this_one(client):
+    other_device = login(client, "employee")
+    res = client.post("/api/auth/change-password", headers=other_device,
+                      json={"current_password": "demo1234", "new_password": "newpass123"})
+    assert client.get("/api/auth/me", headers=other_device).status_code == 401
+    fresh = {"Authorization": f"Bearer {res.json()['access_token']}"}
+    assert client.get("/api/auth/me", headers=fresh).json()["username"] == "employee"
+
+
+def test_an_admin_password_reset_signs_the_person_out(client):
+    headers = login(client, "manager")
+    admin = login(client, "admin")
+    user_id = next(u["id"] for u in client.get("/api/admin/users", headers=admin).json() if u["username"] == "manager")
+    client.post(f"/api/admin/users/{user_id}/reset-password", headers=admin)
+    assert client.get("/api/auth/me", headers=headers).status_code == 401

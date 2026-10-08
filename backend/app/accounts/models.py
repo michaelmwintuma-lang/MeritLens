@@ -15,7 +15,7 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)  # for the welcome email
     password_hash: Mapped[str] = mapped_column(String(200))
-    role: Mapped[str] = mapped_column(String(20))  # employee, manager, hr or admin
+    role: Mapped[str] = mapped_column(String(20))  # one of app.core.roles.ALL_ROLES
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # True for accounts an admin just created: the user is asked to choose their own password
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -27,4 +27,9 @@ class User(Base):
     photo: Mapped[str | None] = mapped_column(Text, nullable=True)  # a small picture, as a data URL (resized in the browser)
     # Admin accounts only: may view employees' records and scores (read-only). Granted by an admin, and logged.
     can_view_employees: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
+    # Sign-in protection: wrong passwords in a row, and until when the account is locked after too many
+    failed_logins: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Raised on every password change, password reset and sign-out: login tokens made before it stop working
+    token_version: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

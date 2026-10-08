@@ -19,6 +19,7 @@ from app.core.database import Base
 ACTIONS = {
     "sign_in": "Signed in",
     "sign_in_failed": "Failed sign-in",
+    "account_locked": "Account locked after too many wrong passwords",
     "password_changed": "Changed their password",
     "username_changed": "Changed their username",
     "account_created": "Created an account",
