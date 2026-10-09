@@ -8,7 +8,7 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 ### Data and the model
 
 - **Synthetic data.** The model was trained and is demonstrated on 100,000 made-up employees
-  (`backend/data/employee_promotion_dataset_100000.csv`). Its results (ROC-AUC 0.93 on 20,000 unseen test
+  (`backend/data/employee_promotion_dataset_100000.csv`). Its results (ROC-AUC 0.88 on 20,000 unseen test
   employees; every group above 80% of the highest recommendation rate) describe how it does on this data, not on a
   real organisation. Real use would need retraining on the organisation's own history, with the four-fifths
   check passing on its own people before going live.

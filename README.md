@@ -98,7 +98,7 @@ check is enforced by the backend, not just hidden in the interface.
 | Layer | Technologies |
 |---|---|
 | Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite, PyJWT |
-| Machine learning | scikit-learn (logistic regression, TF-IDF text classifier), XGBoost, LIME, pandas, NumPy, Matplotlib |
+| Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest, TF-IDF text classifier), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Evidence cleaning | Pillow (photos), ffmpeg via imageio-ffmpeg (videos) |
 | Frontend | React 19, React Router 7, Vite 7, lucide-react icons |
 | Testing | pytest (269 tests), headless-browser checks of every page |
@@ -111,16 +111,17 @@ check is enforced by the backend, not just hidden in the interface.
 
 - **Dataset:** `backend/data/employee_promotion_dataset_100000.csv` holds 100,000 synthetic employees with 43
   columns. 10% were promoted.
-- **Inputs:** the model uses **21 performance and development inputs** only:
+- **Inputs:** the model uses **20 performance and development inputs** only:
   - **Performance:** performance score and its change since last year, manager rating, peer feedback, KPI
     achievement, projects, tasks, deadline adherence, innovation, leadership, problem solving, skill assessment.
   - **Development:** training hours, certifications, cross-department projects, mentoring.
   - **Reliability:** attendance, late days.
   - **Career stage:** years since last promotion, years in current role.
-  - **Department.**
 - **Deliberately excluded, each with a written reason in `features.py`:**
   - protected characteristics (gender, age, education, marital status), which are kept aside only for the
     fairness check;
+  - **department**: past promotion rates ranged from 2% (Support) to 33% (Engineering), so with it two people
+    with the same record would score differently only because of where they work;
   - pay, which could carry old pay gaps forward;
   - attitude surveys;
   - working hours, which would reward long hours over results;
@@ -129,52 +130,62 @@ check is enforced by the backend, not just hidden in the interface.
 ### Method
 
 1. **Split.** The data is split 70% / 10% / 20% into training, validation and test sets (stratified, fixed seed).
-2. **Candidates.** Three models are trained: logistic regression, random forest and XGBoost.
-3. **Choice.** The model with the best **validation PR-AUC** is chosen, which suits a 10% positive class.
-   Logistic regression won, and it is also the easiest to explain exactly.
-4. **Threshold.** The decision threshold is set to the best F1 on the validation set: **0.789** (shown as 79%).
-5. **Test.** The model is tested **once** on the untouched test set.
-6. **Fairness.** A **four-fifths rule** check is run. Only a model that passes becomes the live model.
+2. **Candidates.** Four models are trained: a **monotonic Explainable Boosting Machine (EBM)**, logistic
+   regression, random forest and XGBoost.
+3. **Common-sense check.** On the validation set, each input a person can improve (and the change in
+   performance) is moved half a standard deviation in its improving direction for 2,000 employees. A model is
+   eligible only if no score ever drops.
+4. **Choice.** Among eligible models, the easiest to explain whose **validation PR-AUC** is within 0.01 of the
+   best. Only the EBM was eligible: its monotonic constraints rule such drops out.
+5. **Threshold.** The decision threshold is set to the best F1 on the validation set: **0.2283** (shown as 23%).
+6. **Test.** The model is tested **once** on the untouched test set.
+7. **Fairness.** A **four-fifths rule** check is run. Only a model that passes becomes the live model.
 
-| Model (validation) | PR-AUC | ROC-AUC |
-|---|---|---|
-| **Logistic regression (chosen)** | **0.632** | **0.926** |
-| XGBoost | 0.626 | 0.922 |
-| Random forest | 0.613 | 0.922 |
+| Model (validation) | PR-AUC | ROC-AUC | Scores that dropped when an input improved |
+|---|---|---|---|
+| **EBM, monotonic (chosen)** | **0.4671** | **0.8806** | **0%** |
+| XGBoost | 0.4699 | 0.8777 | 21.9% |
+| Logistic regression | 0.4618 | 0.8793 | 16.7% (more peer feedback, problem solving or training always lowered the score) |
+| Random forest | 0.4528 | 0.8769 | 30.1% |
 
 ### Results on the test set (20,000 employees, measured once)
 
 | Metric | Value |
 |---|---|
-| ROC-AUC | 0.930 |
-| PR-AUC | 0.633 (random guessing: 0.10) |
-| Precision | 54.2% |
-| Recall | 65.5% |
-| F1 | 0.593 |
-| Accuracy | 91.0% |
-| Share recommended | 12.1% |
+| ROC-AUC | 0.883 |
+| PR-AUC | 0.474 (random guessing: 0.10) |
+| Precision | 41.0% |
+| Recall | 59.5% |
+| F1 | 0.486 |
+| Accuracy | 87.4% |
+| Share recommended | 14.5% |
 
-Confusion matrix: 1,310 true positives, 1,108 false positives, 690 false negatives, 16,892 true negatives.
+Confusion matrix: 1,190 true positives, 1,711 false positives, 810 false negatives, 16,289 true negatives.
 Curves are in `results/roc_curve.png` and `results/pr_curve.png`.
+
+**Why these are lower than the earlier logistic regression (PR-AUC 0.633):** most of that model's accuracy came
+from department. Past promotions favoured some departments strongly, so a model that knows the department
+predicts *past decisions* better, by repeating that pattern. Leaving department out is the fairer choice,
+and the numbers above are what it costs.
 
 ### Fairness: four-fifths rule (selection rate of each group ÷ highest group's)
 
 | Characteristic | Ratio | Result |
 |---|---|---|
-| Gender | 0.97 | Passes |
-| Age group (under 40 / 40+) | 0.98 | Passes |
-| Education | 0.93 | Passes |
+| Gender | 0.982 | Passes |
+| Age group (under 40 / 40+) | 0.963 | Passes |
+| Education | 0.887 | Passes |
 
 ### Explanations
 
 | Explanation | How it works |
 |---|---|
-| **Exact contributions** | For logistic regression, each input's term in the log-odds is exactly its SHAP value, so contributions add up precisely to the score (checked by a test for every demo employee). |
-| **LIME (second opinion)** | 2,000 perturbed copies of the record train a local surrogate model. Its fit (R²) is shown, with a caution below 0.5. The median fit was 0.21, so LIME is presented as secondary. |
+| **Exact contributions** | The EBM adds up one learned curve per input. Each input's contribution is its term for this employee minus its average term, so contributions add up precisely to the score (checked by a test for every demo employee). For an additive model this equals its SHAP value. |
+| **LIME (second opinion)** | 2,000 perturbed copies of the record train a local surrogate model. Its fit (R²) is shown, with a caution below 0.5. On the 120 demo employees the median fit was 0.13 (84% below 0.5), so LIME is presented as secondary. |
 | **Plain-language summary** | The score versus the threshold, plus the two strongest factors each way, in everyday words and units. |
 | **What-if** | The user changes only *improvable* inputs, within realistic ranges, and sees the new score. Nothing is saved. |
-| **Tips** | The smallest realistic improvements (at most one standard deviation, never beyond the top 5%) that reach the threshold. They reach it for 82 of the 107 demo employees not yet recommended. |
-| **Overall importance** | Each input's average share of the model's effect: performance change 39.5%, department 26.3%, leadership 5.6%… |
+| **Tips** | The smallest realistic improvements (at most one standard deviation, never beyond the top 5%) that reach the threshold, each tried on the model itself. They reach it for 98 of the 108 demo employees not yet recommended. |
+| **Overall importance** | Each input's average share of the model's effect: change in performance 51.5%, projects 10.7%, tasks 6.9%, performance score 4.7%, leadership 4.5%… |
 
 ### From score to decision
 
@@ -468,7 +479,7 @@ Future work:
 3. Train triage on more varied examples.
 4. Add named-entity recognition for names.
 5. Blur faces automatically.
-6. Extend fairness checks to department and combinations of characteristics.
+6. Extend fairness checks to combinations of characteristics, and report selection rates by department.
 
 ---
 

@@ -112,7 +112,7 @@ guessed at random would find promoted employees only 10% of the time.
 
 ### Which information the model may use
 
-The model only sees **performance and development** information (21 inputs, listed in
+The model only sees **performance and development** information (20 inputs, listed in
 `app/promotion/features.py`):
 
 | Group | Inputs |
@@ -121,13 +121,16 @@ The model only sees **performance and development** information (21 inputs, list
 | Development | training hours, certifications, cross-department projects, mentoring sessions |
 | Reliability | attendance rate, late days |
 | Career stage | years since last promotion, years in current role |
-| Where they work | department |
 
 Every other column is left out **with a written reason** (the `EXCLUDED` list in `features.py`, checked by a
 test so no column is forgotten):
 
 - **Protected characteristics** (gender, age, education, marital status) are never model inputs. Gender, age and
   education are kept aside only to check fairness afterwards.
+- **Department.** Past promotion rates differ hugely by department: Engineering 33%, Sales 11%, Marketing 9%,
+  Finance 8%, Operations 4.5%, HR 3%, Support 2%. A model given the department learns "being in Engineering
+  raises your chance", so two people with the same record would get different scores only because of where they
+  work. A test checks that department never changes a score.
 - **Pay** (salary, raises, bonus, stock) records how someone has already been valued, and could carry old pay
   gaps into promotion decisions.
 - **Attitude surveys** (engagement, job satisfaction) measure how someone feels, not how they perform.
@@ -136,8 +139,8 @@ test so no column is forgotten):
 - Where someone lives (city tier), team size, contract type and tenure at the company are not about the work.
 
 **Why "change since last year" instead of three yearly scores.** The dataset has performance scores for this
-year, last year and two years ago. They move together very closely, so a linear model given all three splits
-their effect in confusing ways (for example a large positive weight on one year and a large negative weight on
+year, last year and two years ago. They move together very closely, so a model given all three splits their
+effect in confusing ways (for example a large positive effect for one year and a large negative one for
 another), which would make the explanations misleading. Two clearer facts replace them: this year's score, and
 how much it changed since last year.
 
@@ -146,60 +149,77 @@ how much it changed since last year.
 | Part | Size | Used for |
 |---|---|---|
 | Training | 70,000 | Fitting the models |
-| Validation | 10,000 | Choosing the model and the decision threshold |
+| Validation | 10,000 | The common-sense check, choosing the model and the decision threshold |
 | Test | 20,000 | Measuring the final model, **once**, at the very end |
 
 The split is **stratified** (each part has the same 10% promotion rate) and fixed with `random_state=42`, so
 it's the same every run. Keeping the test set untouched until the end means the reported results are an honest
 estimate of how the model does on employees it has never seen.
 
-### Three models, one chosen
+### Four models, a common-sense check, one chosen
 
-| Model | Validation PR-AUC | Validation ROC-AUC |
-|---|---|---|
-| **Logistic Regression** (chosen) | **0.6323** | **0.9261** |
-| XGBoost | 0.6259 | 0.9220 |
-| Random Forest | 0.6134 | 0.9220 |
+| Model | Validation PR-AUC | Validation ROC-AUC | Scores that dropped when an input improved |
+|---|---|---|---|
+| **EBM, monotonic** (chosen) | **0.4671** | **0.8806** | **0%** |
+| XGBoost | 0.4699 | 0.8777 | 21.9% |
+| Logistic Regression | 0.4618 | 0.8793 | 16.7% |
+| Random Forest | 0.4528 | 0.8769 | 30.1% |
 
-- **Logistic Regression** gives each input one weight, so its predictions are easy to explain.
-- **Random Forest** and **XGBoost** combine hundreds of decision trees; they are often more accurate but
-  harder to explain.
+- The **Explainable Boosting Machine (EBM)** learns one curve per input and adds them up. Its curves can bend
+  (for example, diminishing returns), yet each prediction still splits exactly into one part per input.
+  **Monotonic** means that for every input a person can improve, the curve is only allowed to go one way: more
+  training, more projects or fewer late days can never lower the score.
+- **Logistic Regression** gives each input one straight-line weight. Here it learned *negative* weights for peer
+  feedback, problem solving and training hours (side effects of inputs that move together), so more of any of
+  them always lowered the score.
+- **Random Forest** and **XGBoost** combine hundreds of decision trees; they can be accurate but are harder to
+  explain, and they have no such guarantee.
 
-Because only 10% were promoted, each model gives the rare "promoted" cases more weight (**class weights**)
-rather than copying them (oversampling), which would show the model the same people many times.
+Because only 10% were promoted, logistic regression, random forest and XGBoost give the rare "promoted" cases more
+weight (**class weights**) rather than copying them (oversampling). The EBM has no class weights; the threshold
+below makes up for that.
 
-**How the model is chosen.** The models are compared by **PR-AUC** (area under the precision-recall curve) on the
-validation set. PR-AUC is used because it focuses on how well the model finds the rare promoted employees;
-accuracy would look good even for a model that never recommends anyone (90% correct). The rule: if Logistic
-Regression is within 0.01 of the best model, choose it because it is the easiest to explain. Here it was
-simply the best of the three, so it was chosen outright.
+**The common-sense check.** For 2,000 validation employees, each input a person can improve (and the change in
+performance) is moved half a standard deviation in its improving direction, one at a time; raising this year's
+performance score also raises the change since last year. A "violation" is any employee whose score then drops.
+The table's last column is the share of such cases.
+
+**How the model is chosen.** Only models with **no** violations are eligible. Among them, the models are
+compared by **PR-AUC** (area under the precision-recall curve) on the validation set, and the easiest to explain
+within 0.01 of the best is chosen. PR-AUC is used because it focuses on how well the model finds the rare
+promoted employees; accuracy would look good even for a model that never recommends anyone (90% correct). Only
+the EBM was eligible, so it was chosen. (XGBoost scored 0.003 higher, but lowered scores in 21.9% of cases.)
 
 ### The decision threshold
 
-The model gives each employee a score between 0 and 1. The **threshold** is the cut-off above which the model
-recommends promotion. It is chosen on the validation set as the value with the best **F1 score** (a balance
-between precision and recall): **0.7887**.
+The model gives each employee a score between 0 and 1. The **threshold** is the cut-off at or above which the
+model recommends promotion. It is chosen on the validation set as the value with the best **F1 score** (a balance
+between precision and recall): **0.2283**.
 
-Why so high? Class weights make the model treat promoted employees as more important, which pushes all scores
-upwards. So the score is a **ranking of readiness, not a probability**: a score of 0.79 doesn't mean a 79%
-chance of promotion. What matters is whether a score is above or below the threshold, and by how much.
+The score is best read as a **ranking of readiness, not a probability**. What matters is whether a score is above
+or below the threshold, and by how much.
 
 ### Results on the test set (measured once)
 
 | Measure | Result | Meaning |
 |---|---|---|
-| ROC-AUC | 0.9295 | How often a promoted employee is ranked above a non-promoted one (0.5 = coin flip) |
-| PR-AUC | 0.6325 | How well promoted employees are found (random guessing: 0.10) |
-| Accuracy | 0.9101 | Share of all employees classified correctly |
-| Precision | 0.5418 | Of those the model recommends, the share actually promoted |
-| Recall | 0.6550 | Of those actually promoted, the share the model recommends |
-| F1 | 0.5930 | Balance of precision and recall |
-| Share recommended | 12.1% | Close to the real 10% promotion rate |
+| ROC-AUC | 0.8833 | How often a promoted employee is ranked above a non-promoted one (0.5 = coin flip) |
+| PR-AUC | 0.4736 | How well promoted employees are found (random guessing: 0.10) |
+| Accuracy | 0.8740 | Share of all employees classified correctly |
+| Precision | 0.4102 | Of those the model recommends, the share actually promoted |
+| Recall | 0.5950 | Of those actually promoted, the share the model recommends |
+| F1 | 0.4856 | Balance of precision and recall |
+| Share recommended | 14.5% | The real promotion rate is 10% |
 
-Confusion matrix (20,000 test employees): 1,310 correctly recommended, 1,108 recommended but not promoted, 690
-promoted but not recommended, 16,892 correctly not recommended.
+Confusion matrix (20,000 test employees): 1,190 correctly recommended, 1,711 recommended but not promoted, 810
+promoted but not recommended, 16,289 correctly not recommended.
 
 Curves: `results/roc_curve.png` and `results/pr_curve.png`.
+
+**Compared with the earlier model.** An earlier version used logistic regression *with* department and reached
+PR-AUC 0.6325 and ROC-AUC 0.9295. Most of the difference is department: it predicts past decisions well because
+past decisions favoured some departments. Leaving it out costs accuracy at copying the past, and is the fairer
+choice for a system that should judge people on their work.
 
 ### Fairness check (four-fifths rule)
 
@@ -210,27 +230,29 @@ live model.
 
 | Attribute | Selection rates | Ratio (lowest / highest) | Result |
 |---|---|---|---|
-| Gender | Female 12.3%, Male 11.9% | 0.969 | Pass |
-| Age group | Under 40: 12.2%, 40+: 12.0% | 0.982 | Pass |
-| Education | Bachelor 12.0%, Master 12.2%, PhD 12.9% | 0.926 | Pass |
+| Gender | Female 14.6%, Male 14.4% | 0.982 | Pass |
+| Age group | Under 40: 14.8%, 40+: 14.2% | 0.963 | Pass |
+| Education | Bachelor 14.3%, Master 14.7%, PhD 16.1% | 0.887 | Pass |
 
-The model passed, so it was saved as the live model (`backend/models/model.joblib`, with its threshold and
-inputs in `model_info.json`). `results/fairness.json` also records each group's real promotion rate for
-comparison.
+The model passed, so it was saved as the live model (`backend/models/model.joblib`, with its threshold, inputs
+and version in `model_info.json`). `results/fairness.json` also records each group's real promotion rate for
+comparison, and `results/model_comparison.json` the common-sense check of every candidate.
 
 ### How it was tested
 
-`backend/tests/test_training.py` (12 tests) checks that:
+`backend/tests/test_training.py` (17 tests) checks that:
 
-- protected characteristics and pay are never model inputs, and every column is either used or excluded with a
-  reason;
+- protected characteristics, pay and department are never model inputs, and every column is either used or
+  excluded with a reason;
 - the performance-change feature is calculated correctly and replaces the yearly scores;
 - the split is 70/10/20, stratified, without overlap, and the same every run;
-- the model-choice rule prefers Logistic Regression when within 0.01, and otherwise picks the clearly better model;
+- the model-choice rule excludes models that lowered scores when an input improved, prefers the EBM over
+  logistic regression when both are eligible and close, keeps every model eligible if none passes, and
+  otherwise picks the clearly better model;
 - the threshold search finds the right cut-off on simple data;
 - the four-fifths rule passes at exactly 80% and fails below it, and age groups are assigned correctly;
-- after training, the saved threshold and metrics load and agree, the curve images exist, and the live model
-  passed the fairness check and produces scores between 0 and 1.
+- after training, the saved threshold and metrics load and agree, the curve images exist, the live model was
+  chosen with no common-sense violations, passed the fairness check, and produces scores between 0 and 1.
 
 ## Step 3: Predictions and explanations
 
@@ -255,109 +277,111 @@ Checked by the backend on every request (`can_see` in `routes.py`):
 | HR | Every employee |
 | Manager | Only their own team |
 | Employee | Only themselves |
-| Admin | None of it: admins manage accounts, not promotions |
+| Admin | None of it (admins manage accounts, not promotions), unless given "can view employee data" (read-only) |
+| Compliance auditor | No individual employees: the decision log, the model's overall importance and the record histories |
 
 ### What the API returns for one employee
 
-**Readiness score.** The model's score, shown as a percentage, and whether it is above the threshold (79%).
+**Readiness score.** The model's score, shown as a percentage, and whether it reaches the threshold (23%).
 As explained in step 2, it ranks readiness; it is not a probability.
 
-**Exact contributions (SHAP).** Logistic regression adds up one term per input:
+**Exact contributions.** The EBM adds up one learned term per input:
 
 ```
-log-odds = base + sum of  weight × (value − average value)
+log-odds = base + sum over inputs of  (this employee's term − the average term)
 ```
 
-Each term is that input's **contribution**: how much it pushes this employee's score up or down compared with
-an average employee. For a linear model this is exactly what SHAP calculates, so no approximation is needed.
-"base" is the log-odds of an imaginary employee with average values on everything (their score: 15.3%).
-Because the terms add up exactly to the model's output, the explanation is complete: there's nothing the
-model used that isn't shown. A test checks this for all 120 demo employees.
-
-Department is one input but becomes seven yes/no columns inside the model (one per department); their seven
-terms are added together and shown as one item, "Department". Every value is shown in its normal unit
-("90.5%", "4.1 / 5", "13 years").
+Each part of the sum is that input's **contribution**: how much it pushes this employee's score up or down
+compared with an average employee. For an additive model like this, that is exactly what SHAP calculates, so
+no approximation is needed. "base" is the log-odds of the average employee (the average of every input's term
+over 2,000 training employees; their score: 2.0%). Because the parts add up exactly to the model's output, the
+explanation is complete: there's nothing the model used that isn't shown. A test checks this for all 120 demo
+employees. Every value is shown in its normal unit ("90.5%", "4.1 / 5", "13 years").
 
 **LIME, a second opinion.** LIME works differently: it creates 2,000 slightly altered copies of the employee's
 record, asks the model to score them, fits a small simple model to those answers, and reads rules from it (for
-example "Leadership score > 65.52 raises readiness"). Its **fit (R²)** says how well that simple model copies
-the real one around this employee. Below 0.5, a note says to treat the rules as a rough guide.
+example "Change in performance since last year <= -1.94 lowers readiness"). Its **fit (R²)** says how well that
+simple model copies the real one around this employee. Below 0.5, a note says to treat the rules as a rough
+guide.
 
-In practice, LIME's fit is low for most employees here (median 0.21 over 40 employees; 35 of 40 below 0.5).
-That's expected: most employees are far from the threshold, where the model's curve is flat and a simple
-local model has little to fit. This is why the exact contributions are the main explanation, and LIME is shown
-only as a second opinion, with its fit.
+In practice, LIME's fit is low for most employees here (median 0.13 over the 120 demo employees; 84% below 0.5).
+That's expected: most employees are far from the threshold, where the model's curve is flat and a simple local
+model has little to fit. This is why the exact contributions are the main explanation, and LIME is shown only as
+a second opinion, with its fit.
 
-**Plain-language summary.** Built from the score, the threshold and the two biggest contributions each way:
+**Plain-language summary.** Built from the score, the threshold and the two biggest contributions each way. For
+the demo employee login:
 
-> Readiness is 13%, below the 79% threshold, so the model does not yet recommend promotion. Compared with an
-> average employee, it is raised mainly by leadership score (72.2) and performance score (82.2), and lowered
-> mainly by years since last promotion (13 years) and attendance (86.8%).
+> Readiness is 0%, below the 23% threshold, so the model does not yet recommend promotion. Compared with an
+> average employee, it is raised mainly by attendance (95.1%) and cross-department projects (4), and lowered
+> mainly by a 2.8-point drop in performance since last year and KPI achievement (42.2%).
 
 **What-if.** The user changes some inputs and gets the new score and explanation. Only **improvable** inputs
 (things a person can work on, such as training hours or late days) can be changed, within the range real
-employees had. Department, years in role, years since promotion and the protected characteristics can't be.
-Nothing is saved. Raising this year's performance score also raises "change since last year" by the same
-amount, because that is how the change is calculated.
+employees had. Years in role, years since promotion and the protected characteristics can't be. Nothing is
+saved. Raising this year's performance score also raises "change since last year" by the same amount, because
+that is how the change is calculated.
 
 **Tips to improve.** The smallest realistic improvements that would reach the threshold:
 
 1. Only improvable inputs, and only in the improving direction (more training, fewer late days).
-2. Only inputs where improving actually raises the score. If the model happened to give an improvement a
-   negative weight, it is never suggested.
+2. Only inputs where improving actually raises the score (with the monotonic model, improving never lowers it).
 3. Each input by at most one standard deviation, and not past what the top 5% of employees achieve
    (and never past natural limits such as 100%).
-4. The inputs with the biggest possible effect first, stopping as soon as the threshold is reached.
+4. The inputs with the biggest possible effect first, each only as far as needed. The model's curves needn't be
+   straight lines, so each step is tried on the model itself.
 
-For the 107 demo employees not yet recommended, the tips reach the threshold for 82. For the other 25, the tips
+For the 108 demo employees not yet recommended, the tips reach the threshold for 98. For the other 10, the tips
 show the most realistic progress, and the projected score says how far it gets.
 
 **Overall importance.** Across 2,000 training employees: the average size of each input's contribution, as a
-share of the total.
+share of the total. The direction is read from the shape of the input's curve.
 
 | Input | Share of the model's effect | Direction |
 |---|---|---|
-| Change in performance since last year | 39.5% | higher raises readiness |
-| Department | 26.3% | depends on the department |
-| Leadership score | 5.6% | higher raises readiness |
-| Years since last promotion | 4.8% | higher lowers readiness |
+| Change in performance since last year | 51.5% | higher raises readiness |
+| Projects completed | 10.7% | higher raises readiness |
+| Tasks completed | 6.9% | higher raises readiness |
 | Performance score | 4.7% | higher raises readiness |
-| KPI achievement | 3.9% | higher raises readiness |
+| Leadership score | 4.5% | higher raises readiness |
+| Years since last promotion | 3.8% | higher lowers readiness |
 
 ### Points to discuss in the thesis
 
-- **One input dominates.** Change in performance since last year accounts for about 40% of the model's
-  effect, so for most people one tip (raise this year's performance) is enough.
-- **Department matters a lot (26%)** but is not something a person controls. Department is a fair input
-  only if promotion opportunities really differ by department; otherwise it carries forward differences in how
-  departments promoted in the past. The fairness check in step 2 covers gender, age and education, not
-  department.
+- **One input dominates.** Change in performance since last year accounts for about half of the model's
+  effect, so for many people one tip (raise this year's performance) goes a long way.
+- **Department was removed** (step 2): with it, about a quarter of the old model's effect came from where
+  someone works. The model now judges only the work record; the cost in accuracy is reported in step 2.
 - **Years since last promotion lowers readiness.** In this data, people who have waited a long time are less
-  likely to be promoted. The model reproduces that pattern; it doesn't judge whether it's fair.
+  likely to be promoted. The model reproduces that pattern; it doesn't judge whether it's fair. It is left
+  unconstrained, and isn't something a person can change, so it never appears in tips.
 
 ### API endpoints
 
 | Method and path | Who | Returns |
 |---|---|---|
 | `GET /api/promotion/employees` | HR, manager, employee | The employees they may see, with scores |
-| `GET /api/promotion/employees/{id}` | Same, for their visible employees | Score, contributions, LIME, summary, what-if options |
+| `GET /api/promotion/employees/{id}` | Same, for their visible employees | Score, contributions, LIME, summary, what-if options, model version |
 | `POST /api/promotion/employees/{id}/what-if` | Same | Score and contributions with the changes applied |
 | `GET /api/promotion/employees/{id}/tips` | Same | Tips and the projected score |
-| `GET /api/promotion/importance` | HR, manager, employee | Overall importance |
+| `GET /api/promotion/importance` | HR, manager, employee, auditor | Overall importance, and everything the model never uses with the reason |
 
 ### How it was tested
 
-`backend/tests/test_explanations.py` (18 tests) checks that:
+`backend/tests/test_explanations.py` (24 tests) checks that:
 
 - the contributions add up exactly to the model's output, for all 120 demo employees;
-- department is shown as one item and values are in their real units;
+- department is not an input, two people with the same record get the same score whatever their department,
+  and values are in their real units;
+- improving any improvable input never lowers the score (50 training employees, every input);
 - LIME returns rules and a fit score, with a note exactly when the fit is below 0.5;
 - the summary states the score and the threshold;
 - a what-if changes the score but saves nothing; changing this year's performance also changes the change
   since last year; non-improvable inputs and impossible values are refused;
 - across all 120 employees, tips only use improvable inputs, only in the improving direction, by at most one
   standard deviation, within natural limits, and never lower the score;
-- overall importance covers all 21 inputs and adds up to 100%;
+- overall importance covers all 20 inputs, adds up to 100%, and its directions follow the constraints;
+- the model page lists everything the model never uses;
 - HR sees all 120 employees, a manager only their 12, an employee only themselves, and the admin nothing.
 
 ## Step 4: The promotion pages
@@ -386,7 +410,7 @@ the questions a person naturally asks:
    "Recommended" or "Not yet recommended" in words. Below it, the plain-language summary, plus a note that the
    score ranks readiness (it isn't a probability) and that HR makes the decision.
 2. **Why?** Two short lists: what raised the score and what lowered it, compared with an average employee, each
-   with the person's real value and a bar for the size of the effect. "Show all 21 factors" opens a table
+   with the person's real value and a bar for the size of the effect. "Show all 20 factors" opens a table
    with the exact numbers, which add up to the score.
 3. **Second opinion.** LIME's rules, marked where they name the same factors as the main explanation, with its
    fit score and the warning when the fit is low.
