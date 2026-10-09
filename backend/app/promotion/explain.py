@@ -128,7 +128,7 @@ class PromotionModel:
         """A short paragraph anyone can read."""
         position = "above" if score >= self.threshold else "below"
         verdict = "recommends" if score >= self.threshold else "does not yet recommend"
-        text = (f"Readiness is {score:.0%}, {position} the {self.threshold:.0%} threshold, so the model {verdict} "
+        text = (f"Readiness is {as_percent(score)}, {position} the {self.threshold:.0%} threshold, so the model {verdict} "
                 "promotion.")
         raising = [c for c in contributions if c["contribution"] > 0][:2]
         lowering = [c for c in contributions if c["contribution"] < 0][:2]
@@ -277,6 +277,11 @@ class PromotionModel:
                             "unit": FEATURE_INFO[f]["unit"]}
                            for f in IMPROVABLE],
         }
+
+
+def as_percent(share: float) -> str:
+    """'23%', or 'under 1%' for something above zero that would round to 0% (as on the website)."""
+    return "under 1%" if 0 < share < 0.005 else f"{share:.0%}"
 
 
 def describe(contribution: dict) -> str:

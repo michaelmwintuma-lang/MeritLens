@@ -56,7 +56,13 @@ def test_lime_gives_rules_a_fit_score_and_a_note_when_the_fit_is_low(client):
 
 def test_summary_states_the_score_and_the_threshold(client):
     x = client.get(f"/api/promotion/employees/{employees(client)[0]['id']}", headers=login(client, "hr")).json()
-    assert f"{x['score']:.0%}" in x["summary"] and f"{x['threshold']:.0%} threshold" in x["summary"]
+    from app.promotion.explain import as_percent
+    assert as_percent(x["score"]) in x["summary"] and f"{x['threshold']:.0%} threshold" in x["summary"]
+
+
+def test_a_tiny_score_reads_as_under_1_percent_never_as_0():
+    from app.promotion.explain import as_percent
+    assert as_percent(0.003) == "under 1%" and as_percent(0.0) == "0%" and as_percent(0.23) == "23%"
 
 
 # ─── What-if ──────────────────────────────────────────────────────────────────

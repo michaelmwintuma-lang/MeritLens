@@ -1,6 +1,8 @@
 // Showing numbers the way people expect them. Mirrors backend/app/promotion/labels.py.
 
-export const percent = (score) => `${Math.round(score * 100)}%`;
+// A share as a whole percentage. Something above zero that would round to 0% shows as "under 1%", so a small
+// score never looks like nothing at all.
+export const percent = (score) => (score > 0 && score < 0.005 ? "under 1%" : `${Math.round(score * 100)}%`);
 
 /** A value in its everyday unit, for the what-if sliders. */
 export function formatValue(unit, value) {
