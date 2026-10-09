@@ -74,7 +74,7 @@ function RateExplanation({ contributions }) {
       <Agree name="usefulness" statement="This explanation was useful" value={usefulness} onChange={setUsefulness} />
       <details className="details">
         <summary>Does any factor seem wrong or unfair? (optional)</summary>
-        <div className="table-wrap"><table>
+        <div className="table-wrap" tabIndex={0}><table>
           <thead><tr><th>Factor</th><th>Your value</th><th>Your view</th></tr></thead>
           <tbody>
             {contributions.map((c) => (
@@ -175,7 +175,7 @@ function RequestCorrection() {
       {requests.length > 0 && (
         <>
           <h3 style={{ marginTop: 24 }}>Your requests</h3>
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <thead><tr><th>Sent</th><th>Value</th><th>Asked for</th><th>Outcome</th></tr></thead>
             <tbody>
               {requests.map((r) => (

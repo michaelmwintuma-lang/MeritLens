@@ -21,7 +21,7 @@ export default function RecordHistory({ employeeId }) {
       {!rows && !error && <Loading />}
       {rows?.length === 0 && <EmptyState icon={History} title="No changes yet" text="The record is as it was first entered." />}
       {rows?.length > 0 && (
-        <div className="table-wrap"><table>
+        <div className="table-wrap" tabIndex={0}><table>
           <thead><tr><th>When</th><th>What changed</th><th>Readiness</th><th>By</th></tr></thead>
           <tbody>
             {rows.map((r) => (

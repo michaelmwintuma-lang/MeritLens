@@ -99,7 +99,7 @@ export default function ImportEmployees() {
               <span><TriangleAlert size={16} style={{ verticalAlign: "-3px" }} /> Fix the rows with problems in your file, then choose it again. Nobody is imported until every row is fine, so the file is never half-imported.</span>
             </p>
           )}
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <thead><tr><th>Line</th><th>Name</th><th>Department</th><th>Result</th></tr></thead>
             <tbody>
               {check.rows.map((r) => (

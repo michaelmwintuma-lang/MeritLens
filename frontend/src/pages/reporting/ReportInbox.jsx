@@ -35,7 +35,7 @@ export default function ReportInbox() {
         <StatCard label="Closed" value={reports.length - notClosed.length} note="With an outcome recorded" />
       </div>
       <Card flush title="Reports" actions={<Segmented label="Show" options={VIEWS} value={view} onChange={setView} />}>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table>
             <thead><tr><th>Case</th><th>Category</th><th>Priority</th><th>Status</th><th>Received</th><th>Conversation</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>

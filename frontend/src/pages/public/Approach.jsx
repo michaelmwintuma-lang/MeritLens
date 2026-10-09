@@ -18,7 +18,7 @@ export default function Approach() {
         nobody can see who sent a report.
       </PageIntro>
 
-      <div className="table-wrap roles-table">
+      <div className="table-wrap roles-table" tabIndex={0}>
         <table>
           <thead><tr><th>Role</th><th>Sees</th><th>Does</th></tr></thead>
           <tbody>

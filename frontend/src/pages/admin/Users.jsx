@@ -182,7 +182,7 @@ export default function Users() {
       <Card flush title={`${TABS[tab].label} accounts`} subtitle={tab === "staff"
         ? undefined
         : "Managers are emailed when people join their team."}>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table>
             <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>

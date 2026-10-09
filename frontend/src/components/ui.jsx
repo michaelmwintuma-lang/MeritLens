@@ -55,12 +55,15 @@ export function Card({ title, subtitle, actions, flush = false, children }) {
   );
 }
 
-/** A row of buttons where exactly one is chosen (Pending | Decided | All). */
+/**
+ * A row of buttons where exactly one is chosen (Pending | Decided | All). A group of toggle buttons (aria-pressed)
+ * rather than tabs: tabs promise arrow-key movement, and these are moved through with Tab like any button.
+ */
 export function Segmented({ options, value, onChange, label }) {
   return (
-    <div className="segmented" role="tablist" aria-label={label}>
+    <div className="segmented" role="group" aria-label={label}>
       {options.map((o) => (
-        <button key={o.value} type="button" role="tab" aria-selected={value === o.value}
+        <button key={o.value} type="button" aria-pressed={value === o.value}
           className={value === o.value ? "on" : ""} onClick={() => onChange(o.value)}>
           {o.label}
         </button>

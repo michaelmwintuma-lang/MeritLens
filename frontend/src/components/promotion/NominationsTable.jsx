@@ -21,7 +21,7 @@ export default function NominationsTable({ nominations, isHr, title, subtitle })
 
   return (
     <Card flush title={title} subtitle={subtitle} actions={<Segmented label="Show" options={VIEWS} value={view} onChange={setView} />}>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table>
           <thead>
             <tr><th>Employee</th><th>Proposed</th><th>Nominated by</th><th>Model's view now</th><th>Status</th><th>Date</th><th style={{ textAlign: "right" }}>Actions</th></tr>

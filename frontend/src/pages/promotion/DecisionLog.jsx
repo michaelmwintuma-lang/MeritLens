@@ -29,7 +29,7 @@ export default function DecisionLog() {
       <div className="card flush">
         <div className="card-head"><div><h2>All decisions</h2><p className="card-sub">Newest first.</p></div></div>
         {log.length === 0 ? <EmptyState icon={BookCheck} title="No decisions yet" text="Decisions on nominations will be recorded here." /> : (
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <thead><tr><th>When</th><th>Employee</th><th>Decision</th><th>Role and pay rise</th><th>Decided by</th><th>Model at the time</th><th>Compared with the model</th><th>Reason</th></tr></thead>
             <tbody>
               {log.map((d) => (

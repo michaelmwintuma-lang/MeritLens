@@ -110,7 +110,7 @@ export default function PaySignOff() {
 
       <Card flush title="Promotion pay rises" subtitle="Only percentages are used here, never salaries."
         actions={<Segmented label="Show" options={VIEWS} value={view} onChange={(v) => { setView(v); setOpen(null); }} />}>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table>
             <thead><tr><th>Employee</th><th>New role</th><th>Pay rise</th><th>Approved by HR</th><th>Status</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>
@@ -148,7 +148,7 @@ export default function PaySignOff() {
 
       <Card title="Signed off this year, by department">
         {summary.by_department.length === 0 ? <p className="muted">None signed off yet this year.</p> : (
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <thead><tr><th>Department</th><th>Promotions</th><th>Average pay rise</th></tr></thead>
             <tbody>{summary.by_department.map((d) => (
               <tr key={d.department}><td>{d.department}</td><td>{d.promotions}</td><td>{d.average_raise}%</td></tr>

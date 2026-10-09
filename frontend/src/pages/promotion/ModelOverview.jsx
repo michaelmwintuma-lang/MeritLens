@@ -42,7 +42,7 @@ export default function ModelOverview() {
           Gender, age and education are used only to check, after training, that every group is recommended at a fair
           rate (the four-fifths rule). Nothing below is ever given to the model:
         </p>
-        <div className="table-wrap"><table>
+        <div className="table-wrap" tabIndex={0}><table>
           <thead><tr><th>Information</th><th>Why it's left out</th></tr></thead>
           <tbody>{data.never_used.map((n) => <tr key={n.name}><td className="nowrap">{n.name}</td><td>{n.reason}</td></tr>)}</tbody>
         </table></div>

@@ -39,7 +39,7 @@ export default function ActivityLog() {
         {!data ? <Loading /> : data.entries.length === 0 ? (
           <EmptyState icon={ScrollText} title="Nothing found" text="Try another action or search." />
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table>
               <thead><tr><th>Date</th><th>Who</th><th>What</th><th>Details</th></tr></thead>
               <tbody>

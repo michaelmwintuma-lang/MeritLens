@@ -35,7 +35,7 @@ export default function DemoRequests() {
         options={[{ value: "open", label: `Waiting (${open})` }, { value: "all", label: `All (${requests.length})` }]} />}>
         {rows.length === 0 ? <EmptyState icon={CalendarCheck} title={show === "open" ? "Nothing waiting" : "No requests yet"}
           text="Requests from the website's Book a demo page appear here." /> : (
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <thead><tr><th>Received</th><th>Who</th><th>Organisation</th><th>Interested in</th><th>Message</th><th /></tr></thead>
             <tbody>
               {rows.map((r) => (

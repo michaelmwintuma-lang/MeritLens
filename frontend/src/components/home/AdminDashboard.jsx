@@ -33,7 +33,7 @@ export default function AdminDashboard({ system, employees }) {
 
       <div className="two-cards">
         <Card title="Accounts by role" subtitle="Active accounts only.">
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <tbody>{Object.entries(accounts.by_role).map(([role, n]) => <tr key={role}><td>{ROLE_NAMES[role]}</td><td className="strong">{n}</td></tr>)}</tbody>
           </table></div>
         </Card>
@@ -58,7 +58,7 @@ export default function AdminDashboard({ system, employees }) {
           subtitle={`Population stability index (PSI) of each input, for the ${drift.records} employees in the directory against the training sample.`}
           actions={<span className={LEVEL_TAG[drift.status]}>{drift.status}</span>}>
           {drift.inputs.length > 0 && (
-            <div className="table-wrap"><table>
+            <div className="table-wrap" tabIndex={0}><table>
               <thead><tr><th>Input</th><th>PSI</th><th>Chance alone reaches</th><th>Level</th></tr></thead>
               <tbody>{drift.inputs.slice(0, 6).map((r) => (
                 <tr key={r.feature}><td>{r.feature.replaceAll("_", " ")}</td><td className="strong">{r.psi.toFixed(3)}</td>
@@ -72,7 +72,7 @@ export default function AdminDashboard({ system, employees }) {
 
       <Card title="Recent activity" actions={<Link to="/admin/activity" className="text-link">Full audit trail <ArrowRight size={16} aria-hidden="true" /></Link>}>
         {system.recent_activity.length === 0 ? <p className="muted">Nothing yet.</p> : (
-          <div className="table-wrap"><table>
+          <div className="table-wrap" tabIndex={0}><table>
             <tbody>{system.recent_activity.map((e, i) => (
               <tr key={i}><td className="nowrap muted">{e.date}</td><td>{e.user}</td><td>{e.action}{e.details && <span className="muted small"> · {e.details}</span>}</td></tr>
             ))}</tbody>

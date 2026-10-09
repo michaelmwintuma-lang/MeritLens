@@ -59,7 +59,7 @@ export default function EmployeeList() {
           </select>
           <label className="check"><input type="checkbox" checked={onlyRecommended} onChange={(e) => setOnlyRecommended(e.target.checked)} /> Recommended only</label>
         </div>
-        <div className="table-wrap"><table>
+        <div className="table-wrap" tabIndex={0}><table>
           <thead><tr><th>Name</th><th>Department</th><th>Readiness</th><th style={{ width: "30%" }} /><th>Model's view</th></tr></thead>
           <tbody>
             {rows.map((e) => (
