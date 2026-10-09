@@ -41,11 +41,20 @@ def level(value: float, chance: float = 0.0) -> str:
     return "moderate shift" if value <= max(SHIFTED, chance) else "large shift"
 
 
+_chance_cache: dict = {}
+
+
 def chance_psi(training: np.ndarray, size: int, repeats: int = 40, seed: int = 0) -> float:
-    """The PSI that a random group of this size from the training data itself reaches (95th percentile)."""
-    rng = np.random.default_rng(seed)
-    values = [psi(training, rng.choice(training, size, replace=False)) for _ in range(repeats)]
-    return float(np.quantile(values, 0.95))
+    """
+    The PSI that a random group of this size from the training data itself reaches (95th percentile). It depends
+    only on the training sample and the size, so each answer is kept and reused (the admin dashboard asks often).
+    """
+    key = (training.tobytes(), size, repeats, seed)
+    if key not in _chance_cache:
+        rng = np.random.default_rng(seed)
+        values = [psi(training, rng.choice(training, size, replace=False)) for _ in range(repeats)]
+        _chance_cache[key] = float(np.quantile(values, 0.95))
+    return _chance_cache[key]
 
 
 def drift_report(background: pd.DataFrame, records: list[dict], features: list[str]) -> dict:
