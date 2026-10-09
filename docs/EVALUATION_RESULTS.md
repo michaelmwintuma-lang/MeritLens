@@ -1,0 +1,172 @@
+# Evaluation results
+
+Every result of the system, with the file it comes from and the command that reproduces it. No number here was
+typed in by hand: each is copied from a file written by a script. Re-running the scripts on 2026-10-09 gave the
+same numbers: `train.py` reproduced `metrics.json`, `fairness.json` and `model_comparison.json` byte for byte, and
+the reporting evaluation differed only in its run date.
+
+All employee data is **synthetic** (100,000 made-up employees). The results describe the system on this data, not
+on a real organisation.
+
+The platform follows one cycle, and the results follow it too: **predict → explain → respond**.
+
+---
+
+## 1. Predict: the promotion model
+
+**Source:** `results/model_comparison.json`, `results/metrics.json`, `results/fairness.json`
+**Reproduce:** `cd backend && python train.py`
+
+### Inputs
+
+20 performance and development inputs. Excluded, each with a written reason in `backend/app/promotion/features.py`:
+- gender, age, education and marital status, which are used only for the fairness audit;
+- department;
+- pay;
+- attitude surveys;
+- working hours;
+- location and contract details.
+
+### Model choice
+
+The data was split 70% / 10% / 20% into training, validation and test sets, stratified, with seed 42. Four models
+were trained.
+
+Every candidate went through a **common-sense check** on 2,000 validation employees. Each input a person can
+improve was moved half a standard deviation in its improving direction. A model counted a violation whenever a
+score dropped. Only models with no violations were eligible.
+
+| Model | Validation PR-AUC | Validation ROC-AUC | Common-sense violations | Eligible |
+|---|---|---|---|---|
+| **EBM, monotonic (chosen)** | 0.4671 | 0.8806 | **0%** | **yes** |
+| XGBoost | 0.4699 | 0.8777 | 21.9% | no |
+| Logistic regression | 0.4618 | 0.8793 | 16.7% | no |
+| Random forest | 0.4528 | 0.8769 | 30.1% | no |
+
+The decision threshold is **0.2283**, the best F1 on the validation set.
+
+### Test set (20,000 employees, measured once)
+
+| ROC-AUC | PR-AUC | Precision | Recall | F1 | Accuracy | Share recommended |
+|---|---|---|---|---|---|---|
+| 0.8833 | 0.4736 (random: 0.10) | 0.4102 | 0.5950 | 0.4856 | 0.8740 | 14.5% |
+
+Confusion matrix: 1,190 true positives, 1,711 false positives, 810 false negatives, 16,289 true negatives.
+
+**The cost of fairness.** An earlier model used logistic regression *with* department. It reached PR-AUC 0.6325 and
+ROC-AUC 0.9295, but it scored people by where they work: past promotion rates ranged from 2% (Support) to 33%
+(Engineering). Removing department is what most of the drop reflects.
+
+### Fairness (four-fifths rule, test set)
+
+| Characteristic | Selection rates | Ratio | Result |
+|---|---|---|---|
+| Gender | female 14.6%, male 14.4% | 0.982 | pass |
+| Age group | under 40: 14.8%, 40+: 14.2% | 0.963 | pass |
+| Education | Bachelor 14.3%, Master 14.7%, PhD 16.1% | 0.887 | pass |
+
+A model that fails this check is never saved as the live model.
+
+### Drift (admin dashboard, live)
+
+The population stability index (PSI) compares each input in today's 120-person directory with the training sample.
+For the demo directory, the largest PSI is 0.183 (problem-solving score), against 0.135 that chance alone reaches
+for a group of 120.
+
+Two of the 20 inputs are above their chance level. That is about what chance produces when 20 inputs are each
+checked at the 95% level, and the 120 people do come from the same data. Code: `backend/app/promotion/drift.py`.
+
+## 2. Explain: the explanations
+
+**Source:** `results/explanation_evaluation.json`
+**Reproduce:** `cd backend && python -m evaluation.evaluate_explanations`
+**Sample:** the 120 demo employees, all from the test set.
+
+| Measure | Result |
+|---|---|
+| Exactness: largest gap between "base + contributions" and the model's own log-odds | 0.000347. Contributions are rounded to 4 decimals, so a gap of up to 0.001 is expected. |
+| Common sense: "improve one input by one standard deviation" checks (17 inputs × 120 employees) | 2,040 checks, **0** lowered a score |
+| LIME's fit to the model around each employee (R²) | median 0.135; 84.2% below 0.5 |
+| LIME's top rule names one of the five largest exact contributions | 90.8% of employees |
+| The tips reach the threshold (employees not yet recommended) | 98 of 108 (90.7%) |
+
+LIME's fit is low, so LIME is shown only as a second opinion, under "Show technical details". The main explanation
+is the exact contributions. Most employees are far from the threshold, where the model's curve is flat, which gives
+a local linear model little to fit.
+
+Overall importance, as the share of the model's effect: change in performance since last year 51.5%, projects
+10.7%, tasks 6.9%, performance score 4.7%, leadership 4.5%. Source: `/api/promotion/importance`, shown on "How the
+model works".
+
+## 3. Respond: the employee feedback channel
+
+### Behaviour (automated tests)
+
+`backend/tests/test_feedback.py` (31 tests) and `backend/tests/test_isolation.py` (4 tests) check that:
+- ratings and correction requests never change a score;
+- only a correction HR confirms changes the record, and it is logged;
+- managers never see ratings or corrections;
+- re-appraisals carry no link to the report they came from.
+
+The isolation test recorded every prediction answer before and after adding ratings, corrections, a held decision
+and four reports with conversations and outcomes. Every answer was byte-for-byte identical. A confirmed correction
+then changed the prediction, and the change was logged.
+
+### Measures from use
+
+**Source:** the feedback dashboard, or `results/feedback_measures.json`
+**Reproduce:** `cd backend && python -m evaluation.export_feedback_measures`
+
+The script exports the clarity rate, usefulness rate, contest share per factor, correction confirmation rate, mean
+time to decide, reports per promotion category and the committee's override rate.
+
+**No real use has happened yet.** On 2026-10-09 the database held 0 ratings and 0 correction requests, so these
+numbers are to be collected during the usability study (section 6) and reported with the number of participants.
+
+## 4. Anonymous reporting
+
+**Source:** `results/reporting_evaluation.json` and `.md` (developer set of 50 hand-labelled reports; the external
+set, written by other people, has no reports yet)
+**Reproduce:** `cd backend && python -m evaluation.evaluate_reporting`
+
+| Measure | Result |
+|---|---|
+| Identifying details removed automatically (recall) | 41 of 47 (87%); precision 87% |
+| Reports with every labelled detail removed | 44 of 50 |
+| Warnings about phrases that could identify the reporter | recall 91%, precision 91% |
+| Triage, language model with safety rules: accuracy | 66% |
+| Triage: urgent reports given high priority | 14 of 14 |
+| Triage: reports put too low / too high | 5 / 12 (keywords only: 12 / 1) |
+
+The developer wrote both the rules and this test set, so these numbers likely flatter the system. The reporter
+reviews the cleaned text before sending, and that review is the main safeguard.
+
+## 5. Software quality
+
+| Check | Result | How |
+|---|---|---|
+| Backend tests | 372 passed | `cd backend && python -m pytest`, in about 2 minutes |
+| Browser checks: sessions, no keys in the browser, the feedback channel end to end, dashboards, landing page, pagination, every menu page for six roles | 7 passed | `python scripts/browser_test.py`, against a throwaway copy of the app |
+| Accessibility: axe-core, WCAG 2.1 A/AA, 17 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
+| Pages wider than a phone screen (390 px) | none | same script |
+
+Performance, measured on the running app with 120 demo employees (`docs/CHANGELOG_UPGRADE.md`, Phase 8):
+
+| Measure | Before | After |
+|---|---|---|
+| Employee list | 0.26 s | 0.02–0.06 s |
+| Scoring 5,000 employees | 11.25 s (one at a time) | 13 ms (one call) |
+| Website's first download | 482 kB | 309 kB |
+
+## 6. Usability and perceived fairness (to be collected)
+
+**Method:** `docs/USER_TEST.md`:
+- 11 tasks, including the three feedback routes and HR deciding on a correction;
+- the System Usability Scale;
+- eight perceived-fairness statements adapted from Colquitt (2001), four informational and four procedural.
+
+**Score:** `cd backend && python -m evaluation.user_test`. This writes `results/user_test.md`, with Cronbach's alpha
+from three participants up.
+
+**No participants have taken part yet**, so there are no usability or perceived-fairness results. Report them with
+the number of participants once collected.

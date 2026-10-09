@@ -17,7 +17,7 @@ exactly one **role**: Employee, Manager, HR or Admin. The role decides what they
 | HR | See all employees; decide on nominations; handle anonymous reports |
 | Admin | Create accounts; view the activity log |
 
-Only an **admin** can create accounts, for any of the four roles. Nobody can sign themselves up. A new account
+Only an **admin** can create accounts, for any of the six roles. Nobody can sign themselves up. A new account
 gets a random **temporary password**, which the admin passes on. The first time the person signs in, they must
 choose their own password before they can do anything else. If someone forgets their password, the admin gives
 them a new temporary one. The admin can also **deactivate** an account, which locks the person out at once.
@@ -393,9 +393,10 @@ explanation, one file each).
 
 | Role | Menu | What it shows |
 |---|---|---|
-| Employee | My readiness · How the model works | Their own score, explanation, what-if and tips |
+| Employee | My growth · How the model works | Their own score, explanation, path to promotion, what-if, and the respond panel (step 9) |
 | Manager | My team · How the model works | Their team with scores; click a name for the full explanation |
-| HR | All employees · How the model works | Everyone, with search, department filter and "recommended only"; click a name for the full explanation |
+| HR | All employees · How the model works | Everyone (50 per page), with search, department filter and "recommended only"; click a name for the full explanation |
+| Auditor | Decision log · Feedback dashboard · How the model works | No individual employees: decisions, the model and totals only |
 | Admin | Users | No promotion pages: admins manage accounts, not promotions |
 
 The website hides pages a role can't use, but the real protection is the backend (step 3): even if someone
@@ -403,22 +404,27 @@ typed a page address or called the API directly, they would only get data their 
 
 ### The readiness page
 
-One page, used both for "My readiness" and when HR or a manager opens an employee. Top to bottom, it answers
-the questions a person naturally asks:
+One page, used both for "My growth" and when HR or a manager opens an employee. It reads in plain words first,
+top to bottom answering the questions a person naturally asks:
 
 1. **Where do I stand?** The score as a percentage on a 0–100% bar, with the threshold marked, and
-   "Recommended" or "Not yet recommended" in words. Below it, the plain-language summary, plus a note that the
-   score ranks readiness (it isn't a probability) and that HR makes the decision.
+   "Recommended" or "Not yet recommended" in words. Below it, the plain-language summary, and "Your readiness is
+   compared with an average employee. It ranks readiness against the threshold; it isn't a chance of promotion.
+   The model only advises: people make the decision." A score above zero that rounds to 0% reads "under 1%".
 2. **Why?** Two short lists: what raised the score and what lowered it, compared with an average employee, each
-   with the person's real value and a bar for the size of the effect. "Show all 20 factors" opens a table
-   with the exact numbers, which add up to the score.
-3. **Second opinion.** LIME's rules, marked where they name the same factors as the main explanation, with its
-   fit score and the warning when the fit is low.
+   with the person's real value and a bar for the size of the effect. On the employee's own page the bars carry
+   no numbers; HR and managers see each contribution's size.
+3. **Path to promotion** (tips). Numbered steps ("Increase leadership score from 46.3 to 50.0"), followed by a
+   sentence on where they lead: above the threshold, or how much closer.
 4. **What if?** A slider for each improvable factor, set to the person's current value and limited to the
    range real employees had. "See the new score" asks the backend; nothing is saved. "Reset" puts everything
    back.
-5. **Tips to improve.** Numbered steps ("Increase leadership score from 46.3 to 58.6"), followed by a sentence
-   on where they lead: above the threshold, or how much closer.
+5. **Respond to this explanation** (the employee's own page only; step 9).
+6. **Show technical details** (folded away): the model and its version, every factor's exact contribution in a
+   table (they add up to the score), and LIME's rules with its fit and the warning when the fit is low.
+
+On "My growth" the prediction runs as the page opens; HR and managers click "Run prediction" and watch its steps.
+LIME and the tips are worked out at the same time.
 
 ### Design choices
 
@@ -762,34 +768,31 @@ every way of keeping the key happens on the reporter's side, and the server neve
 
 | Option | Where the key goes | Good for |
 |---|---|---|
-| Save on this device | This browser's storage | A personal phone or laptop. A warning appears first: anyone using the same browser could read it |
 | Download a receipt | A small text file | Keeping it with other private files |
 | Password manager | The browser's password manager (Chrome, Edge) | The safest choice: encrypted and synced to the person's own devices |
 | Copy | The clipboard | Pasting into a notes app |
 
-**My report keys** (`pages/reporting/ReportKeys.jsx`) lists the keys saved on this device, with **Open** (goes
-straight into the case without typing), **Copy**, **Download** and **Forget**, plus a form to add a key that was
-written down and four tips on keeping keys safe. When a case is opened from this page, the key is passed inside
-the app, never in the web address, which would be kept in the browser's history.
+The website itself **never keeps the key**. An earlier version offered "Save on this device" and a "My report
+keys" page, but the saved list was labelled with the account's id, so anyone with access to the browser could
+see which account held which case. It was removed in the upgrade (`docs/REVIEW.md`, S1). Keys an earlier version
+saved are listed on "Check my report", with a download button, until the reporter removes them; they are never
+deleted unseen, because a lost key can't be recovered.
 
 "Check my report" marks its two fields as a username and password, so password managers recognise them and can
 fill them in.
 
-**The trade-off to discuss:** convenience against risk on shared devices. Saving on the device is opt-in with a
-warning, never automatic; and a lost key still can't be recovered, by design. The reporter can always make a new
-report.
+**The trade-off to discuss:** convenience against risk on shared devices. Keeping the key is now entirely the
+reporter's job (receipt, password manager or copy); a lost key still can't be recovered, by design. The reporter
+can always make a new report.
 
 ## Updates after step 7
 
 ### Reporting is for employees and managers
 
-Anonymous reporting (making a report, checking it, and saved keys) is for **employees and managers**: the people
+Anonymous reporting (making a report and checking it) is for **employees and managers**: the people
 likely to need it. **HR** handles reports in the report inbox instead, and **admins** manage accounts, so neither
 sees the reporting pages. This is enforced by the backend (`REPORTER_ROLES` in `app/core/roles.py`), not just
 hidden in the menu; a test checks that HR and admins get "403" from every reporting endpoint.
-
-Saved keys are kept **separately for each account** on a device (`frontend/src/keyStore.js`), so if someone else
-signs in on the same computer (a colleague, or HR) they don't see them in the app.
 
 ### Notifications
 
@@ -798,11 +801,12 @@ A bell at the top right shows what needs attention.
 - **HR** is told about new reports nobody has answered yet and reporters waiting for a reply
   (`GET /api/hr/reports/notifications`). These are worked out from the cases themselves, so nothing extra is
   stored, in particular no time at which the reporter wrote.
-- **Reporters** are told when the investigator replies, or their case is closed. This can't be stored on the
-  server: a record saying "this account follows that case" would link the report to the reporter. So the
-  reporter's **own browser** checks the cases saved on that device (`POST /api/reports/updates`) and compares them
-  with what the reporter has already seen. Opening the case clears the notification. Only saved cases are
-  checked, which the bell explains.
+- **Reporters get no notifications.** A record saying "this account follows that case" would link the report
+  to the reporter. An earlier version had the reporter's browser check the cases saved on the device every
+  minute, sending each case ID and key with the login token; it was removed with the saved keys. Reporters open
+  their case with its ID and key when they want to check it.
+- **Employees** are told when HR decides on their record (a correction they asked for, or a re-appraisal), and
+  **HR** when corrections are waiting (step 9).
 
 ### Welcome emails and account changes
 
@@ -858,32 +862,27 @@ clicked; the group holding the current page opens by itself.
 
 ### The public website
 
-Visitors who aren't signed in see a small website (`frontend/src/pages/public/`), one page per menu item, all
-sharing one menu bar and footer (`PublicLayout.jsx`); the menu highlights the page you're on:
+Visitors who aren't signed in see a small website (`frontend/src/pages/public/`), sharing one menu bar and footer
+(`PublicLayout.jsx`). Only the landing page and sign-in are downloaded straight away; the other pages load when
+first opened.
 
 | Page | Address | What it shows |
 |---|---|---|
-| Home | `/` | The headline, the model's tested results (read live from `results/` through the public `GET /api/public/summary`, which contains nothing about any person), three cards that open the other pages, the design principle |
-| Approach | `/approach` | The three pillars (explain every score, check fairness first, protect every voice) and the four roles |
-| Promotion | `/promotion` | What an employee sees, and the four steps of a promotion decision |
-| Reporting | `/reporting` | What the reporter sees, the four steps from concern to conversation, and HR's side |
-| Privacy | `/privacy` | The six privacy promises, and a note that the demo uses synthetic data |
+| Home | `/` | The promise ("Fair, explainable promotion decisions, with a voice for every employee"), **Sign in** and **Report a concern anonymously** (which goes through sign-in straight to the report form), **How it works** (Predict → Explain → Respond), six features, three promises (a complaint never changes a score; no one can unmask a reporter; people make every decision), and the tested results, read live from `results/` through `GET /api/public/summary` |
+| Who uses it | `/approach` | The six roles: what each sees and does |
+| Promotions | `/promotion` | How a decision is made, from the model's score to Finance's sign-off (with the live threshold) |
+| Reporting | `/reporting` | Reporting as part of the feedback channel: categories, keys, evidence, triage, re-appraisal |
+| Privacy | `/privacy` | What is stored and what isn't, including that feedback never changes a score |
 | Book a demo | `/demo` | A short form (see below) |
 
-Every page ends with a navy band offering **Book a demo** or **Sign in**. The sign-in page links back to the website.
+The footer shows the project title, and the university, team and supervisors once they are filled in
+(`PROJECT` in `frontend/src/brand.js`); nothing is invented.
 
-Its look takes inspiration from people-first HR sites: large photos of real people working together, sections
-that alternate text and pictures, and a dark footer with columns.
-
-- **Photos of people** (`frontend/public/landing/people/`) are from **Pexels**, whose licence allows free use
-  without asking permission; the photographers are credited in the footer anyway. The footer also says that the
-  people pictured are not users of the system.
-- **Screenshots** (`frontend/public/landing/*.webp`) are of the real app with made-up demo data, shown in small
-  frames over the photos.
-- **No testimonials.** Many company sites quote a happy customer; a made-up quote would be invented evidence, so
-  the site states the design principle instead: "The model advises. People decide."
-
-Any image can be replaced with your own (same file names).
+- **Screenshots** (`frontend/public/landing/*.webp`) are of the real app with made-up demo data, retaken with
+  `python scripts/browser_test.py scripts/capture_landing.js`.
+- **No stock photos and no testimonials.** A made-up quote would be invented evidence.
+- **Every number is measured.** If a result isn't available, the page shows "–", never an example number (a test
+  checks the public pages for invented numbers).
 
 ## Step 8: The activity log, and all the tests
 
@@ -921,27 +920,32 @@ dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **269 tests**, all passing:
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **372 tests**, all passing, in about two
+minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |
 |---|---|---|
-| `test_auth_and_roles.py` | 19 | Passwords are hashed with a salt; sign-in; wrong password and unknown user look the same; only the admin manages accounts; deactivation locks people out at once |
-| `test_training.py` | 12 | Protected characteristics and pay are never model inputs; the 70/10/20 split; the model-choice rule; the threshold; the four-fifths fairness check; the saved threshold and metrics load |
-| `test_explanations.py` | 20 | The contributions (SHAP) add up exactly to the model's output; LIME and its fit; the summary; what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; who may see whom |
-| `test_decisions.py` | 17 | Managers nominate only their team; HR decides; disagreeing with the model needs 20 characters; every decision is logged with the model's view; managers' teams |
+| `test_auth_and_roles.py` | 26 | Passwords are hashed with a salt (200,000 rounds in the app); sign-in; wrong password and unknown user look the same; 5 wrong passwords lock an account for 15 minutes; tokens stop working after a password change, reset or sign-out; only the admin manages accounts; deactivation locks people out at once |
+| `test_training.py` | 17 | Protected characteristics, pay and department are never model inputs; the 70/10/20 split; the model-choice rule with the common-sense check; the threshold; the four-fifths fairness check; the saved threshold and metrics load |
+| `test_explanations.py` | 26 | The contributions add up exactly to the model's output; department never changes a score; improving any input never lowers it; LIME and its fit; the summary ("under 1%" for tiny scores); what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; batch scoring gives identical scores; who may see whom |
+| `test_decisions.py` | 18 | Managers nominate only their team; HR decides; disagreeing with the model needs 20 characters; every decision is logged with the model's view; managers' teams |
 | `test_reporting.py` | 20 | The anonymiser removes names, emails, phones and dates; the key is hashed; dates without times; nothing about the reporter is stored; wrong attempts lock the case; **isolation**: the prediction code never touches report data, and predictions are identical before and after reports |
-| `test_finance.py` | 17 | An approval waits for Finance and nobody is told; a rejection never goes to Finance; Finance sees only what a pay decision needs; sign-off makes the promotion final and emails the manager and employee; sending back needs a reason and tells only HR; HR revises and resubmits; every step is kept; only Finance signs off and only HR resubmits; managers see "being finalised" until sign-off |
+| `test_feedback.py` | 31 | Rating explanations (stored with the model version and score; never changes a score; aggregates only, never managers); record corrections (only record values; evidence; HR confirms with a re-score and a log entry, or rejects with a reason; notifications); employees can't edit records; the committee note and hold; re-appraisal with no link to the report |
+| `test_isolation.py` | 4 | **Isolation**: every prediction answer byte-for-byte identical after ratings, corrections, a hold and reports; a confirmed correction changes it and is logged; the static check; no SQL on feedback or report tables at run time |
+| `test_dashboards.py` | 25 | The feedback dashboard's measures, filters, small-group protection, CSV and export script; only HR and the auditor see it; drift and its chance level; the admin's system health |
+| `test_auditor.py` | 13 | The compliance auditor reads decisions and the model; never reports, records or changes; demo-account rules |
+| `test_finance.py` | 20 | An approval waits for Finance and nobody is told; a rejection never goes to Finance; Finance sees only what a pay decision needs; sign-off makes the promotion final and emails the manager and employee; sending back needs a reason and tells only HR; HR revises and resubmits; every step is kept; only Finance signs off and only HR resubmits; managers see "being finalised" until sign-off |
 | `test_evidence.py` | 18 | Photos and videos lose their location, device, owner and time (checked byte by byte); file names aren't kept; only real photos and videos are accepted; size and number limits; only the reporter (with the key) and HR can see them; the reporter can remove a file; nothing is added to a closed case; a video's sound can be removed |
 | `test_priority_model.py` | 7 | The language model's training examples are separate from the evaluation sets; it gives a chance for each priority and the words behind it; it reads threats and self-harm without alarm words; the safety rules raise but never lower |
 | `test_conversation.py` | 19 | Triage; the conversation shows no names; reporter messages are anonymised; HR's inbox and case updates |
-| `test_accounts_and_notifications.py` | 13 | Welcome emails; editing accounts; changing your username; notifications for HR and reporters; the public summary reveals no one |
+| `test_accounts_and_notifications.py` | 15 | Welcome emails; editing accounts; changing your username; notifications for HR and reporters; the public summary reveals no one |
 | `test_emails.py` | 14 | Security alerts; nomination and decision emails go to the right people; report alerts hold no text and nothing about the reporter; reporters get no email; only the admin uses the Email page; every email has plain and HTML versions |
-| `test_employee_records.py` | 16 | HR adds an employee who can be scored at once; values are stored as the model expects; impossible values are refused and unusual ones flagged; no one is added twice; one bad CSV row means nobody is imported; no protected characteristics are accepted; only HR manages records |
+| `test_employee_records.py` | 23 | HR adds an employee who can be scored at once; values are stored as the model expects; impossible values are refused and unusual ones flagged; no one is added twice; one bad CSV row means nobody is imported; no protected characteristics are accepted; only HR manages records |
 | `test_demo_requests.py` | 10 | Anyone can book a demo; it's emailed with Reply-To set to the visitor; the admin lists and ticks off requests; robots and repeats are kept out; visitors' text can't inject HTML; only the admin sees requests |
 | `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never reports; managers are emailed about new team members, and only about new ones |
-| `test_evaluation_data.py` | 4 | The labelled evaluation reports are well formed (every label copied exactly from its report); the evaluation counts every report; the usability questionnaire is scored by the standard formula |
+| `test_evaluation_data.py` | 5 | The labelled evaluation reports are well formed (every label copied exactly from its report); the evaluation counts every report; the usability questionnaire and the perceived-fairness scales (with Cronbach's alpha) are scored correctly |
 | `test_recommendations_and_pay.py` | 16 | Managers' recommendations need a rating and example for all four areas, a start date within a year, a rise within HR's policy, and a reason when the model disagrees; HR must set the rise on approval and explain one outside the policy; only HR sets the policy; employees see only their approved promotion; pay is not a model input and changes no prediction |
-| `test_accounts_categories.py` | 19 | The admin deletes accounts (never their own, never one in the decision log), a deleted account can't sign in, a deleted manager's team stays in the directory; job titles on new accounts and in the welcome email; every report category is offered, the original ones still work, and the serious ones have a minimum priority |
+| `test_accounts_categories.py` | 20 | The admin deletes accounts (never their own, never one in the decision log), a deleted account can't sign in, a deleted manager's team stays in the directory; job titles on new accounts and in the welcome email; every report category is offered, the original ones still work, and the serious ones have a minimum priority |
 | `test_activity.py` | 10 | Sign-ins and actions are logged by date; nothing a reporter does is logged; passwords never are; only the admin reads the log |
 
 How each requirement in the brief is tested:
@@ -950,11 +954,14 @@ How each requirement in the brief is tested:
 |---|---|
 | Roles: each role can only access what it should | `test_auth_and_roles`, plus a "who may see this" test in every other file |
 | Model: threshold and metrics load; the fairness check runs | `test_training` |
-| Explanations: SHAP adds up; tips never make a feature worse | `test_explanations` |
+| Explanations: contributions add up; tips never make a feature worse | `test_explanations` |
 | Reporting: anonymiser, hashed key, lockout, dates without times | `test_reporting` |
-| Isolation: prediction code never reads report tables; predictions unchanged by reports | `test_reporting` (last two tests) |
+| Isolation: prediction code never reads feedback or report tables; predictions unchanged by feedback and reports | `test_isolation`, `test_reporting` |
+| Feedback channel: ratings, corrections, committee note, re-appraisal | `test_feedback` |
 
-Besides the automated tests, every step was also checked by walking through it in a real browser, as each role.
+Besides the automated tests, `python scripts/browser_test.py` runs 7 checks in headless Chrome against a throwaway
+copy of the app (including every menu page for all six roles and the feedback channel end to end), and CI runs
+everything on every push (`.github/workflows/ci.yml`).
 
 ## Running the prediction, and feedback while the system works
 
@@ -1097,13 +1104,11 @@ scores or records.
 
 ### Report keys: copy and paste without losing anything
 
-- **My report keys** has separate **Copy case ID**, **Copy key** and **Copy both** buttons, each briefly showing
-  "Copied".
-- On **Check my report**, pasting text that contains both (from Copy both, or the downloaded receipt) into
-  either box fills **both** boxes.
-- If you paste the case ID, go to My report keys for the key, and come back, the case ID is still there. It's
-  kept in the page's memory only: never written to storage, gone when the tab closes, and never shown to another
-  account signing in on the same tab.
+- On **Check my report**, pasting text that contains both (from the copy button, or the downloaded receipt)
+  into either box fills **both** boxes.
+- If you paste the case ID, go to your password manager for the key, and come back, the case ID is still there.
+  It's kept in the page's memory only: never written to storage, gone when the tab closes, and never shown to
+  another account signing in on the same tab.
 
 ## Recommendations with reasons, and the pay rise
 
@@ -1141,7 +1146,7 @@ Promotions usually come with a pay rise, but pay is sensitive, and the brief kee
   HR sets the final figure when approving, and can go outside the range only with a written reason (at least
   20 characters), which is kept in the decision log. Changing the policy is recorded in the activity log.
 - **Who sees it:** HR sees every rise; a manager sees the ones on their own recommendations; an employee sees
-  their own only once approved (on My readiness, and in the approval email, with the new role and start date).
+  their own only once approved (on My growth, and in the approval email, with the new role and start date).
   Pending recommendations are not shown to the employee.
 - **The model never sees pay.** Pay isn't one of the model's inputs, and approving a rise changes no prediction;
   two tests check this.
@@ -1266,3 +1271,115 @@ many were outside the policy), the average rise, and a breakdown by department.
 | `GET /api/finance/pay-policy` | Finance | Read the pay policy |
 | `POST /api/promotion/decisions/{id}/resubmit` | HR | Revise a returned pay rise and send it back to Finance |
 
+
+## Step 9: The employee feedback channel (respond)
+
+Code: `backend/app/feedback/` (`routes.py` for employees, `routes_hr.py` for HR, `corrections.py`, `models.py`),
+and `frontend/src/components/feedback/`, `frontend/src/pages/feedback/`.
+
+The platform follows one cycle: **predict → explain → respond**. Steps 2 to 5 cover predicting and explaining;
+this step covers responding. **Nothing here changes a score**, except HR confirming a record correction against
+evidence, which is logged.
+
+### Three routes on "My growth"
+
+Below the explanation, an employee finds **Respond to this explanation**:
+
+1. **Rate this explanation.** "This explanation was clear" and "This explanation was useful", each 1 to 5 (radio
+   buttons labelled Disagree to Agree). Optionally, any factor can be marked "seems wrong" or "seems unfair", with a
+   comment. The rating is stored with the model version and the score it explained, both worked out on the server.
+   Rating the same model's explanation again replaces the earlier rating. `POST /api/feedback/ratings`.
+2. **Correct my record.** The employee picks a value from their own record (the 20 values HR types in; nothing
+   protected is even stored), enters the value they believe is right, and gives evidence in words, optionally with
+   a PDF, JPEG or PNG (up to 10 MB, recognised by its contents, stored under a random name). One request per value
+   at a time. The page lists their requests and HR's decisions. `POST /api/feedback/corrections`.
+3. **Report anonymously.** Opens the report form (step 6) with "Biased rating or appraisal" chosen. New reports
+   use five categories: biased rating or appraisal, favouritism, discrimination, wrong or missing record, other
+   workplace concern.
+
+### HR's correction queue
+
+**Record corrections** (`/corrections`) lists waiting requests, oldest first, with the value in the record, the
+value asked for, the evidence and any document. HR either:
+
+- **confirms** with the value they verified (which may differ from the one asked for). Only that value changes;
+  the employee is re-scored; the record history (step 3) keeps who, the old and new value, the reason, readiness
+  before and after, and the model version; the activity log records it; or
+- **rejects** with a reason of at least 20 characters, which the employee receives.
+
+Either way the employee gets an email and a notification in the bell.
+
+### The committee note, and holding a decision
+
+While a correction is pending for someone with a nomination, HR's review page shows a **committee note**: the
+value in question and that the score may change. HR can **hold the decision** until the correction is resolved;
+the decision form is hidden meanwhile. A hold is not a decision, so it never appears in the decision log and never
+counts as agreeing or disagreeing with the model. It lifts by itself when the correction is decided, or HR can
+take it off hold. Managers never see the note.
+
+### Re-appraisal after "rating found unfair"
+
+A report about an unfair assessment can be closed with the outcome **Rating found unfair**. The case page then
+lets HR open a **re-appraisal**: a normal correction of the affected value, which goes through the queue like any
+other. The case ID is checked but stored nowhere with the correction (nor in the activity log), so the two can't
+be linked; the employee sees the outcome but not HR's note; and the report itself never reaches the model.
+
+### Who sees what
+
+| | Employee | Manager | HR | Auditor |
+|---|---|---|---|---|
+| Their own ratings and requests | yes | – | – | – |
+| Ratings | – | never | totals only | totals only |
+| Correction requests and evidence | their own | never | all | totals only |
+| Committee note | – | never | yes | – |
+
+### Keeping feedback away from the model
+
+- The feedback code may call the promotion code (a confirmed correction re-scores the employee), but **the
+  promotion code never imports, names or queries feedback or reports**. A static check reads every file in
+  `app/promotion` and fails if it does.
+- At run time, a test records every SQL statement the prediction endpoints run and checks none touches a feedback
+  or report table.
+- End to end, `tests/test_isolation.py` records every prediction answer (as HR, the manager and the employee see
+  it, the tips, a what-if and everyone's scores), then adds ratings, a pending and a rejected correction, a held
+  decision, and four anonymised reports with conversations and outcomes about the employee and their manager.
+  Every answer must be **byte-for-byte identical**. Then HR confirms a correction: the explanation must change,
+  with the change in the record history and the activity log.
+- **No automatic retraining.** Nothing in the app trains a model; only `train.py`, run by a person.
+
+## Step 10: Dashboards and system health
+
+### The feedback dashboard (HR and the auditor)
+
+`/feedback`, computed on the server from the database (`backend/app/feedback/dashboard.py`):
+
+- **Explanations:** ratings; the share rating "clear" 4 or 5; the share rating "useful" 4 or 5; how often each factor
+  is contested (marked wrong or unfair), as a sorted bar list.
+- **Record corrections:** received, confirmed, rejected, pending; the confirmation rate (of decided requests); the
+  mean time from request to decision.
+- **Anonymous reports** per promotion category (by date only: reports hold no department, person or model version).
+- **The committee:** decisions, how many went against the model, and their written reasons.
+
+Filters: date range, department and model version; **Export CSV** gives the same numbers. Small groups are
+protected: rates are withheld below 5 ratings, counts of 1 or 2 show as "<3", and only departments with at least
+5 people can be chosen. It never shows a name, a comment, a report's text or one person's rating.
+`python -m evaluation.export_feedback_measures` saves the same measures for the thesis.
+
+### The admin's dashboard
+
+The admin's home (`GET /api/admin/system`): active, locked and new accounts; accounts by role; quick actions
+(create a user, reset a password, the audit trail, email); recent activity; and **system health**: the API, the
+model (version, training date, a timed test prediction), the fairness gate's last result, email settings, and
+**drift**.
+
+**Drift** compares each input in today's directory with the training sample, using the population stability index
+(PSI; below 0.1 stable, above 0.25 a large shift). PSI is noisy for small groups, so each input is also compared
+with the PSI that chance alone gives a group of that size (from random samples of the training data), and counts
+as shifted only above both. With 20 inputs checked at the 95% level, about one may cross that line by chance; the
+page says so. The model is never retrained automatically.
+
+### The other home pages
+
+HR sees corrections waiting (with links to the queue and the dashboard); the employee a "Respond to your
+explanation" card with their requests; the auditor how many explanations were rated clear; Finance the pay rises
+waiting; managers their team and nominations.

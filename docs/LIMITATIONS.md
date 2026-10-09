@@ -19,7 +19,16 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 - **Group fairness, one check.** The four-fifths rule compares recommendation rates between groups. It doesn't
   show whether the model is equally *accurate* for each group, or fair to individuals, and it checks each
   characteristic separately rather than in combination (e.g. older women).
-- **Explanations describe the model, not the world.** SHAP shows what moved the model's score; it doesn't prove
+- **Fairness costs accuracy.** Department was removed from the model because it scored people by where they work.
+  Test PR-AUC fell from 0.633 (an earlier logistic regression with department) to 0.474. The model predicts past
+  decisions less well because it no longer repeats their departmental pattern.
+- **One input dominates.** Change in performance since last year accounts for about half of the model's effect.
+- **Monotonic constraints are a design choice.** The model can never lower a score when an input a person can
+  improve goes up. That rules out patterns the data might hold, such as diminishing or negative returns at the
+  extremes.
+- **Drift is noisy for small groups.** For a directory of 120, chance alone reaches a PSI of about 0.14–0.16 on
+  some inputs. The check compares against that, but with 20 inputs, about one may still be flagged by chance.
+- **Explanations describe the model, not the world.** The exact contributions (equal to SHAP values) show what moved the model's score; it doesn't prove
   those factors cause promotion. The tips are therefore "what would change the model's view", not guaranteed
   career advice.
 
@@ -55,6 +64,24 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 - **The activity log records sign-ins** (by date only). On a day when only one person signed in, that alone could
   point at the author of a report sent that day.
 
+### The feedback channel
+
+- **No real use yet.** Its measures (clarity and usefulness rates, contest shares, correction confirmation rate,
+  time to decide) come from use, and the database holds none yet; they are to be collected in the user study.
+- **Feedback informs people, not the model.** By design, ratings and reports never reach the model, and nothing
+  retrains automatically. Feedback changes scores only through corrections HR confirms; systematic complaints about
+  a factor show on the dashboard, but acting on them (for example retraining without a contested input) is a human
+  decision.
+- **One HR person can confirm their own re-appraisal.** There is no second-person rule; every confirmation is
+  logged with who made it.
+- **Small groups limit what the dashboard can show.** Rates need 5 ratings and departments 5 people, so a small
+  organisation sees few numbers. This trades detail for privacy.
+- **Rating comments are free text.** They are never shown, not even in aggregate, but they are stored, and an
+  employee could name someone in one.
+- **A hold on a decision is advisory.** The promotion code can't read the feedback tables (that is the isolation
+  rule), so it can't refuse a decision while a correction is pending. The page hides the decision form while a
+  decision is held, but the API would accept a decision.
+
 ### The system
 
 - **A prototype, not a production service.** SQLite and a single server suit a demonstration, not many users at
@@ -65,8 +92,11 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   backend runs in WSL (Ubuntu) there. On a normal Linux server this doesn't arise.
 - **Pay rises can't be checked for fairness across groups**, because protected characteristics are deliberately
   not stored with employee records. Only percentages are kept, never salaries.
-- **Tested mostly by its developer.** 269 automated tests check behaviour and privacy rules, and every page was
-  checked in a browser as each role, but usability with real users depends on the user test (`docs/USER_TEST.md`).
+- **Tested mostly by its developer.** 372 automated tests and 7 browser checks verify behaviour and privacy rules,
+  and an accessibility audit found nothing on 17 pages. But usability and perceived fairness with real users
+  depend on the user test (`docs/USER_TEST.md`).
+- **CI hasn't run on GitHub yet.** The workflow is written and each of its steps passes locally, but the
+  repository has no remote.
 
 ## Future work
 
