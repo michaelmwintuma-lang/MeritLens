@@ -163,3 +163,18 @@ def test_an_admin_password_reset_signs_the_person_out(client):
     user_id = next(u["id"] for u in client.get("/api/admin/users", headers=admin).json() if u["username"] == "manager")
     client.post(f"/api/admin/users/{user_id}/reset-password", headers=admin)
     assert client.get("/api/auth/me", headers=headers).status_code == 401
+
+
+def test_the_app_hashes_with_200000_rounds_unless_told_otherwise(monkeypatch):
+    """The tests use fewer rounds to run faster; the real setting must stay strong, and old hashes keep working."""
+    import importlib
+    import app.core.security as security
+    monkeypatch.delenv("PASSWORD_HASH_ITERATIONS")
+    fresh = importlib.reload(security)
+    try:
+        assert fresh.PBKDF2_ITERATIONS == 200_000
+        strong = fresh.hash_password("secret123")
+        assert strong.split("$")[1] == "200000" and fresh.verify_password("secret123", strong)
+    finally:
+        monkeypatch.setenv("PASSWORD_HASH_ITERATIONS", "1000")
+        importlib.reload(security)

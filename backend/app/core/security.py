@@ -1,6 +1,7 @@
 """Passwords, login tokens (JWT) and role checks."""
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -13,7 +14,9 @@ from app.accounts.models import User
 from app.core.config import SECRET_KEY, TOKEN_MINUTES
 from app.core.database import get_db
 
-PBKDF2_ITERATIONS = 200_000
+# Rounds of hashing for new passwords and report keys. Each stored hash records its own count, so changing this
+# never breaks existing passwords. Only the tests lower it (tests/conftest.py), to save minutes of hashing.
+PBKDF2_ITERATIONS = int(os.getenv("PASSWORD_HASH_ITERATIONS", "200000"))
 MAX_FAILED_LOGINS = 5     # wrong passwords in a row before the account is locked
 LOCK_MINUTES = 15
 
