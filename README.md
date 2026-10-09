@@ -1,4 +1,4 @@
-# Promotion & Reporting Platform
+# MeritLens
 
 **An explainable promotion-readiness system and an anonymous misconduct-reporting system, in one web
 application.**

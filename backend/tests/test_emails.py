@@ -117,4 +117,4 @@ def test_only_the_admin_uses_the_email_page(client, username):
 def test_every_email_has_a_plain_and_a_branded_version():
     message = mailer.build("x@example.org", templates.welcome("Ada", "ada", "Temp-123"))
     assert message.get_body(("plain",)) is not None and message.get_body(("html",)) is not None
-    assert "Promotion &amp; Reporting" in message.get_body(("html",)).get_content()
+    assert "MeritLens" in message.get_body(("html",)).get_content()

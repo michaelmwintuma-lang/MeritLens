@@ -52,7 +52,7 @@ def _load_secret_key() -> str:
 SECRET_KEY = _load_secret_key()
 
 # The product's name in emails and the API (the website's is in frontend/src/brand.js)
-APP_NAME = os.getenv("APP_NAME", "Promotion & Reporting")
+APP_NAME = os.getenv("APP_NAME", "MeritLens")
 
 # Where the website is, for links in emails
 APP_URL = os.getenv("APP_URL", "http://127.0.0.1:5173")
@@ -65,7 +65,7 @@ SMTP = {
     # Gmail shows app passwords in groups ("abcd efgh ijkl mnop"); the spaces aren't part of it
     "password": os.getenv("SMTP_PASSWORD", "").replace(" ", ""),
     # Gmail only sends from the signed-in address, so by default the sender is that address
-    "sender": os.getenv("SMTP_SENDER", "") or os.getenv("SMTP_USER", "") or "no-reply@promotion-platform.local",
+    "sender": os.getenv("SMTP_SENDER", "") or os.getenv("SMTP_USER", "") or "no-reply@meritlens.local",
     "sender_name": os.getenv("SMTP_SENDER_NAME", "") or APP_NAME,
 }
 # Where "Book a demo" requests are emailed (default: the Gmail address that sends the platform's emails)
