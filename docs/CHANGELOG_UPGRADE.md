@@ -82,3 +82,21 @@ HR confirming a record correction, which is logged.
   **Static check:** nothing in `app/promotion` imports or names the feedback or reporting code or tables.
   **Run-time check:** the prediction endpoints run no SQL on those tables.
 - The employee's "My readiness" is now "My growth".
+
+## Phase 5: dashboards
+
+- **Feedback dashboard** (`/feedback`, HR and the compliance auditor), every number computed on the server from
+  the database: clarity and usefulness rates (share rating 4 or 5; withheld below 5 ratings), contest share per
+  factor (sorted bars), correction requests received/confirmed/rejected/pending with the confirmation rate and mean
+  time to decide, anonymous reports per promotion category (dates only; counts of 1–2 shown as "<3"), and the
+  committee's override rate with the written reasons. Filters: date range, department (only departments with at
+  least 5 people) and model version. CSV export of the same numbers. Never names, comments or report texts.
+- **Decisions record the model version** they were made with (empty for older decisions).
+- **Admin dashboard** (the admin's home): active/locked/new accounts, accounts by role, quick actions, system health
+  (API, model version, training date and a timed test prediction, fairness gate, email), recent activity, and
+  **drift**: the population stability index of each input between the training sample and today's directory,
+  judged against the PSI that chance alone gives a group of that size. (For the 120 demo employees, who come from
+  the same data, chance alone reaches up to 0.16 for some inputs; two inputs are just above it, which the page
+  explains is expected when 20 inputs are checked.)
+- **Role homes:** HR sees corrections waiting and links to the queue and dashboard; employees a "Respond to your
+  explanation" card with their requests; the auditor the share of explanations rated clear and the dashboard.
