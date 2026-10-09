@@ -37,6 +37,7 @@ def main() -> int:
     env = {**os.environ, "SKIP_ENV_FILE": "1", "SMTP_HOST": "",
            "DATABASE_URL": f"sqlite:///{(data / 'app.db').as_posix()}",
            "OUTBOX_DIR": str(data / "outbox"), "EVIDENCE_DIR": str(data / "evidence"),
+           "FEEDBACK_FILES_DIR": str(data / "correction_evidence"),
            "API_URL": f"http://127.0.0.1:{API_PORT}", "APP_URL": f"http://127.0.0.1:{WEB_PORT}"}
     servers = [
         subprocess.Popen([str(PYTHON), "-m", "uvicorn", "app.main:app", "--port", str(API_PORT), "--no-access-log"],
@@ -47,7 +48,11 @@ def main() -> int:
     try:
         wait_for(f"http://127.0.0.1:{API_PORT}/api/health")
         wait_for(f"http://127.0.0.1:{WEB_PORT}/")
-        return subprocess.run(["node", str(ROOT / "scripts" / "browser_checks.js")], env=env).returncode
+        try:
+            return subprocess.run(["node", str(ROOT / "scripts" / "browser_checks.js"), *sys.argv[1:]], env=env, timeout=900).returncode
+        except subprocess.TimeoutExpired:
+            print("The browser checks took longer than 15 minutes and were stopped.")
+            return 1
     finally:
         for server in servers:
             if os.name == "nt":  # npx starts child processes; stop the whole tree

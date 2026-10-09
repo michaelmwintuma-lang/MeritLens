@@ -37,7 +37,11 @@ async function openChrome() {
     if (msg.method === "Runtime.exceptionThrown") errors.push(msg.params.exceptionDetails.exception?.description?.split("\n")[0] || msg.params.exceptionDetails.text);
   });
   const send = (method, params = {}) => new Promise((r) => { const n = ++id; pending.set(n, r); ws.send(JSON.stringify({ id: n, method, params })); });
-  const evaluate = async (expression) => (await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;
+  // Run JavaScript in the page. Gives up after 20 s (e.g. if the page navigated away mid-way) instead of hanging.
+  const evaluate = async (expression) => {
+    const answer = await Promise.race([send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true }), sleep(20000)]);
+    return answer?.result?.result?.value;
+  };
   await send("Runtime.enable");
   await send("Page.enable");
   return { send, evaluate, errors, close: () => { ws.close(); proc.kill(); } };
@@ -61,10 +65,15 @@ async function goto(c, pathname) {
   await waitIdle(c);
 }
 
-/** Sign in through the real sign-in page. */
+/** Sign in through the real sign-in page (signing out first, if someone is signed in). */
 async function signIn(c, username, password = PASSWORD) {
-  await goto(c, "/login");
-  if (!(await waitFor(c, `document.getElementById("login-username")`, 20000))) throw new Error("the sign-in page didn't load");
+  let ready = false;
+  for (let attempt = 0; attempt < 2 && !ready; attempt++) {
+    await goto(c, "/login");
+    ready = await waitFor(c, `document.getElementById("login-username")`, 8000);
+    if (!ready) await c.evaluate(`localStorage.removeItem("token")`); // someone is signed in: sign out, try again
+  }
+  if (!ready) throw new Error(`the sign-in page didn't load (at ${await c.evaluate("location.href")})`);
   await c.evaluate(`(() => {
     const set = (el, v) => { const s = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; s.call(el, v); el.dispatchEvent(new Event("input", { bubbles: true })); };
     set(document.getElementById("login-username"), ${JSON.stringify(username)});
