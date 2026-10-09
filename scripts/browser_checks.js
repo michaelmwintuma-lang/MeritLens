@@ -132,6 +132,29 @@ const CHECKS = {
     if (!(await text()).includes(system.model.version)) throw new Error("the admin dashboard doesn't show the live model version");
   },
 
+  /** Phase 6: the landing page, and "Report a concern anonymously" leading through sign-in to the report form. */
+  async "the landing page leads to sign-in and to anonymous reporting"(c) {
+    await goto(c, "/");
+    const text = await c.evaluate("document.body.innerText");
+    for (const part of ["Fair, explainable promotion decisions", "How it works", "Predict", "Explain", "Respond",
+      "Explainable predictions", "Path to promotion", "Fairness audit", "Employee feedback channel", "Anonymous reporting",
+      "People decide", "A complaint never changes a score", "No one can unmask a reporter", "People make every decision",
+      "Design and Development of an Explainable Machine Learning"]) {
+      if (!text.includes(part)) throw new Error(`the landing page is missing "${part}"`);
+    }
+    const broken = await c.evaluate(`[...document.images].filter((i) => !i.complete || i.naturalWidth === 0).map((i) => i.src)`);
+    if (broken.length) throw new Error(`images that don't load: ${broken}`);
+    await c.evaluate(`[...document.querySelectorAll("a")].find((a) => a.innerText.includes("Report a concern anonymously")).click()`);
+    if (!(await waitFor(c, `location.pathname === "/login"`))) throw new Error("the report button didn't lead to sign-in");
+    await c.evaluate(`(() => {
+      const set = (el, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, v); el.dispatchEvent(new Event("input", { bubbles: true })); };
+      set(document.getElementById("login-username"), "employee"); set(document.getElementById("login-password"), "demo1234");
+      document.querySelector("form").requestSubmit(); })()`);
+    if (!(await waitFor(c, `location.pathname === "/report" && document.body.innerText.includes("Report anonymously")`))) {
+      throw new Error(`after signing in, the reporter landed on ${await c.evaluate("location.pathname")}, not the report form`);
+    }
+  },
+
   /** No dead links or broken pages: every menu page opens for every role, without errors. */
   async "every menu page opens for every role"(first) {
     const problems = [];
