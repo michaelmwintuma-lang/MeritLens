@@ -180,3 +180,16 @@ def test_drift_counts_only_what_chance_alone_cant_explain():
     shifted = [r | {"training_hours_last_year": r["training_hours_last_year"] + 60} for r in same]
     report = drift_report(live.background, shifted, features)
     assert report["inputs"][0]["feature"] == "training_hours_last_year" and report["status"] == "large shift"
+
+
+def test_the_feedback_measures_export_matches_the_dashboard(client):
+    """evaluation/export_feedback_measures.py: the same numbers as the dashboard, for Chapter Four."""
+    from evaluation.export_feedback_measures import export
+    add_ratings([5, 4, 4, 2, 1], flagged=[{"feature": "late_days", "kind": "unfair"}])
+    shown = dashboard(client).json()
+    with SessionLocal() as db:
+        exported = export(db)
+    assert exported["explanations"]["clarity_rate"] == shown["ratings"]["clarity_rate"] == 0.6
+    assert exported["explanations"]["contest_share_per_factor"] == shown["ratings"]["contested"]
+    assert exported["record_corrections"] == shown["corrections"]
+    assert exported["committee"]["override_rate"] == shown["committee"]["override_rate"]

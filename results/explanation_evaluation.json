@@ -1,0 +1,23 @@
+{
+  "model": "EBM (monotonic)",
+  "model_version": "v20261008215310",
+  "employees": 120,
+  "exactness": {
+    "largest_gap_log_odds": 0.000347,
+    "note": "contributions are rounded to 4 decimals; 20 of them can differ by up to 0.001 in total"
+  },
+  "common_sense": {
+    "checks": 2040,
+    "violations": 0
+  },
+  "lime": {
+    "median_fit_r2": 0.135,
+    "share_below_0_5": 0.842,
+    "top_rule_names_a_top_five_factor": 0.908
+  },
+  "tips": {
+    "not_yet_recommended": 108,
+    "reach_threshold": 98,
+    "share": 0.907
+  }
+}

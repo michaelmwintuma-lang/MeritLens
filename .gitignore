@@ -15,3 +15,4 @@ frontend/dist/
 *.log
 Thumbs.db
 .DS_Store
+results/feedback_measures.json
