@@ -9,6 +9,7 @@ import { useAuth } from "../auth";
 import { ACCOUNT, PHONE_TABS, ROLE_NAMES, SHORT_LABELS, menuFor } from "../roles";
 import { BRAND } from "../brand";
 import { BrandMark } from "./ui";
+import ErrorBoundary from "./ErrorBoundary";
 
 const NARROW_KEY = "sidebar-narrow";
 function readNarrow() {
@@ -107,7 +108,7 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="main"><div className="main-inner"><Outlet /></div></main>
+      <main className="main"><div className="main-inner"><ErrorBoundary resetKey={pathname}><Outlet /></ErrorBoundary></div></main>
 
       <nav className="tab-bar" aria-label="Quick menu">
         {tabs.map(({ to, label, icon: Icon }) => (

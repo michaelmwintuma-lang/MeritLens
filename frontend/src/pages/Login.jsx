@@ -8,7 +8,7 @@ import { BRAND } from "../brand";
 import "./login.css";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, notice } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +38,7 @@ export default function Login() {
         <h1>Welcome back</h1>
         <p className="login-sub">Sign in to {BRAND}.</p>
 
+        {notice && !error && <p className="login-error" role="status">{notice}</p>}
         {error && <p className="login-error" role="alert">{error}</p>}
 
         <label className="login-field" htmlFor="login-username">Username</label>

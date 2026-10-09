@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
 import { REPORTER_ROLES } from "./roles";
 import Layout from "./components/Layout";
+import ErrorBoundary from "./components/ErrorBoundary";
 import PublicLayout from "./pages/public/PublicLayout";
 import PublicHome from "./pages/public/Home";
 import Approach from "./pages/public/Approach";
@@ -46,6 +47,7 @@ export default function App() {
   // Not signed in: the public website (one page per menu item) and the sign-in page
   if (!user) {
     return (
+      <ErrorBoundary resetKey={pathname}>
       <Routes>
         <Route element={<PublicLayout />}>
           <Route index element={<PublicHome />} />
@@ -58,6 +60,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </ErrorBoundary>
     );
   }
   // Accounts with a temporary password must choose their own before using anything else

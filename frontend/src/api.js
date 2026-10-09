@@ -1,6 +1,8 @@
 // Talking to the backend. Every request carries the login token; errors become readable messages.
 
 const TOKEN_KEY = "token";
+// Sent when the server says the login is no longer valid (expired, signed out elsewhere, password changed)
+export const SESSION_ENDED = "session-ended";
 
 export function getToken() {
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
@@ -25,6 +27,8 @@ export async function api(path, { method = "GET", body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => null);
+  // A request made with a login that the server no longer accepts: sign out here too, once, in one place
+  if (res.status === 401 && token && path !== "/auth/logout") window.dispatchEvent(new Event(SESSION_ENDED));
   if (!res.ok) {
     const error = new Error(messageFrom(data) || `Request failed (${res.status})`);
     error.status = res.status;
