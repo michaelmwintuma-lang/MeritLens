@@ -34,6 +34,15 @@ import CheckReport from "./pages/reporting/CheckReport";
 import ReportInbox from "./pages/reporting/ReportInbox";
 import ReportCase from "./pages/reporting/ReportCase";
 
+/**
+ * /login once signed in: go where the person was heading ("Report a concern anonymously" on the website passes
+ * { next: "/report" }), or to their overview. Only addresses inside the app are followed.
+ */
+function AfterSignIn() {
+  const next = useLocation().state?.next;
+  return <Navigate to={typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/"} replace />;
+}
+
 /** Shows the page only to the listed roles. The backend enforces the same rule on every request. */
 function OnlyFor({ roles, children }) {
   const { user } = useAuth();
@@ -99,6 +108,7 @@ export default function App() {
         <Route path="my-report" element={<OnlyFor roles={REPORTER_ROLES}><CheckReport /></OnlyFor>} />
         <Route path="reports" element={<OnlyFor roles={["hr"]}><ReportInbox /></OnlyFor>} />
         <Route path="reports/:caseId" element={<OnlyFor roles={["hr"]}><ReportCase /></OnlyFor>} />
+        <Route path="login" element={<AfterSignIn />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

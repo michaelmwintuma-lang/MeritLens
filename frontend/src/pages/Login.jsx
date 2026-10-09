@@ -20,7 +20,7 @@ export default function Login() {
     setBusy(true);
     setError("");
     try {
-      await login(username, password);
+      await login(username, password);  // the app then moves on from /login (App.jsx: AfterSignIn)
     } catch (err) {
       setError(err.message);
     } finally {
