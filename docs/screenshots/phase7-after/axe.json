@@ -1,0 +1,70 @@
+{
+  "landing": {
+    "overflow": {},
+    "axe": []
+  },
+  "login": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-growth": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-report": {
+    "overflow": {},
+    "axe": []
+  },
+  "manager-team": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-employees": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-corrections": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-feedback-dashboard": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-report-inbox": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-decisions": {
+    "overflow": {},
+    "axe": []
+  },
+  "auditor-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "model": {
+    "overflow": {},
+    "axe": []
+  },
+  "finance-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-users": {
+    "overflow": {},
+    "axe": []
+  }
+}

@@ -68,7 +68,7 @@ const CHECKS = {
     if (!(await waitFor(c, `document.body.innerText.includes("Your rating is saved")`))) throw new Error("the rating wasn't saved");
 
     // 2. Ask HR to correct a value
-    await click("[role=tab]", "Correct my record");
+    await click("button[aria-pressed]", "Correct my record");
     if (!(await waitFor(c, `document.querySelector(".respond-body select")`))) throw new Error("no correction form");
     await type(".respond-body select", "projects_completed");
     const current = Number((await c.evaluate(`document.querySelector(".respond-body .field-hint").innerText`)).match(/[\d.]+/)[0]);
@@ -78,7 +78,7 @@ const CHECKS = {
     if (!(await waitFor(c, `document.body.innerText.includes("Waiting for HR")`))) throw new Error("the request wasn't listed as waiting");
 
     // 3. Report anonymously: the link opens the report form with the category chosen
-    await click("[role=tab]", "Report anonymously");
+    await click("button[aria-pressed]", "Report anonymously");
     await click("a", "Report an unfair assessment");
     if (!(await waitFor(c, `location.pathname === "/report" && document.querySelector("select")?.value === "biased_rating"`))) {
       throw new Error("the report form didn't open with 'Biased rating or appraisal' chosen");
