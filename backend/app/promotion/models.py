@@ -64,6 +64,7 @@ class Decision(Base):
     decision: Mapped[str] = mapped_column(String(10))           # approve or reject
     model_score: Mapped[float] = mapped_column(Float)
     model_threshold: Mapped[float] = mapped_column(Float)
+    model_version: Mapped[str | None] = mapped_column(String(40), nullable=True)  # empty for decisions made before it was kept
     model_recommended: Mapped[bool] = mapped_column(Boolean)
     agrees_with_model: Mapped[bool] = mapped_column(Boolean)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)

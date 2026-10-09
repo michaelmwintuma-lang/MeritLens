@@ -15,6 +15,7 @@ from app.reporting import routes_evidence as reporting_evidence_routes
 from app.demo import routes as demo_routes
 from app.feedback import routes as feedback_routes
 from app.feedback import routes_hr as feedback_hr_routes
+from app.feedback import dashboard as feedback_dashboard
 from app.core.config import APP_NAME
 from app.core.database import Base, SessionLocal, add_missing_columns, engine
 
@@ -36,6 +37,7 @@ app.include_router(routes_admin.router)
 app.include_router(routes_admin.employees_router)
 app.include_router(routes_admin.activity_router)
 app.include_router(routes_admin.email_router)
+app.include_router(routes_admin.system_router)
 app.include_router(promotion_routes.router)
 app.include_router(routes_decisions.router)
 app.include_router(routes_finance.router)
@@ -48,6 +50,7 @@ app.include_router(reporting_evidence_routes.hr_router)
 app.include_router(feedback_routes.router)
 app.include_router(feedback_hr_routes.router)
 app.include_router(feedback_hr_routes.ratings_router)
+app.include_router(feedback_dashboard.router)
 app.include_router(demo_routes.router)
 app.include_router(demo_routes.admin_router)
 

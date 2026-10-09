@@ -248,6 +248,7 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
 
     decision = Decision(nomination_id=nomination.id, employee_id=nomination.employee_id, decided_by=user.id,
                         decision=body.decision, model_score=round(score, 4), model_threshold=live.threshold,
+                        model_version=live.version,
                         model_recommended=recommended, agrees_with_model=agrees, reason=reason,
                         approved_raise=raise_percent, raise_reason=raise_reason,
                         pay_status="awaiting_finance" if approved else None)
@@ -343,6 +344,7 @@ def log_entry(db: Session, decision: Decision) -> dict:
         "decided_at": iso(decision.decided_at),
         "model_score": decision.model_score,
         "model_threshold": decision.model_threshold,
+        "model_version": decision.model_version,
         "model_recommended": decision.model_recommended,
         "agrees_with_model": decision.agrees_with_model,
         "reason": decision.reason,

@@ -274,3 +274,66 @@ def outbox(_: User = Depends(admin_only)):
         items.append({"file": path.name, "to": message["To"], "subject": message["Subject"],
                       "body": message.get_body(("plain",)).get_content()})
     return items
+
+
+# ─── System health, for the admin's dashboard ─────────────────────────────────
+system_router = APIRouter(prefix="/api/admin/system", tags=["admin"])
+
+
+@system_router.get("")
+def system(db: Session = Depends(get_db), _: User = Depends(admin_only)):
+    """
+    Everything the admin's dashboard shows, from the live system: accounts by role, recent activity, the model
+    (version, training date, a timed test prediction), the fairness check, drift, and email. Only totals and
+    distributions: no employee's record or score.
+    """
+    import json
+    import time
+    from collections import Counter
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    from app.core.roles import ALL_ROLES
+    from app.promotion.drift import drift_report
+    from app.promotion.explain import ModelNotTrained, get_model
+
+    users = list(db.scalars(select(User)))
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    by_role = Counter(u.role for u in users if u.is_active)
+    accounts = {"by_role": {role: by_role.get(role, 0) for role in ALL_ROLES},
+                "active": sum(u.is_active for u in users), "deactivated": sum(not u.is_active for u in users),
+                "locked": sum(bool(u.locked_until and u.locked_until > now) for u in users),
+                "must_change_password": sum(bool(u.must_change_password) for u in users if u.is_active)}
+    recent = db.scalars(select(ActivityEntry).order_by(ActivityEntry.on_date.desc(), ActivityEntry.id.desc()).limit(8))
+    activity = [{"date": e.on_date.isoformat(), "user": e.user_name, "action": ACTIONS[e.action], "details": e.details}
+                for e in recent]
+
+    results = Path(__file__).resolve().parents[3] / "results"
+    try:
+        fairness = json.loads((results / "fairness.json").read_text())
+        fairness_gate = {"passes": fairness["passes"], "rule": fairness["rule"],
+                         "ratios": {name: check["ratio"] for name, check in fairness["checks"].items()}}
+    except (OSError, ValueError, KeyError):
+        fairness_gate = None
+
+    try:
+        live = get_model()
+    except ModelNotTrained as error:
+        model_status = {"loaded": False, "message": str(error)}
+        drift = None
+    else:
+        sample = live.background.iloc[0].to_dict()
+        started = time.perf_counter()
+        live.score(sample)
+        model_status = {"loaded": True, "model": live.info["model"], "version": live.version,
+                        "trained_at": live.info["trained_at"], "threshold": live.threshold,
+                        "inputs": len(live.info["features"]),
+                        "test_prediction_ms": round((time.perf_counter() - started) * 1000, 1)}
+        records = [json.loads(e.record_json) for e in db.scalars(select(Employee))]
+        drift = drift_report(live.background, records, live.info["features"])
+
+    outbox = sorted(OUTBOX_DIR.glob("*.eml")) if OUTBOX_DIR.exists() else []
+    return {"api": "ok", "accounts": accounts, "recent_activity": activity, "model": model_status,
+            "fairness": fairness_gate, "drift": drift,
+            "email": {"configured": mailer.is_configured(), "sender": SMTP["sender"] if mailer.is_configured() else None,
+                      "outbox_count": len(outbox)}}
