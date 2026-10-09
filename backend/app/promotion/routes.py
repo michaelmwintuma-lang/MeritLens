@@ -22,6 +22,7 @@ from app.core.database import get_db
 from app.core.roles import ADMIN, AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import get_current_user
 from app.promotion.explain import ModelNotTrained, get_model
+from app.promotion.features import EXCLUDED
 from app.promotion.models import Employee
 
 router = APIRouter(prefix="/api/promotion", tags=["promotion"])
@@ -155,5 +156,10 @@ def importance_roles(user: User = Depends(get_current_user)) -> User:
 
 @router.get("/importance")
 def importance(_: User = Depends(importance_roles)):
-    """Which inputs matter most across all employees."""
-    return {"features": model().importance}
+    """
+    Which inputs matter most across all employees (measured on the training sample), and every piece of
+    information the model is never given, with the reason.
+    """
+    live = model()
+    return {"features": live.importance, "sample_size": len(live.background),
+            "never_used": [{"name": name.replace("_", " "), "reason": reason} for name, reason in EXCLUDED.items()]}

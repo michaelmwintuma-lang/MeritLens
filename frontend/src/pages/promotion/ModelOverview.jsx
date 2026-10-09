@@ -6,12 +6,13 @@ import { Brain } from "lucide-react";
 import { PageHeader } from "../../components/ui";
 
 export default function ModelOverview() {
-  const [rows, setRows] = useState(null);
+  const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { api("/promotion/importance").then((d) => setRows(d.features)).catch((err) => setError(err.message)); }, []);
+  useEffect(() => { api("/promotion/importance").then(setData).catch((err) => setError(err.message)); }, []);
 
-  if (error) return <p className="alert alert-error">{error}</p>;
-  if (!rows) return <p className="muted">Loading…</p>;
+  if (error) return <><PageHeader icon={Brain} title="How the model works" /><p className="alert alert-error">{error}</p></>;
+  if (!data) return <p className="muted">Loading…</p>;
+  const rows = data.features;
   const max = rows[0].share;
 
   return (
@@ -20,8 +21,8 @@ export default function ModelOverview() {
       <div className="card">
         <h2>What it looks at overall</h2>
         <p className="muted">
-          How much each factor moves readiness scores on average, across 2,000 employees. It shows what the model
-          relies on in general; it says nothing about any one person.
+          How much each factor moves readiness scores on average, across {data.sample_size.toLocaleString()} employees
+          from the training data. It shows what the model relies on in general; it says nothing about any one person.
         </p>
         <ul className="importance">
           {rows.map((r) => (
@@ -37,9 +38,13 @@ export default function ModelOverview() {
       <div className="card">
         <h2>What it never looks at</h2>
         <p>
-          Gender, age, education, marital status and pay are never used by the model. Gender, age and education are
-          used only to check, after training, that every group is recommended at a fair rate (the four-fifths rule).
+          Gender, age and education are used only to check, after training, that every group is recommended at a fair
+          rate (the four-fifths rule). Nothing below is ever given to the model:
         </p>
+        <div className="table-wrap"><table>
+          <thead><tr><th>Information</th><th>Why it's left out</th></tr></thead>
+          <tbody>{data.never_used.map((n) => <tr key={n.name}><td className="nowrap">{n.name}</td><td>{n.reason}</td></tr>)}</tbody>
+        </table></div>
       </div>
     </>
   );

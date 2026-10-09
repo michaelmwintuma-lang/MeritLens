@@ -20,7 +20,7 @@ from app.main import app  # noqa: E402
 
 @pytest.fixture
 def client():
-    """A test client on an empty database; start-up then adds the four demo accounts."""
+    """A test client on an empty database; start-up then adds the demo accounts (one per role)."""
     Base.metadata.drop_all(engine)
     with TestClient(app) as c:
         yield c

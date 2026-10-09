@@ -95,12 +95,6 @@ def send(to: str, mail: dict) -> dict:
     return {"sent": False, "detail": f"No mail server is set up, so the email was saved to {_save(message)}."}
 
 
-def send_to_many(recipients: list[str], mail: dict) -> None:
-    """Send the same email to several people (used for alerts to HR); each gets their own copy."""
-    for to in recipients:
-        send(to, mail)
-
-
 def _save(message: EmailMessage) -> str:
     """Write the email to the outbox folder; return its path relative to the backend folder."""
     OUTBOX_DIR.mkdir(parents=True, exist_ok=True)

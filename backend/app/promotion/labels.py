@@ -2,8 +2,8 @@
 How each model input is named and shown to people, and which ones a person can work on.
 
 improve: +1 if a higher value is an improvement, -1 if a lower value is (late days), None if it isn't something
-a person can change by their own effort (time in role, department). Only improvable inputs appear in the what-if
-sliders and in the tips.
+a person can change by their own effort (time in role). Only improvable inputs appear in the what-if sliders and in
+the tips. Department is not a model input (see EXCLUDED in features.py).
 """
 
 FEATURE_INFO = {
@@ -27,7 +27,6 @@ FEATURE_INFO = {
     "late_days":                  {"label": "Late days",                      "unit": "count",   "improve": -1, "whole": True},
     "years_since_last_promotion": {"label": "Years since last promotion",     "unit": "years",   "improve": None, "whole": True},
     "years_in_current_role":      {"label": "Years in current role",          "unit": "years",   "improve": None, "whole": True},
-    "department":                 {"label": "Department",                     "unit": "text",    "improve": None, "whole": False},
 }
 
 IMPROVABLE = [name for name, info in FEATURE_INFO.items() if info["improve"] is not None]
@@ -41,10 +40,8 @@ def label(feature: str) -> str:
 
 
 def format_value(feature: str, value) -> str:
-    """A value in its everyday unit: '82', '90.5%', '4.1 / 5', '25 hours', '+3.2 points', 'Finance'."""
+    """A value in its everyday unit: '82', '90.5%', '4.1 / 5', '25 hours', '+3.2 points'."""
     unit = FEATURE_INFO[feature]["unit"]
-    if unit == "text":
-        return str(value)
     if unit == "rate":
         return f"{value * 100:.1f}%"
     if unit == "percent":

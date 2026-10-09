@@ -213,3 +213,12 @@ def test_importance_directions_follow_the_constraints():
             assert rows[feature]["direction"] in ("higher raises readiness", "no effect")
         elif direction < 0:
             assert rows[feature]["direction"] in ("higher lowers readiness", "no effect")
+
+
+def test_the_model_page_lists_everything_the_model_never_uses(client):
+    """Review B6: the page left department and other excluded information out, and hard-coded the sample size."""
+    from app.promotion.features import EXCLUDED
+    data = client.get("/api/promotion/importance", headers=login(client, "employee")).json()
+    names = {n["name"] for n in data["never_used"]}
+    assert {"department", "gender", "age", "salary"} <= names and len(names) == len(EXCLUDED)
+    assert data["sample_size"] == len(get_model().background)
