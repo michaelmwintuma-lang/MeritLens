@@ -18,7 +18,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND, FRONTEND = ROOT / "backend", ROOT / "frontend"
-PYTHON = BACKEND / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+# The backend's own environment if there is one (as on a developer's PC), otherwise the Python running this (as in CI)
+_VENV_PYTHON = BACKEND / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+PYTHON = _VENV_PYTHON if _VENV_PYTHON.exists() else Path(sys.executable)
 NPX = "npx.cmd" if os.name == "nt" else "npx"
 API_PORT, WEB_PORT = 8001, 5174
 
