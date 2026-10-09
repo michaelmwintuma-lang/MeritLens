@@ -596,3 +596,21 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
 .agree-option input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
 .queue-actions { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 12px; }
 .note-box { border-left: 3px solid var(--primary); padding: 2px 0 2px 12px; margin: 8px 0; }
+
+/* ─── Dashboards ───────────────────────────────────────────────────────────── */
+.section-title { font-size: 18px; margin: 28px 0 14px; }
+.dashboard-filters { align-items: end; margin-bottom: 8px; }
+.dashboard-filters .field { margin: 0; min-width: 150px; }
+.two-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 24px; }
+.stat-grid.compact { margin-bottom: 14px; }
+.reasons li { padding: 10px 0; border-top: 1px solid var(--border); }
+.bar-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bar-list li { display: grid; grid-template-columns: minmax(120px, 34%) 1fr minmax(64px, auto); gap: 12px; align-items: center; }
+.bar-name { font-size: 14px; }
+.bar-track { height: 10px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--accent); }
+.bar-value { font-weight: 700; font-size: 14px; text-align: right; white-space: nowrap; }
+@media (max-width: 560px) {
+  .bar-list li { grid-template-columns: 1fr auto; }
+  .bar-track { grid-column: 1 / -1; grid-row: 2; }
+}

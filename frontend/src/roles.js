@@ -1,6 +1,6 @@
 // The six roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
-import { Banknote, BookCheck, ClipboardPen, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
+import { Banknote, BarChart3, BookCheck, ClipboardPen, MessageSquareText, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
 
 export const ROLE_NAMES = {
   employee: "Employee",
@@ -47,8 +47,10 @@ export const MENU = {
     { group: "Promotion", icon: TrendingUp, items: [
       { to: "/employees", label: "All employees", icon: Users },
       { to: "/nominations", label: "Nominations", icon: ClipboardCheck },
-      { to: "/decisions", label: "Decision log", icon: BookCheck },
-      { to: "/corrections", label: "Record corrections", icon: ClipboardPen }, MODEL] },
+      { to: "/decisions", label: "Decision log", icon: BookCheck }, MODEL] },
+    { group: "Feedback", icon: MessageSquareText, items: [
+      { to: "/corrections", label: "Record corrections", icon: ClipboardPen },
+      { to: "/feedback", label: "Feedback dashboard", icon: BarChart3 }] },
     { group: "Reporting", icon: ShieldCheck, items: [{ to: "/reports", label: "Report inbox", icon: Inbox }] }],
   admin: [OVERVIEW,
     { group: "Administration", icon: UserCog, items: [
@@ -60,7 +62,8 @@ export const MENU = {
     { group: "Finance", icon: Banknote, items: [{ to: "/finance", label: "Pay sign-off", icon: Banknote }] }],
   auditor: [OVERVIEW,
     { group: "Oversight", icon: ShieldCheck, items: [
-      { to: "/decisions", label: "Decision log", icon: BookCheck }, MODEL] }],
+      { to: "/decisions", label: "Decision log", icon: BookCheck },
+      { to: "/feedback", label: "Feedback dashboard", icon: BarChart3 }, MODEL] }],
 };
 
 // Admins an admin has allowed to view employee data (read-only) get the employee pages too
@@ -80,11 +83,11 @@ export const PHONE_TABS = {
   hr: ["/", "/nominations", "/reports"],
   admin: ["/", "/admin/users", "/admin/activity"],
   finance: ["/", "/finance"],
-  auditor: ["/", "/decisions", "/model"],
+  auditor: ["/", "/decisions", "/feedback"],
 };
 // Short names that fit under a tab icon
 export const SHORT_LABELS = {
   "/": "Home", "/my-readiness": "Growth", "/report": "Report", "/team": "Team",
   "/nominations": "Nominations", "/reports": "Inbox", "/admin/users": "Users", "/admin/activity": "Activity", "/finance": "Pay",
-  "/decisions": "Decisions", "/model": "Model",
+  "/decisions": "Decisions", "/model": "Model", "/feedback": "Feedback",
 };
