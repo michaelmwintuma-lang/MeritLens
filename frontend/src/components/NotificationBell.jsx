@@ -1,5 +1,5 @@
-// The bell at the top right. HR is told about new reports and replies, and about pay rises Finance sent back;
-// Finance about pay rises waiting for sign-off.
+// The bell at the top right. HR is told about new reports and replies, record corrections waiting, and pay rises
+// Finance sent back; Finance about pay rises waiting for sign-off; employees about HR's decisions on their record.
 //
 // Reporters get no notifications: that would need the website to know which cases are theirs. They open a case
 // with its ID and key when they want to check it.
@@ -12,10 +12,20 @@ import { useAuth } from "../auth";
 const CHECK_EVERY_MS = 60_000;
 
 async function hrItems() {
-  const [items, decisions] = await Promise.all([api("/hr/reports/notifications"), api("/promotion/decisions")]);
+  const [items, decisions, waiting] = await Promise.all([api("/hr/reports/notifications"), api("/promotion/decisions"),
+    api("/hr/feedback/corrections?status_filter=pending")]);
+  const corrections = waiting.length ? [{ id: "corrections", text: `${waiting.length} record correction${waiting.length === 1 ? "" : "s"} waiting`,
+    detail: "Check the evidence and decide", to: "/corrections" }] : [];
   const sentBack = decisions.filter((d) => d.pay_status === "returned").map((d) => ({
     id: `pay-${d.id}`, text: "Finance sent a pay rise back", detail: d.employee.full_name, to: `/nominations/${d.nomination_id}` }));
-  return [...sentBack, ...items.map((i) => ({ id: `${i.case_id}-${i.kind}`, text: i.text, detail: `Case ${i.case_id}`, to: `/reports/${i.case_id}` }))];
+  return [...corrections, ...sentBack, ...items.map((i) => ({ id: `${i.case_id}-${i.kind}`, text: i.text, detail: `Case ${i.case_id}`, to: `/reports/${i.case_id}` }))];
+}
+
+async function employeeItems() {
+  const decided = await api("/feedback/notifications");
+  return decided.map((d) => ({ id: `correction-${d.id}`, to: "/my-readiness",
+    text: d.status === "confirmed" ? "HR corrected your record" : "HR decided on your correction request",
+    detail: d.label }));
 }
 
 async function financeItems() {
@@ -30,11 +40,11 @@ export default function NotificationBell() {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const box = useRef(null);
-  const role = ["hr", "finance"].includes(user.role) ? user.role : null;
+  const role = ["hr", "finance", "employee"].includes(user.role) ? user.role : null;
 
   useEffect(() => {
     if (!role) return undefined;
-    const load = () => ({ hr: hrItems, finance: financeItems }[role])().then(setItems).catch(() => {});
+    const load = () => ({ hr: hrItems, finance: financeItems, employee: employeeItems }[role])().then(setItems).catch(() => {});
     load();
     const timer = setInterval(load, CHECK_EVERY_MS);
     return () => clearInterval(timer);

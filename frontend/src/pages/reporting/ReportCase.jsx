@@ -8,6 +8,7 @@ import { Button, Card, PageHeader } from "../../components/ui";
 import Conversation, { CaseStatus, PRIORITY_LABELS, PriorityTag } from "../../components/reporting/Conversation";
 import { EvidenceGallery, EvidencePrivacy, loadAsHr } from "../../components/reporting/Evidence";
 import { useAction } from "../../useAction";
+import Reappraisal from "../../components/feedback/Reappraisal";
 
 /** The report text with the words that triggered its priority marked. */
 function MarkedText({ text, triggers }) {
@@ -145,6 +146,7 @@ export default function ReportCase() {
           </div>
         </form>
       </Card>
+      {closed && report.outcome === "rating_unfair" && <Reappraisal caseId={report.case_id} />}
     </>
   );
 }

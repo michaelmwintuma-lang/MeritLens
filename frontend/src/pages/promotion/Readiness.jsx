@@ -16,6 +16,7 @@ import Tips from "../../components/promotion/Tips";
 import NominateBox from "../../components/promotion/NominateBox";
 import RunPrediction from "../../components/promotion/RunPrediction";
 import RecordHistory from "../../components/promotion/RecordHistory";
+import RespondPanel from "../../components/feedback/RespondPanel";
 
 export default function Readiness() {
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export default function Readiness() {
     api(`/promotion/employees/${employeeId}/profile`).then(setProfile).catch((err) => setError(err.message));
   }, [employeeId]);
 
-  if (!employeeId) return <><PageHeader icon={Gauge} title="My readiness" /><p className="alert alert-info">Your account isn't linked to an employee record yet. Ask an administrator to link it.</p></>;
+  if (!employeeId) return <><PageHeader icon={Gauge} title="My growth" /><p className="alert alert-info">Your account isn't linked to an employee record yet. Ask an administrator to link it.</p></>;
   if (error) return <><PageHeader icon={Gauge} title="Readiness" /><p className="alert alert-error">{error}</p></>;
   if (!profile) return <p className="muted">Loading…</p>;
 
@@ -44,7 +45,7 @@ export default function Readiness() {
   return (
     <>
       {!own && <Link to={user.role === "manager" ? "/team" : "/employees"} className="back"><ArrowLeft size={16} />Back to the list</Link>}
-      <PageHeader icon={Gauge} title={own ? "My readiness" : profile.full_name} subtitle={`${profile.department} · employee ${profile.id}`}
+      <PageHeader icon={Gauge} title={own ? "My growth" : profile.full_name} subtitle={`${profile.department} · employee ${profile.id}`}
         actions={user.role === "hr" && <Link to={`/employees/${profile.id}/edit`} className="btn btn-plain"><Pencil size={16} aria-hidden="true" />Edit details</Link>} />
       {saved?.saved && (
         <div className="alert alert-success">
@@ -98,6 +99,8 @@ export default function Readiness() {
             <h2>Tips to improve</h2>
             {result.tips ? <Tips data={result.tips} threshold={data.threshold} /> : <p className="muted">Waiting for the previous step…</p>}
           </section>
+
+          {own && user.role === "employee" && <RespondPanel contributions={data.contributions} />}
         </div>
       )}
 

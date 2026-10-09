@@ -1,6 +1,6 @@
 // The six roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
-import { Banknote, BookCheck, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
+import { Banknote, BookCheck, ClipboardPen, Brain, CalendarCheck, ClipboardCheck, FileSearch, Gauge, Inbox, LayoutGrid, Mail, Megaphone, ScrollText, ShieldCheck, TrendingUp, UserCog, UserRound, Users } from "lucide-react";
 
 export const ROLE_NAMES = {
   employee: "Employee",
@@ -12,9 +12,9 @@ export const ROLE_NAMES = {
 };
 
 export const ROLE_DESCRIPTIONS = {
-  employee: "See your own readiness score, its explanation and tips to improve; report a concern anonymously.",
+  employee: "See your readiness score, why, and tips to improve; rate the explanation, ask HR to correct your record, or report a concern anonymously.",
   manager: "See your team's scores, nominate team members for promotion, and report a concern anonymously.",
-  hr: "See all employees, decide on nominations, and handle anonymous reports.",
+  hr: "See all employees, decide on nominations, confirm record corrections, and handle anonymous reports.",
   admin: "Create and manage user accounts, and view the activity log.",
   finance: "Sign off the pay rise of each approved promotion, or send it back to HR with a reason.",
   auditor: "Check promotion decisions, the model and its fairness, read-only. Never sees anonymous reports.",
@@ -36,7 +36,7 @@ export const ACCOUNT = { group: "Account", icon: UserRound, items: [{ to: "/acco
 // Menu per role: single links and groups that open and close, so the sidebar stays short
 export const MENU = {
   employee: [OVERVIEW,
-    { group: "Promotion", icon: TrendingUp, items: [{ to: "/my-readiness", label: "My readiness", icon: Gauge }, MODEL] },
+    { group: "Promotion", icon: TrendingUp, items: [{ to: "/my-readiness", label: "My growth", icon: Gauge }, MODEL] },
     REPORTING],
   manager: [OVERVIEW,
     { group: "Promotion", icon: TrendingUp, items: [
@@ -47,7 +47,8 @@ export const MENU = {
     { group: "Promotion", icon: TrendingUp, items: [
       { to: "/employees", label: "All employees", icon: Users },
       { to: "/nominations", label: "Nominations", icon: ClipboardCheck },
-      { to: "/decisions", label: "Decision log", icon: BookCheck }, MODEL] },
+      { to: "/decisions", label: "Decision log", icon: BookCheck },
+      { to: "/corrections", label: "Record corrections", icon: ClipboardPen }, MODEL] },
     { group: "Reporting", icon: ShieldCheck, items: [{ to: "/reports", label: "Report inbox", icon: Inbox }] }],
   admin: [OVERVIEW,
     { group: "Administration", icon: UserCog, items: [
@@ -83,7 +84,7 @@ export const PHONE_TABS = {
 };
 // Short names that fit under a tab icon
 export const SHORT_LABELS = {
-  "/": "Home", "/my-readiness": "Readiness", "/report": "Report", "/team": "Team",
+  "/": "Home", "/my-readiness": "Growth", "/report": "Report", "/team": "Team",
   "/nominations": "Nominations", "/reports": "Inbox", "/admin/users": "Users", "/admin/activity": "Activity", "/finance": "Pay",
   "/decisions": "Decisions", "/model": "Model",
 };

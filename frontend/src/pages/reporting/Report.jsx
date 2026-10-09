@@ -1,6 +1,6 @@
 // Report anonymously, in three steps: write it, check what will be sent, save your case ID and key.
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "../../api";
 import { Megaphone } from "lucide-react";
 import { Button, PageHeader } from "../../components/ui";
@@ -17,7 +17,8 @@ function Highlighted({ text }) {
 export default function Report() {
   const [categories, setCategories] = useState([]); // [{ group, items: [{ value, label }] }]
   const [step, setStep] = useState(1);
-  const [category, setCategory] = useState("");
+  // "Report an unfair assessment" on the explanation page arrives with a category already chosen
+  const [category, setCategory] = useState(useLocation().state?.category || "");
   const [draft, setDraft] = useState("");
   const [check, setCheck] = useState(null);      // the anonymiser's answer for the current text
   const [edited, setEdited] = useState("");       // the cleaned text, which the reporter may edit

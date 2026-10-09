@@ -582,3 +582,17 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
 .pay-step.returned .pay-step-icon { color: var(--warning); }
 .pay-step.signed_off .pay-step-icon { color: var(--success); }
 .pay-step-note { margin: 4px 0 0; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 14px; }
+
+/* ─── Feedback channel ─────────────────────────────────────────────────────── */
+.respond-body { margin-top: 18px; }
+.feedback-icon { color: var(--primary); }
+.agree { border: 0; margin: 0 0 16px; padding: 0; }
+.agree legend { font-weight: 600; margin-bottom: 8px; }
+.agree-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.agree-option { position: relative; }
+.agree-option input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.agree-option span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); font-weight: 700; }
+.agree-option input:checked + span { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.agree-option input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.queue-actions { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 12px; }
+.note-box { border-left: 3px solid var(--primary); padding: 2px 0 2px 12px; margin: 8px 0; }

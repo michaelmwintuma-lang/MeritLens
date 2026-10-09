@@ -27,6 +27,7 @@ import Nominations from "./pages/promotion/Nominations";
 import PaySignOff from "./pages/finance/PaySignOff";
 import ReviewNomination from "./pages/promotion/ReviewNomination";
 import DecisionLog from "./pages/promotion/DecisionLog";
+import Corrections from "./pages/feedback/Corrections";
 import Report from "./pages/reporting/Report";
 import CheckReport from "./pages/reporting/CheckReport";
 import ReportInbox from "./pages/reporting/ReportInbox";
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="nominations" element={<OnlyFor roles={["manager", "hr"]}><Nominations /></OnlyFor>} />
         <Route path="nominations/:id" element={<OnlyFor roles={["hr"]}><ReviewNomination /></OnlyFor>} />
         <Route path="decisions" element={<OnlyFor roles={["hr", "auditor"]}><DecisionLog /></OnlyFor>} />
+        <Route path="corrections" element={<OnlyFor roles={["hr"]}><Corrections /></OnlyFor>} />
         <Route path="finance" element={<OnlyFor roles={["finance"]}><PaySignOff /></OnlyFor>} />
         {/* Anonymous reporting: employees and managers. HR handles reports in the inbox. */}
         <Route path="report" element={<OnlyFor roles={REPORTER_ROLES}><Report /></OnlyFor>} />

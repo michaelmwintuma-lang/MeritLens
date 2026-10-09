@@ -11,6 +11,7 @@ import Recommendation from "../../components/promotion/Recommendation";
 import { NominationStatus } from "../../components/promotion/Status";
 import { PayStatus, PayTimeline } from "../../components/promotion/PayStatus";
 import { Button, PageHeader } from "../../components/ui";
+import CommitteeNote from "../../components/feedback/CommitteeNote";
 import { useAction } from "../../useAction";
 
 const MIN_REASON = 20;
@@ -82,6 +83,7 @@ export default function ReviewNomination() {
   const [raise, setRaise] = useState("");
   const [raiseReason, setRaiseReason] = useState("");
   const [error, setError] = useState("");
+  const [onHold, setOnHold] = useState(false); // held until a pending record correction is resolved
   const [working, withWorking] = useAction(); // hooks before any early return, so their order never changes
 
   useEffect(() => {
@@ -142,7 +144,12 @@ export default function ReviewNomination() {
         <p className="small"><Link to={`/employees/${nomination.employee.id}`}>Full explanation, what-if and tips</Link></p>
       </section>
 
-      {nomination.status === "pending" ? (
+      <CommitteeNote nominationId={nomination.id} pending={nomination.status === "pending"}
+        onChange={(note) => setOnHold(note.deferred)} />
+
+      {nomination.status === "pending" && onHold ? (
+        <p className="alert alert-info">Your decision is on hold until the record correction above is resolved.</p>
+      ) : nomination.status === "pending" ? (
         <form className="card" onSubmit={(e) => withWorking(() => submit(e))}>
           <h2>Your decision</h2>
           <p className="muted">The model only advises. Your decision is final and is recorded in the decision log with the model's score.</p>
