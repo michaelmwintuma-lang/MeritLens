@@ -2,6 +2,9 @@
 Public facts for the landing page: the model's tested results, its fairness check and the reporting evaluation,
 read from the files the training and evaluation scripts wrote. Nothing about any person is included, so no sign-in
 is needed. A number that hasn't been measured yet is left out (null), never filled in.
+
+Kept outside app/promotion on purpose: it reads the reporting evaluation's results, and the promotion code must
+never refer to anything about reporting (tests/test_reporting.py checks this).
 """
 import json
 from pathlib import Path
