@@ -3,6 +3,26 @@
 Every change made while upgrading the platform to the thesis "Explainable machine-learning decision support for
 employee promotion, with an employee feedback channel": **predict → explain → respond**. Product name: MeritLens.
 
+## Summary
+
+- **Predict:** department removed from the model; a monotonic Explainable Boosting Machine chosen by a
+  common-sense rule (improving an input never lowers a score), with the four-fifths fairness gate. Test PR-AUC
+  0.474 and ROC-AUC 0.883; every group's ratio is at least 0.887.
+- **Explain:** exact additive contributions in plain words first, with "Show technical details" for the numbers
+  and LIME; tips toward the threshold; "under 1%" instead of "0%".
+- **Respond:** rate the explanation, request a record correction with evidence, or report anonymously (five
+  promotion-focused categories); HR's correction queue; the committee note and hold; re-appraisal with no link to
+  the report.
+- **Isolation, proven:** byte-for-byte identical predictions after every kind of feedback; static and run-time
+  checks.
+- **Oversight:** a read-only compliance auditor; the feedback dashboard with small-group protection; the admin
+  dashboard with system health and drift.
+- **Security fixes:** sign-in lock-out; withdrawn tokens; no report keys in the browser.
+- **Site:** a public landing page; one loading and error pattern; no accessibility findings (axe, light and dark);
+  pages load on first use; batch scoring.
+- **Tests and docs:** 372 tests in about 2 minutes; 7 browser checks; CI; the evaluation results, thesis guide,
+  threat model and data model; a usability study kit with perceived-fairness items.
+
 ## Model (before Phase 1, approved separately)
 
 - Department removed from the model inputs: past promotion rates ranged from 2% to 33% by department, so it
@@ -161,3 +181,29 @@ Measured on the running app with 120 demo employees, before and after:
 - **Tests:** password hashing uses 1,000 rounds in tests only (the app keeps 200,000; a test checks it).
 - Not split: `routes_decisions.py` stays one file. Its duplication is removed, and its parts (nominating, deciding,
   resubmitting, the log) share helpers closely, so splitting it would add imports without making it clearer.
+
+## Phase 9: tests, results and documentation
+
+- **CI** (`.github/workflows/ci.yml`): backend tests, frontend build and browser checks on every push. Not yet run
+  on GitHub (no remote); each step passes locally.
+- **Results re-run:** `train.py` reproduced `metrics.json`, `fairness.json` and `model_comparison.json` byte for
+  byte; the reporting evaluation differed only in its run date. (Run on a copy, so the live model wasn't replaced.)
+- **New result scripts:** `evaluation/evaluate_explanations.py` (exactness, common sense, LIME fit and agreement,
+  tips) and `evaluation/export_feedback_measures.py` (the feedback dashboard's measures, for Chapter Four).
+- **Usability study kit:** tasks T8–T11 for the feedback channel; eight perceived-fairness statements adapted from
+  Colquitt (2001), informational and procedural; scoring with Cronbach's alpha (`evaluation/user_test.py`).
+- **Documents:** `EVALUATION_RESULTS.md`, `THESIS_GUIDE.md`, `THREAT_MODEL.md` and `DATA_MODEL.md` (new); README,
+  `HOW_IT_WORKS.md` and `LIMITATIONS.md` updated to describe the system as it is, framed as predict → explain →
+  respond.
+
+## Left to do (by the project owner)
+
+- **Run the usability study** (`docs/USER_TEST.md`, with ethics approval first). Then run
+  `python -m evaluation.user_test` and `python -m evaluation.export_feedback_measures`, and report the numbers
+  with the number of participants.
+- **Fill in the university, team and supervisors** in `frontend/src/brand.js` (`PROJECT`) for the website's
+  footer.
+- **Push to GitHub** so CI runs.
+- **Change `SMTP_SENDER_NAME`** in your private `backend/.env` to MeritLens if emails should carry the new name.
+- **Collect the external report set** (`backend/evaluation/reports_external.json`) for a fairer reporting
+  evaluation.
