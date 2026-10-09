@@ -1,6 +1,7 @@
-// One employee's readiness. The page shows who it is; the model runs when someone clicks "Run prediction", and the
-// results (score, why, second opinion, what-if, tips) appear as each step finishes.
-// Employees see their own; HR and managers open it from a list.
+// One employee's readiness, in plain words first: the score, what raised and lowered it, the path to promotion and a
+// what-if, then (for the employee) the respond panel. The exact numbers, the second opinion (LIME) and the model's
+// details sit under "Show technical details". Employees see their own (worked out as the page opens); HR and
+// managers open it from a list and click "Run prediction".
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Gauge, PartyPopper, Pencil } from "lucide-react";
@@ -9,7 +10,7 @@ import { useAuth } from "../../auth";
 import { percent } from "../../format";
 import { LoadError, Loading, PageHeader } from "../../components/ui";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
-import Contributions from "../../components/promotion/Contributions";
+import Contributions, { ExactNumbers } from "../../components/promotion/Contributions";
 import Lime from "../../components/promotion/Lime";
 import WhatIf from "../../components/promotion/WhatIf";
 import Tips from "../../components/promotion/Tips";
@@ -61,33 +62,33 @@ export default function Readiness() {
           <span>{p.start && `Starting ${p.start}. `}{p.raise != null && `Pay rise: ${p.raise}%. `}Approved on {p.approved_on}.</span>
         </div>
       ))}
-      <RunPrediction key={profile.id} profile={profile} onResult={setResult} />
+      <RunPrediction key={profile.id} profile={profile} onResult={setResult} autoRun={own} compact={own} />
 
       {data && (
         <div className="appear">
           <section className="card">
             <div className="row spread">
-              <h2>Readiness: {percent(data.score)}</h2>
+              <h2>{own ? "Your readiness" : "Readiness"}: {percent(data.score)}</h2>
               <Verdict recommended={data.recommended} />
             </div>
             <ScoreBar score={data.score} threshold={data.threshold} />
             <p className="summary">{data.summary}</p>
-            <p className="muted small">
-              The score ranks readiness against the {percent(data.threshold)} threshold; it isn't a probability. An employee with
-              average values on everything would score {percent(data.average_employee_score)}. The model ({data.model}) only
-              advises: HR makes the decision.
+            <p className="muted small helper">
+              {own ? "Your readiness is compared with an average employee. " : "Readiness is compared with an average employee. "}
+              It ranks readiness against the {percent(data.threshold)} threshold; it isn't a chance of promotion. The model
+              only advises: people make the decision.
             </p>
           </section>
 
           <section className="card">
-            <h2>Why: what raised and lowered the score</h2>
-            <p className="muted">Compared with an average employee. These are exact: added together they give the score.</p>
-            <Contributions contributions={data.contributions} />
+            <h2>{own ? "What raised and lowered your score" : "Why: what raised and lowered the score"}</h2>
+            <p className="muted">Compared with an average employee. The longer the bar, the bigger the effect.</p>
+            <Contributions contributions={data.contributions} numbers={!own} />
           </section>
 
           <section className="card">
-            <h2>Second opinion (LIME)</h2>
-            {result.lime ? <Lime lime={result.lime} contributions={data.contributions} /> : <p className="muted">Running…</p>}
+            <h2>{own ? "Your path to promotion" : "Tips to improve"}</h2>
+            {result.tips ? <Tips data={result.tips} threshold={data.threshold} /> : <Loading label="Finding realistic steps…" />}
           </section>
 
           <section className="card">
@@ -95,12 +96,19 @@ export default function Readiness() {
             <WhatIf key={data.id} employeeId={data.id} options={data.improvable} score={data.score} />
           </section>
 
-          <section className="card">
-            <h2>Tips to improve</h2>
-            {result.tips ? <Tips data={result.tips} threshold={data.threshold} /> : <p className="muted">Waiting for the previous step…</p>}
-          </section>
-
           {own && user.role === "employee" && <RespondPanel contributions={data.contributions} />}
+
+          <details className="card technical-details" id="technical-details">
+            <summary>Show technical details</summary>
+            <p className="small">
+              Model: {data.model}, version {data.model_version}, trained {profile.trained_at.slice(0, 10)}. Threshold
+              {" "}{data.threshold} (best F1 on validation data). An employee with average values on everything would
+              score {percent(data.average_employee_score)}.
+            </p>
+            <ExactNumbers contributions={data.contributions} />
+            <h3>Second opinion (LIME)</h3>
+            {result.lime ? <Lime lime={result.lime} contributions={data.contributions} /> : <Loading label="Running LIME…" />}
+          </details>
         </div>
       )}
 

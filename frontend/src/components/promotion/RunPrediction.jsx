@@ -1,6 +1,6 @@
 // "Run prediction": runs the machine learning model for one employee, in three real steps, showing each one as
 // it happens. Each step is its own request to the server, so the progress on screen is the progress of the work.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Brain, CheckCircle2, Circle, Loader2, Play, RotateCcw, XCircle } from "lucide-react";
 import { api } from "../../api";
 import { Button } from "../ui";
@@ -18,7 +18,11 @@ function StepIcon({ status }) {
   return <Circle size={18} className="step-waiting" aria-hidden="true" />;
 }
 
-export default function RunPrediction({ profile, onResult }) {
+/**
+ * `autoRun`: start as soon as the page opens (the employee's own page). `compact`: a short line instead of the
+ * step-by-step card, with the steps and their timings folded away (they are technical detail).
+ */
+export default function RunPrediction({ profile, onResult, autoRun = false, compact = false }) {
   const [steps, setSteps] = useState(null); // { key: { status, ms } }
   const [error, setError] = useState("");
   const running = steps && Object.values(steps).some((s) => s.status === "running");
@@ -44,14 +48,49 @@ export default function RunPrediction({ profile, onResult }) {
     try {
       const base = `/promotion/employees/${profile.id}`;
       const prediction = await step("predict", () => api(`${base}/predict`, { method: "POST" }));
-      onResult({ prediction });                                   // show the score as soon as it's ready
-      const lime = await step("lime", () => api(`${base}/lime`, { method: "POST" }));
-      onResult({ prediction, lime });
-      const tips = await step("tips", () => api(`${base}/tips`));
-      onResult({ prediction, lime, tips });
+      let shown = { prediction };
+      onResult(shown);                                            // show the score as soon as it's ready
+      // The second opinion and the tips don't depend on each other, so they run at the same time
+      await Promise.all([
+        step("lime", () => api(`${base}/lime`, { method: "POST" })).then((lime) => onResult(shown = { ...shown, lime })),
+        step("tips", () => api(`${base}/tips`)).then((tips) => onResult(shown = { ...shown, tips })),
+      ]);
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  useEffect(() => { if (autoRun) run(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stepList = steps && (
+    <ol className="run-steps">
+      {STEPS.map((s) => {
+        const state = steps[s.key];
+        return (
+          <li key={s.key} className={`run-step ${state.status}`}>
+            <StepIcon status={state.status} />
+            <span><strong>{s.label}</strong> <span className="muted">{s.detail}</span></span>
+            <span className="muted small nowrap">{state.status === "done" ? `${state.ms} ms` : state.status === "running" ? "working…" : ""}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+
+  if (compact) {
+    return (
+      <section className="card run-compact" aria-busy={running}>
+        <p className="row spread" style={{ margin: 0 }}>
+          <span className="muted">
+            {running ? "Working out your readiness from your current work record…"
+              : `Worked out from your current work record by the ${profile.model} model. Nothing is saved, and the model only advises.`}
+          </span>
+          <Button look="plain" onClick={run} busy={running} busyText="Working…" icon={RotateCcw}>Work it out again</Button>
+        </p>
+        {error && <p className="alert alert-error" role="alert" style={{ marginTop: 14 }}>{error}</p>}
+        {steps && finished && <details className="details"><summary>How it was worked out</summary>{stepList}</details>}
+      </section>
+    );
   }
 
   return (
@@ -69,20 +108,7 @@ export default function RunPrediction({ profile, onResult }) {
           {finished ? "Run again" : "Run prediction"}
         </Button>
       </div>
-      {steps && (
-        <ol className="run-steps">
-          {STEPS.map((s) => {
-            const state = steps[s.key];
-            return (
-              <li key={s.key} className={`run-step ${state.status}`}>
-                <StepIcon status={state.status} />
-                <span><strong>{s.label}</strong> <span className="muted">{s.detail}</span></span>
-                <span className="muted small nowrap">{state.status === "done" ? `${state.ms} ms` : state.status === "running" ? "working…" : ""}</span>
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      {stepList}
       {error && <p className="alert alert-error" role="alert" style={{ marginTop: 14 }}>{error}</p>}
     </section>
   );

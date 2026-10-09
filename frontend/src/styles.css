@@ -618,3 +618,11 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
 /* Loading and error states */
 .loading { display: flex; align-items: center; gap: 8px; }
 .load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* The explanation page: plain words first, technical details folded away */
+.contributions.no-numbers .contribution { grid-template-columns: minmax(0, 1fr) 120px; }
+.run-compact { padding-top: 16px; padding-bottom: 16px; }
+.technical-details > summary { cursor: pointer; font-weight: 700; font-size: 17px; list-style-position: inside; }
+.technical-details[open] > summary { margin-bottom: 14px; }
+.technical-details h3 { margin-top: 22px; }
+.helper { border-left: 3px solid var(--primary); padding-left: 12px; }
