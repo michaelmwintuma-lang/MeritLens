@@ -40,6 +40,12 @@ ACTIONS = {
     "pay_signed_off": "Signed off a promotion pay rise",
     "pay_returned": "Sent a promotion pay rise back to HR",
     "pay_resubmitted": "Sent a revised pay rise to Finance",
+    "correction_requested": "Asked HR to correct their record",
+    "correction_confirmed": "Confirmed a record correction",
+    "correction_rejected": "Rejected a record correction",
+    "reappraisal_started": "Started a re-appraisal",
+    "nomination_deferred": "Put a promotion decision on hold for a correction",
+    "nomination_resumed": "Took a promotion decision off hold",
     "report_replied": "Replied to a report",
     "report_updated": "Updated a report",
 }

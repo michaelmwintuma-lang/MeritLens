@@ -199,3 +199,35 @@ def team_members_added(manager_name: str, names: list[str]) -> dict:
         "button": ("Open My team", link("/team")),
     }
 
+
+
+def correction_received(hr_name: str, employee_name: str, field: str) -> dict:
+    return {
+        "subject": f"Record correction requested: {employee_name}",
+        "heading": "A record correction is waiting",
+        "greeting": f"Hello {hr_name},",
+        "paragraphs": [f"{employee_name} has asked for a value in their work record to be corrected, with evidence. "
+                       "Nothing changes until you confirm it."],
+        "details": [("Employee", employee_name), ("Value", field)],
+        "button": ("Open the correction queue", link("/corrections")),
+    }
+
+
+def correction_decided(employee_name: str, field: str, confirmed: bool, value: str, reason: str | None,
+                       reappraisal: bool = False) -> dict:
+    if confirmed:
+        opening = (f"HR reviewed your {field} and corrected it in your record." if reappraisal else
+                   f"HR checked your evidence and corrected your {field}.")
+        paragraphs = [opening, "Your readiness score has been worked out again with the corrected record."]
+        details = [("Value", field), ("Corrected to", value)]
+    else:
+        paragraphs = [f"HR checked your request about your {field} and kept the value in your record as it is."]
+        details = [("Value", field), ("HR's reason", reason or "")]
+    return {
+        "subject": f"Your record correction: {'corrected' if confirmed else 'not changed'}",
+        "heading": "HR has decided on your record correction" if not reappraisal else "Your record was reviewed",
+        "greeting": f"Hello {employee_name},",
+        "paragraphs": paragraphs,
+        "details": details,
+        "button": ("See my growth", link("/my-readiness")),
+    }
