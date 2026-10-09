@@ -1297,6 +1297,12 @@ Below the explanation, an employee finds **Respond to this explanation**:
    use five categories: biased rating or appraisal, favouritism, discrimination, wrong or missing record, other
    workplace concern.
 
+**Which route?** HR never learns who sent a report, so an anonymous report can't tell HR whose rating it means; HR
+can act only on what its own investigation finds (and can ask questions in the anonymous conversation). The tab
+says this plainly: if it's about your own rating and you're comfortable being known, "Correct my record" gets it
+checked and fixed directly; if you'd rather not be identified, or it affects others too, report anonymously. A
+button switches straight to "Correct my record".
+
 ### HR's correction queue
 
 **Record corrections** (`/corrections`) lists waiting requests, oldest first, with the value in the record, the

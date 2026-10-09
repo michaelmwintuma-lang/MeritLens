@@ -196,6 +196,13 @@ Measured on the running app with 120 demo employees, before and after:
   `HOW_IT_WORKS.md` and `LIMITATIONS.md` updated to describe the system as it is, framed as predict → explain →
   respond.
 
+## After Phase 9
+
+- **"Which route is right for you?"** on the "Report anonymously" tab. Because HR never learns who sent a report,
+  an anonymous report about one's own rating can only lead to a re-appraisal through HR's own investigation. The
+  tab now says so, and points people who want their own record fixed (and are comfortable being known) to
+  "Correct my record", with a button that switches to it. Recorded as a limitation and a discussion point.
+
 ## Left to do (by the project owner)
 
 - **Run the usability study** (`docs/USER_TEST.md`, with ethics approval first). Then run

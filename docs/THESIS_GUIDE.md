@@ -139,6 +139,10 @@ All commands run from `backend/`, except `scripts/…`, which run from the proje
   employees. Discuss why exact additive explanations are preferable when available.
 - **Isolation as a design property.** It is shown by tests rather than claimed, and it limits what the feedback
   channel can do: voice without the power to change scores, except through verified corrections.
+- **Anonymity versus redress.** An anonymous report protects the reporter, but HR can't know whose rating it means:
+  a re-appraisal follows only from HR's own investigation. Someone who wants their own rating fixed must give up
+  anonymity and use "Correct my record". Discuss this trade-off (the page states it to employees), and whether an
+  opt-in "reveal myself to HR" would be worth weakening the anonymity promise.
 - **Small-group protection** trades detail for privacy.
 - **Drift and chance.** With 20 inputs checked at the 95% level, about one flag is expected by chance.
 - **Synthetic data.** All results describe this dataset. Real use would need retraining, and the fairness gate

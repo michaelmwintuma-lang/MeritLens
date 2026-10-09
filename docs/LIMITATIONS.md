@@ -72,6 +72,12 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   retrains automatically. Feedback changes scores only through corrections HR confirms; systematic complaints about
   a factor show on the dashboard, but acting on them (for example retraining without a contested input) is a human
   decision.
+- **Anonymity and redress pull against each other.** An anonymous report can't tell HR whose rating it's about,
+  and the reporter can't say so even if they wish (the conversation refuses names). So an anonymous report about
+  one's *own* rating changes that rating only if HR's own investigation finds it. The page explains the choice:
+  "Correct my record" fixes your own record directly but isn't anonymous; reporting anonymously protects you but
+  depends on HR's investigation. An opt-in way to reveal oneself to HR was not built, because it would weaken the
+  promise that nothing can link a report to a person.
 - **One HR person can confirm their own re-appraisal.** There is no second-person rule; every confirmation is
   logged with who made it.
 - **Small groups limit what the dashboard can show.** Rates need 5 ratings and departments 5 people, so a small

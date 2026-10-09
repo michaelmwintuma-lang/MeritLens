@@ -79,6 +79,13 @@ const CHECKS = {
 
     // 3. Report anonymously: the link opens the report form with the category chosen
     await click("button[aria-pressed]", "Report anonymously");
+    // The tab explains which route fits: your own rating and willing to be known → Correct my record
+    if (!(await waitFor(c, `document.body.innerText.includes("Which route is right for you?")`))) throw new Error("no route guidance on the report tab");
+    await click("button", "Go to Correct my record");
+    if (!(await waitFor(c, `document.querySelector('button[aria-pressed="true"]')?.innerText === "Correct my record"`))) {
+      throw new Error("'Go to Correct my record' didn't switch tabs");
+    }
+    await click("button[aria-pressed]", "Report anonymously");
     await click("a", "Report an unfair assessment");
     if (!(await waitFor(c, `location.pathname === "/report" && document.querySelector("select")?.value === "biased_rating"`))) {
       throw new Error("the report form didn't open with 'Biased rating or appraisal' chosen");
