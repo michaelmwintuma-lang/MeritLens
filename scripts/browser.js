@@ -15,17 +15,31 @@ const PASSWORD = process.env.DEMO_PASSWORD || "demo1234";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** A new headless Chrome. Starting can occasionally fail (a busy machine, a port in use), so it tries three times. */
 async function openChrome() {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await startChrome();
+    } catch (err) {
+      if (attempt === 3) throw err;
+    }
+  }
+}
+
+async function startChrome() {
   const port = 9300 + Math.floor(Math.random() * 500);
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "hr-browser-"));
   const proc = spawn(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", `--remote-debugging-port=${port}`,
     `--user-data-dir=${profile}`, "--window-size=1366,900", "about:blank"], { stdio: "ignore" });
   let wsUrl;
-  for (let i = 0; i < 60 && !wsUrl; i++) {
+  for (let i = 0; i < 150 && !wsUrl; i++) {  // up to 30 s
     try { wsUrl = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page")?.webSocketDebuggerUrl; } catch { /* starting */ }
     if (!wsUrl) await sleep(200);
   }
-  if (!wsUrl) throw new Error(`Chrome did not start (looked for it at ${CHROME}; set CHROME_PATH to change)`);
+  if (!wsUrl) {
+    proc.kill();
+    throw new Error(`Chrome did not start (looked for it at ${CHROME}; set CHROME_PATH to change)`);
+  }
   const ws = new WebSocket(wsUrl);
   await new Promise((r) => ws.addEventListener("open", r, { once: true }));
   let id = 0;

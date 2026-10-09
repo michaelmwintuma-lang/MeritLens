@@ -102,6 +102,36 @@ const CHECKS = {
     if (!(await waitFor(c, `document.body.innerText.includes("HR corrected your record")`))) throw new Error("no notification for the employee");
   },
 
+  /** Phase 5: the dashboards show the live numbers, with filters and small groups protected. */
+  async "the feedback dashboard and the admin dashboard show live data"(c) {
+    const text = () => c.evaluate("document.body.innerText");
+    await signIn(c, "hr");
+    await goto(c, "/feedback");
+    if (!(await waitFor(c, `document.body.innerText.includes("Factors employees contest")`))) throw new Error("the feedback dashboard didn't load");
+    const fromApi = await c.evaluate(`fetch("/api/feedback/dashboard", { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }).then((r) => r.json())`);
+    // Stat labels are shown in capitals by the style sheet, so compare without regard to case
+    if (!new RegExp(`received\\s+${fromApi.corrections.received}\\b`, "i").test(await text())) throw new Error("the corrections count isn't the server's");
+    // Filter by a department: the page asks the server again and still shows the dashboard
+    const department = fromApi.options.departments[0];
+    await c.evaluate(`(() => { const s = [...document.querySelectorAll("select")].find((e) => [...e.options].some((o) => o.text === "All departments"));
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(s, ${JSON.stringify(department)});
+      s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+    if (!(await waitFor(c, `document.body.innerText.includes("Factors employees contest") && !document.querySelector(".alert-error")`))) {
+      throw new Error("the department filter broke the dashboard");
+    }
+    await signIn(c, "auditor");
+    await goto(c, "/feedback");
+    if (!(await waitFor(c, `document.body.innerText.includes("Record corrections")`))) throw new Error("the auditor can't see the feedback dashboard");
+
+    await signIn(c, "admin");
+    await goto(c, "/");
+    if (!(await waitFor(c, `document.body.innerText.includes("System health") && document.body.innerText.includes("Drift")`))) {
+      throw new Error("the admin dashboard has no system health or drift");
+    }
+    const system = await c.evaluate(`fetch("/api/admin/system", { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }).then((r) => r.json())`);
+    if (!(await text()).includes(system.model.version)) throw new Error("the admin dashboard doesn't show the live model version");
+  },
+
   /** No dead links or broken pages: every menu page opens for every role, without errors. */
   async "every menu page opens for every role"(first) {
     const problems = [];
