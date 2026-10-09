@@ -100,3 +100,20 @@ HR confirming a record correction, which is logged.
   explains is expected when 20 inputs are checked.)
 - **Role homes:** HR sees corrections waiting and links to the queue and dashboard; employees a "Respond to your
   explanation" card with their requests; the auditor the share of explanations rated clear and the dashboard.
+
+## Phase 6: public landing page
+
+- **Landing page at `/`** (sign-in stays at `/login`): the promise "Fair, explainable promotion decisions, with a
+  voice for every employee", two actions (*Sign in*; *Report a concern anonymously*, which goes through sign-in
+  straight to the report form), **How it works** (Predict → Explain → Respond), six features (explainable
+  predictions with exact contributions equal to SHAP values and LIME, path to promotion, fairness audit, employee
+  feedback channel, anonymous reporting, people decide), the trust section (a complaint never changes a score, no
+  one can unmask a reporter, people make every decision), the measured results, and a footer with the project
+  title. The university, team and supervisors appear once filled in (`frontend/src/brand.js`); none were invented.
+- No stock images or testimonials: screenshots of the real app with made-up demo data, retaken with
+  `python scripts/browser_test.py scripts/capture_landing.js`.
+- The reporting, "Who uses it" and privacy pages now describe the feedback channel, the five categories, the
+  auditor role, and keys never kept in the browser.
+- Fixes found on the way: a score below 0.5% read "0%" (now "under 1%"), and signing in from "Report a concern
+  anonymously" landed on the overview instead of the report form.
+- The browser checks now run against a production build (`vite preview`), which never reloads a page mid-check.
