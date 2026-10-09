@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Send } from "lucide-react";
 import { api } from "../../api";
 import { percent } from "../../format";
-import { Button } from "../ui";
+import { Button, LoadError } from "../ui";
 import { useAction } from "../../useAction";
 
 const CRITERIA = [
@@ -43,7 +43,7 @@ export default function NominateBox({ employeeId, name }) {
       .catch((err) => setError(err.message));
   }, [employeeId, done]);
 
-  if (pending === null || !policy) return error ? <p className="alert alert-error">{error}</p> : null;
+  if (pending === null || !policy) return error ? <LoadError message={error} /> : null;
   if (pending) {
     return (
       <p className="alert alert-info">

@@ -10,7 +10,7 @@ import Contributions from "../../components/promotion/Contributions";
 import Recommendation from "../../components/promotion/Recommendation";
 import { NominationStatus } from "../../components/promotion/Status";
 import { PayStatus, PayTimeline } from "../../components/promotion/PayStatus";
-import { Button, PageHeader } from "../../components/ui";
+import { Button, LoadError, Loading, PageHeader } from "../../components/ui";
 import CommitteeNote from "../../components/feedback/CommitteeNote";
 import { useAction } from "../../useAction";
 
@@ -97,8 +97,9 @@ export default function ReviewNomination() {
       .catch((err) => setError(err.message));
   }, [id]);
 
-  if (error && !nomination) return <p className="alert alert-error">{error}</p>;
-  if (!nomination || !explanation || !policy) return <p className="muted">Loading…</p>;
+  // Any of the three missing with an error: show the error (not an endless spinner)
+  if (error && (!nomination || !explanation || !policy)) return <LoadError message={error} />;
+  if (!nomination || !explanation || !policy) return <Loading />;
 
   // Disagreeing = approving someone the model doesn't recommend, or rejecting someone it does
   const disagrees = decision && (decision === "approve") !== explanation.recommended;

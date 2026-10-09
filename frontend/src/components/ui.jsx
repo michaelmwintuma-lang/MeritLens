@@ -102,3 +102,25 @@ export function Button({ busy = false, busyText, icon: Icon, look = "primary", c
     </button>
   );
 }
+
+/** Shown while a page or a part of it loads. Screen readers hear it once, politely. */
+export function Loading({ label = "Loading…" }) {
+  return (
+    <p className="loading muted" role="status" aria-live="polite">
+      <Loader2 size={16} className="spin" aria-hidden="true" /> {label}
+    </p>
+  );
+}
+
+/**
+ * Something couldn't be loaded: what went wrong, and a button to try again. Without `onRetry`, trying again
+ * reloads the page.
+ */
+export function LoadError({ message, onRetry }) {
+  return (
+    <div className="alert alert-error load-error" role="alert">
+      <span>{message}</span>
+      <button type="button" className="btn btn-plain" onClick={onRetry || (() => window.location.reload())}>Try again</button>
+    </div>
+  );
+}

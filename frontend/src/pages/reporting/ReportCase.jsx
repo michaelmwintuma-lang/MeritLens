@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, FileText } from "lucide-react";
 import { api } from "../../api";
-import { Button, Card, PageHeader } from "../../components/ui";
+import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
 import Conversation, { CaseStatus, PRIORITY_LABELS, PriorityTag } from "../../components/reporting/Conversation";
 import { EvidenceGallery, EvidencePrivacy, loadAsHr } from "../../components/reporting/Evidence";
 import { useAction } from "../../useAction";
@@ -82,8 +82,8 @@ export default function ReportCase() {
     }
   }
 
-  if (error && !report) return <p className="alert alert-error">{error}</p>;
-  if (!report) return <p className="muted">Loading…</p>;
+  if (error && !report) return <LoadError message={error} />;
+  if (!report) return <Loading />;
   const closed = report.status === "closed";
 
   return (

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { api } from "../../api";
 import { percent } from "../../format";
-import { Card, EmptyState } from "../ui";
+import { Card, EmptyState, LoadError, Loading } from "../ui";
 
 const SOURCES = { hr_edit: "HR edited the record", correction: "Correction confirmed by HR" };
 
@@ -17,8 +17,8 @@ export default function RecordHistory({ employeeId }) {
 
   return (
     <Card title="Record history" subtitle="Changes to the work record the model uses, with the readiness before and after. Kept for audit; nobody can edit it.">
-      {error && <p className="alert alert-error">{error}</p>}
-      {!rows && !error && <p className="muted">Loading…</p>}
+      {error && <LoadError message={error} />}
+      {!rows && !error && <Loading />}
       {rows?.length === 0 && <EmptyState icon={History} title="No changes yet" text="The record is as it was first entered." />}
       {rows?.length > 0 && (
         <div className="table-wrap"><table>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Inbox, Paperclip } from "lucide-react";
 import { api } from "../../api";
-import { Card, EmptyState, PageHeader, Segmented, StatCard } from "../../components/ui";
+import { Card, EmptyState, LoadError, Loading, PageHeader, Segmented, StatCard } from "../../components/ui";
 import { CaseStatus, PriorityTag } from "../../components/reporting/Conversation";
 
 const VIEWS = [
@@ -17,10 +17,11 @@ export default function ReportInbox() {
   const [reports, setReports] = useState(null);
   const [view, setView] = useState("open");
   const [error, setError] = useState("");
-  useEffect(() => { api("/hr/reports").then(setReports).catch((err) => setError(err.message)); }, []);
+  const load = () => { setError(""); return api("/hr/reports").then(setReports).catch((err) => setError(err.message)); };
+  useEffect(() => { load(); }, []);
 
-  if (error) return <p className="alert alert-error">{error}</p>;
-  if (!reports) return <p className="muted">Loading…</p>;
+  if (error) return <LoadError message={error} onRetry={load} />;
+  if (!reports) return <Loading />;
   const notClosed = reports.filter((r) => r.status !== "closed");
   const rows = reports.filter((r) => view === "all" || r.status === view);
 

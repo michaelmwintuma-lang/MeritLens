@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CalendarCheck, CheckCircle2, Circle, Mail } from "lucide-react";
 import { api } from "../../api";
-import { Card, EmptyState, PageHeader, Segmented } from "../../components/ui";
+import { Card, EmptyState, LoadError, Loading, PageHeader, Segmented } from "../../components/ui";
 
 export default function DemoRequests() {
   const [requests, setRequests] = useState(null);
@@ -22,7 +22,7 @@ export default function DemoRequests() {
     }
   }
 
-  if (!requests) return error ? <p className="alert alert-error">{error}</p> : <p className="muted">Loading…</p>;
+  if (!requests) return error ? <LoadError message={error} onRetry={load} /> : <Loading />;
   const open = requests.filter((r) => !r.handled).length;
   const rows = requests.filter((r) => show === "all" || !r.handled);
 

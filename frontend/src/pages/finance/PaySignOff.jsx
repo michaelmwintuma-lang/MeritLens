@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { Banknote, CheckCircle2, CornerUpLeft, Wallet } from "lucide-react";
 import { api } from "../../api";
-import { Button, Card, EmptyState, PageHeader, Segmented, StatCard } from "../../components/ui";
+import { Button, Card, EmptyState, LoadError, Loading, PageHeader, Segmented, StatCard } from "../../components/ui";
 import { PayStatus, PayTimeline } from "../../components/promotion/PayStatus";
 import { useAction } from "../../useAction";
 
@@ -88,8 +88,8 @@ export default function PaySignOff() {
   const load = () => api("/finance/pay-reviews").then(setData).catch((err) => setError(err.message));
   useEffect(() => { load(); }, []);
 
-  if (error && !data) return <p className="alert alert-error">{error}</p>;
-  if (!data) return <p className="muted">Loading…</p>;
+  if (error && !data) return <LoadError message={error} onRetry={load} />;
+  if (!data) return <Loading />;
   const { summary, policy } = data;
   const rows = data.reviews.filter((r) => view === "all" || r.status === view);
 

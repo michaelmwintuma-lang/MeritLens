@@ -614,3 +614,7 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
   .bar-list li { grid-template-columns: 1fr auto; }
   .bar-track { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Loading and error states */
+.loading { display: flex; align-items: center; gap: 8px; }
+.load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

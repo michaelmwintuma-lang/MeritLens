@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { ClipboardPen, FileText } from "lucide-react";
 import { api, apiBlob } from "../../api";
 import { percent } from "../../format";
-import { Button, Card, EmptyState, PageHeader, Segmented } from "../../components/ui";
+import { Button, Card, EmptyState, Loading, PageHeader, Segmented } from "../../components/ui";
 import CorrectionStatus from "../../components/feedback/CorrectionStatus";
 import { useAction } from "../../useAction";
 
@@ -108,7 +108,7 @@ export default function Corrections() {
       <PageHeader icon={ClipboardPen} title="Record corrections"
         subtitle="Employees' requests to correct a value in their work record. Nothing changes until you confirm it." />
       {error && <p className="alert alert-error" role="alert">{error}</p>}
-      {!rows && !error && <p className="muted">Loading…</p>}
+      {!rows && !error && <Loading />}
       {rows && (
         <>
           <Segmented label="Which requests" value={view} onChange={setView}

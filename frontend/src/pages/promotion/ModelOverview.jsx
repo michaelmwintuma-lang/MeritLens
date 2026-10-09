@@ -3,15 +3,16 @@ import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { percent } from "../../format";
 import { Brain } from "lucide-react";
-import { PageHeader } from "../../components/ui";
+import { LoadError, Loading, PageHeader } from "../../components/ui";
 
 export default function ModelOverview() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { api("/promotion/importance").then(setData).catch((err) => setError(err.message)); }, []);
+  const load = () => { setError(""); return api("/promotion/importance").then(setData).catch((err) => setError(err.message)); };
+  useEffect(() => { load(); }, []);
 
-  if (error) return <><PageHeader icon={Brain} title="How the model works" /><p className="alert alert-error">{error}</p></>;
-  if (!data) return <p className="muted">Loading…</p>;
+  if (error) return <><PageHeader icon={Brain} title="How the model works" /><LoadError message={error} onRetry={load} /></>;
+  if (!data) return <Loading />;
   const rows = data.features;
   const max = rows[0].share;
 

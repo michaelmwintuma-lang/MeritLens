@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
-import { Button, Card } from "../ui";
+import { Button, Card, LoadError, Loading } from "../ui";
 import { useAction } from "../../useAction";
 
 export default function Reappraisal({ caseId }) {
@@ -41,7 +41,7 @@ export default function Reappraisal({ caseId }) {
         <p className="alert alert-success" role="status">
           A correction of {done.employee_name}'s {done.label.toLowerCase()} is waiting in the <Link to="/corrections">correction queue</Link>.
         </p>
-      ) : !people ? (error ? <p className="alert alert-error">{error}</p> : <p className="muted">Loading…</p>) : (
+      ) : !people ? (error ? <LoadError message={error} /> : <Loading />) : (
         <form onSubmit={(e) => withSending(() => send(e))}>
           {error && <p className="alert alert-error" role="alert">{error}</p>}
           <div className="form-row">

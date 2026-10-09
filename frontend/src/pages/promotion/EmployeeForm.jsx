@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, UserPlus } from "lucide-react";
 import { api } from "../../api";
 import { useAction } from "../../useAction";
-import { Button, Card, PageHeader } from "../../components/ui";
+import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
 
 const GROUP_NOTES = {
   Performance: "From this year's review and KPI tracking.",
@@ -35,8 +35,8 @@ export default function EmployeeForm() {
       .catch((err) => setError(err.message));
   }, [id, editing]);
 
-  if (error && !setup) return <><PageHeader icon={UserPlus} title="Employee details" /><p className="alert alert-error">{error}</p></>;
-  if (!setup || !form) return <p className="muted">Loading…</p>;
+  if (error && !setup) return <><PageHeader icon={UserPlus} title="Employee details" /><LoadError message={error} /></>;
+  if (!setup || !form) return <Loading />;
 
   const setValue = (name) => (e) => setForm({ ...form, values: { ...form.values, [name]: e.target.value } });
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });

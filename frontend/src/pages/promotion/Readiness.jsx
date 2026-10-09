@@ -7,7 +7,7 @@ import { ArrowLeft, CheckCircle2, Gauge, PartyPopper, Pencil } from "lucide-reac
 import { api } from "../../api";
 import { useAuth } from "../../auth";
 import { percent } from "../../format";
-import { PageHeader } from "../../components/ui";
+import { LoadError, Loading, PageHeader } from "../../components/ui";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
 import Contributions from "../../components/promotion/Contributions";
 import Lime from "../../components/promotion/Lime";
@@ -38,8 +38,8 @@ export default function Readiness() {
   }, [employeeId]);
 
   if (!employeeId) return <><PageHeader icon={Gauge} title="My growth" /><p className="alert alert-info">Your account isn't linked to an employee record yet. Ask an administrator to link it.</p></>;
-  if (error) return <><PageHeader icon={Gauge} title="Readiness" /><p className="alert alert-error">{error}</p></>;
-  if (!profile) return <p className="muted">Loading…</p>;
+  if (error) return <><PageHeader icon={Gauge} title="Readiness" /><LoadError message={error} /></>;
+  if (!profile) return <Loading />;
 
   const data = result?.prediction;
   return (

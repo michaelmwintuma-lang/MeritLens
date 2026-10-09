@@ -5,15 +5,16 @@ import { percent } from "../../format";
 import { AgreesWithModel } from "../../components/promotion/Status";
 import { PayStatus } from "../../components/promotion/PayStatus";
 import { BookCheck } from "lucide-react";
-import { EmptyState, PageHeader, StatCard } from "../../components/ui";
+import { EmptyState, LoadError, Loading, PageHeader, StatCard } from "../../components/ui";
 
 export default function DecisionLog() {
   const [log, setLog] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { api("/promotion/decisions").then(setLog).catch((err) => setError(err.message)); }, []);
+  const load = () => { setError(""); return api("/promotion/decisions").then(setLog).catch((err) => setError(err.message)); };
+  useEffect(() => { load(); }, []);
 
-  if (error) return <p className="alert alert-error">{error}</p>;
-  if (!log) return <p className="muted">Loading…</p>;
+  if (error) return <LoadError message={error} onRetry={load} />;
+  if (!log) return <Loading />;
   const differs = log.filter((d) => !d.agrees_with_model).length;
 
   return (

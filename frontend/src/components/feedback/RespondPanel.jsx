@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MessageSquareText } from "lucide-react";
 import { api, uploadFile } from "../../api";
-import { Button, Card, Segmented } from "../ui";
+import { Button, Card, LoadError, Loading, Segmented } from "../ui";
 import { useAction } from "../../useAction";
 import CorrectionStatus from "./CorrectionStatus";
 
@@ -138,7 +138,7 @@ function RequestCorrection() {
     }
   }
 
-  if (!fields) return error ? <p className="alert alert-error">{error}</p> : <p className="muted">Loading…</p>;
+  if (!fields) return error ? <LoadError message={error} onRetry={load} /> : <Loading />;
   return (
     <>
       <form onSubmit={(e) => withSending(() => send(e))}>

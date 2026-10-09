@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { EyeOff, ScrollText } from "lucide-react";
 import { api } from "../../api";
-import { Card, EmptyState, PageHeader } from "../../components/ui";
+import { Card, EmptyState, LoadError, Loading, PageHeader } from "../../components/ui";
 
 export default function ActivityLog() {
   const [data, setData] = useState(null);
@@ -25,7 +25,7 @@ export default function ActivityLog() {
         <EyeOff size={16} style={{ verticalAlign: "-3px" }} /> <strong>Nothing a reporter does is recorded</strong>, and
         only the day is kept, never the time, so this log can't be used to work out who sent a report.
       </p>
-      {error && <p className="alert alert-error">{error}</p>}
+      {error && <LoadError message={error} />}
       <Card flush title="Entries" subtitle="Newest first (the latest 500)."
         actions={
           <div className="filters">
@@ -36,7 +36,7 @@ export default function ActivityLog() {
             </select>
           </div>
         }>
-        {!data ? <p className="muted" style={{ padding: "0 24px 24px" }}>Loading…</p> : data.entries.length === 0 ? (
+        {!data ? <Loading /> : data.entries.length === 0 ? (
           <EmptyState icon={ScrollText} title="Nothing found" text="Try another action or search." />
         ) : (
           <div className="table-wrap">

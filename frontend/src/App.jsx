@@ -4,6 +4,7 @@ import { useAuth } from "./auth";
 import { REPORTER_ROLES } from "./roles";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { Loading } from "./components/ui";
 import PublicLayout from "./pages/public/PublicLayout";
 import PublicHome from "./pages/public/Home";
 import Approach from "./pages/public/Approach";
@@ -53,7 +54,7 @@ function OnlyFor({ roles, children }) {
 export default function App() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
-  if (loading) return <p className="center-page muted">Loading…</p>;
+  if (loading) return <div className="center-page"><Loading /></div>;
 
   // Not signed in: the public website (one page per menu item) and the sign-in page
   if (!user) {

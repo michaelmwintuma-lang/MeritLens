@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
-import { Button, Card, PageHeader } from "../../components/ui";
+import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
 import { useAction } from "../../useAction";
 import NominationsTable from "../../components/promotion/NominationsTable";
 
@@ -47,14 +47,15 @@ export default function Nominations() {
   const isHr = user.role === "hr";
   const [list, setList] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { api("/promotion/nominations").then(setList).catch((err) => setError(err.message)); }, []);
+  const load = () => { setError(""); return api("/promotion/nominations").then(setList).catch((err) => setError(err.message)); };
+  useEffect(() => { load(); }, []);
 
   return (
     <>
       <PageHeader icon={ClipboardCheck} title={isHr ? "Nominations" : "My nominations"}
         subtitle={isHr ? undefined : "To recommend someone, open them from My team."} />
-      {error && <p className="alert alert-error">{error}</p>}
-      {!list && !error && <p className="muted">Loading…</p>}
+      {error && <LoadError message={error} onRetry={load} />}
+      {!list && !error && <Loading />}
       {list && <NominationsTable nominations={list} isHr={isHr} title="Recommendations" />}
       {isHr && <PayPolicy />}
     </>

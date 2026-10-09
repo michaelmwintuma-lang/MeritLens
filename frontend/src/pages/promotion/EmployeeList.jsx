@@ -6,7 +6,7 @@ import { useAuth } from "../../auth";
 import { percent } from "../../format";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
 import { FileUp, UserPlus, Users } from "lucide-react";
-import { EmptyState, PageHeader } from "../../components/ui";
+import { EmptyState, LoadError, Loading, PageHeader } from "../../components/ui";
 
 export default function EmployeeList() {
   const { user } = useAuth();
@@ -18,10 +18,11 @@ export default function EmployeeList() {
   const [onlyRecommended, setOnlyRecommended] = useState(false);
   const [sortBy, setSortBy] = useState("score");
 
-  useEffect(() => { api("/promotion/employees").then(setData).catch((err) => setError(err.message)); }, []);
+  const load = () => { setError(""); return api("/promotion/employees").then(setData).catch((err) => setError(err.message)); };
+  useEffect(() => { load(); }, []);
 
-  if (error) return <p className="alert alert-error">{error}</p>;
-  if (!data) return <p className="muted">Loading…</p>;
+  if (error) return <LoadError message={error} onRetry={load} />;
+  if (!data) return <Loading />;
 
   const departments = [...new Set(data.employees.map((e) => e.department))].sort();
   const rows = data.employees

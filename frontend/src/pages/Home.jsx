@@ -5,7 +5,7 @@ import { ArrowRight, LayoutGrid } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { percent } from "../format";
-import { Card, PageHeader, StatCard } from "../components/ui";
+import { Card, LoadError, Loading, PageHeader, StatCard } from "../components/ui";
 import ScoreBar, { Verdict } from "../components/promotion/ScoreBar";
 import NominationsTable from "../components/promotion/NominationsTable";
 import AdminDashboard from "../components/home/AdminDashboard";
@@ -145,8 +145,8 @@ export default function Home() {
   return (
     <>
       <PageHeader icon={LayoutGrid} title={`Hello, ${user.full_name.split(" ")[0]}`} />
-      {error && <p className="alert alert-error">{error}</p>}
-      {!data && !error && <p className="muted">Loading…</p>}
+      {error && <LoadError message={error} />}
+      {!data && !error && <Loading />}
       {data && (user.role === "hr" || user.role === "manager") && <PromotionOverview data={data} isHr={user.role === "hr"} />}
       {data && user.role === "employee" && <EmployeeOverview me={data.me} requests={data.requests} />}
       {data && user.role === "admin" && <AdminDashboard system={data.system} employees={data.employees} />}

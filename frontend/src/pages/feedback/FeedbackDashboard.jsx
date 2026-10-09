@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Download, MessageSquareText } from "lucide-react";
 import { api, apiBlob } from "../../api";
 import { percent } from "../../format";
-import { Card, PageHeader, StatCard } from "../../components/ui";
+import { Card, Loading, PageHeader, StatCard } from "../../components/ui";
 import BarList from "../../components/charts/BarList";
 
 const NONE = { start: "", end: "", department: "", model_version: "" };
@@ -79,7 +79,7 @@ export default function FeedbackDashboard() {
       </Card>
 
       {error && <p className="alert alert-error" role="alert">{error}</p>}
-      {!data && !error && <p className="muted">Loading…</p>}
+      {!data && !error && <Loading />}
       {data && (
         <div aria-live="polite">
           <h2 className="section-title">Explanations</h2>
