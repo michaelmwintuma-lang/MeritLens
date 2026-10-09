@@ -135,3 +135,29 @@ HR confirming a record correction, which is logged.
   `phase7-after`, made with `scripts/ui_capture.js`. Nothing is wider than a phone's screen.
 - The existing design (teal, light and dark themes, phone tab bar) is kept; the "indigo for promotion" colour of
   the plan doesn't exist in this design, so no colour scheme was changed.
+
+## Phase 8: refactor and performance
+
+Measured on the running app with 120 demo employees, before and after:
+
+| | Before | After |
+|---|---|---|
+| Employee list (`GET /promotion/employees`) | 0.26 s (review, quiet machine) | 0.02–0.06 s |
+| Scoring 5,000 employees | 11.25 s, one at a time | 13 ms, in one call (scores identical) |
+| Admin dashboard's drift check | 0.156 s on every load | 0.005 s after the first |
+| First download of the website | 482 kB (144 kB gzipped) | 309 kB (99 kB gzipped) |
+| Full test suite | 5–9 minutes (30 on a busy machine) | 2 min 7 s, 370 tests |
+
+- **Batch scoring:** the employee and nomination lists score everyone in one call to the model.
+- **No row-by-row lookups:** nominations, the decision log and HR's report inbox fetch decisions, pay-rise
+  histories, last messages and evidence counts for the whole list at once.
+- **Notification bell:** HR's bell asks only for pay rises Finance sent back (`?pay_status=returned`) instead of
+  downloading the whole decision log every minute.
+- **Pages load on first use** (React lazy loading); only the landing page and sign-in are in the first download.
+- **Employee list a page at a time** (50 per page), so a large directory stays quick to use.
+- **Drift chance levels** are worked out once and reused.
+- **Refactor:** one shared check for "outside the pay policy needs a reason" (it was written out twice); a shared
+  `useLoad` hook (load, error, try again; a newer answer always wins) in the list pages.
+- **Tests:** password hashing uses 1,000 rounds in tests only (the app keeps 200,000; a test checks it).
+- Not split: `routes_decisions.py` stays one file. Its duplication is removed, and its parts (nominating, deciding,
+  resubmitting, the log) share helpers closely, so splitting it would add imports without making it clearer.
