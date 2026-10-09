@@ -83,6 +83,12 @@ class PromotionModel:
         """Readiness score between 0 and 1. Above the threshold, the model recommends promotion."""
         return float(self.pipeline.predict_proba(pd.DataFrame([record])[MODEL_FEATURES])[0, 1])
 
+    def scores(self, records: list[dict]) -> list[float]:
+        """The scores of many records in one go (one call to the model is far quicker than one per record)."""
+        if not records:
+            return []
+        return [float(s) for s in self.pipeline.predict_proba(pd.DataFrame(records)[MODEL_FEATURES])[:, 1]]
+
     # ─── SHAP: exact contributions ─────────────────────────────────────────────
     def contributions(self, record: dict) -> list[dict]:
         """Each input's contribution in log-odds, biggest first, with the employee's real value."""

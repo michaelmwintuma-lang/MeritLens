@@ -88,6 +88,14 @@ def set_pay_policy(body: PayPolicyIn, user: User = Depends(require_roles(HR)), d
     return {"min_raise": policy.min_raise, "max_raise": policy.max_raise}
 
 
+def check_raise(policy: PayPolicy, raise_percent: float, raise_reason: str | None) -> None:
+    """A pay rise outside the policy's range needs a written reason of at least MIN_DISAGREEMENT_REASON characters."""
+    if not policy.min_raise <= raise_percent <= policy.max_raise and (raise_reason is None or len(raise_reason) < MIN_DISAGREEMENT_REASON):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            f"{raise_percent:g}% is outside the pay policy ({policy.min_raise:g}% to {policy.max_raise:g}%), "
+                            f"so please explain why, in at least {MIN_DISAGREEMENT_REASON} characters.")
+
+
 # ─── Recommending (nominating) ────────────────────────────────────────────────
 class CriterionIn(BaseModel):
     rating: int = Field(ge=1, le=5)
@@ -161,15 +169,22 @@ def recommendation(nomination: Nomination) -> dict:
     }
 
 
-def describe(db: Session, nomination: Nomination, for_manager: bool = False) -> dict:
+_NOT_GIVEN = object()
+
+
+def describe(db: Session, nomination: Nomination, for_manager: bool = False, score: float | None = None,
+             decision=_NOT_GIVEN, histories: dict | None = None) -> dict:
     """
     A nomination as the pages show it, with the model's current view and the decision, if any. A manager sees an
-    approval only once Finance has signed off its pay rise; until then it shows as "finalising".
+    approval only once Finance has signed off its pay rise; until then it shows as "finalising". A list passes the
+    score and decision it already worked out for all its nominations at once.
     """
     employee = db.get(Employee, nomination.employee_id)
     live = model()
-    score = live.score(employee.record)
-    decision = db.scalar(select(Decision).where(Decision.nomination_id == nomination.id))
+    if score is None:
+        score = live.score(employee.record)
+    if decision is _NOT_GIVEN:
+        decision = db.scalar(select(Decision).where(Decision.nomination_id == nomination.id))
     result = {
         "id": nomination.id,
         "employee": {"id": employee.id, "full_name": employee.full_name, "department": employee.department},
@@ -179,7 +194,7 @@ def describe(db: Session, nomination: Nomination, for_manager: bool = False) -> 
         "status": nomination.status,
         "created_at": iso(nomination.created_at),
         "model_now": {"score": round(score, 4), "threshold": live.threshold, "recommended": score >= live.threshold},
-        "decision": log_entry(db, decision) if decision else None,
+        "decision": log_entry(db, decision, histories) if decision else None,
     }
     if for_manager and decision and decision.pay_status in ("awaiting_finance", "returned"):
         result.update(status="finalising", decision=None)
@@ -192,7 +207,13 @@ def list_nominations(user: User = Depends(require_roles(HR, MANAGER)), db: Sessi
     query = select(Nomination).order_by(Nomination.created_at.desc())
     if user.role == MANAGER:
         query = query.where(Nomination.nominated_by == user.id)
-    return [describe(db, n, for_manager=user.role == MANAGER) for n in db.scalars(query)]
+    nominations = list(db.scalars(query))
+    scores = model().scores([db.get(Employee, n.employee_id).record for n in nominations])
+    decisions = {d.nomination_id: d for d in db.scalars(select(Decision).where(
+        Decision.nomination_id.in_([n.id for n in nominations])))}
+    histories = pay_histories(db, [d.id for d in decisions.values()])
+    return [describe(db, n, for_manager=user.role == MANAGER, score=s, decision=decisions.get(n.id), histories=histories)
+            for n, s in zip(nominations, scores)]
 
 
 @router.get("/nominations/{nomination_id}")
@@ -239,12 +260,8 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
         if body.approved_raise is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Please set the pay rise for this promotion.")
         raise_percent = round(body.approved_raise, 1)
-        policy = pay_policy(db)
         raise_reason = (body.raise_reason or "").strip() or None
-        if not policy.min_raise <= raise_percent <= policy.max_raise and (raise_reason is None or len(raise_reason) < MIN_DISAGREEMENT_REASON):
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                f"{raise_percent:g}% is outside the pay policy ({policy.min_raise:g}% to {policy.max_raise:g}%), "
-                                f"so please explain why, in at least {MIN_DISAGREEMENT_REASON} characters.")
+        check_raise(pay_policy(db), raise_percent, raise_reason)
 
     decision = Decision(nomination_id=nomination.id, employee_id=nomination.employee_id, decided_by=user.id,
                         decision=body.decision, model_score=round(score, 4), model_threshold=live.threshold,
@@ -291,8 +308,19 @@ def tell_about_promotion(background: BackgroundTasks, db: Session, decision: Dec
 
 def pay_history(db: Session, decision_id: int) -> list[dict]:
     """Every step of the pay rise's sign-off, oldest first."""
-    steps = db.scalars(select(PayReview).where(PayReview.decision_id == decision_id).order_by(PayReview.at, PayReview.id))
-    return [{"action": s.action, "by": s.by_name, "at": iso(s.at), "raise": s.raise_percent, "note": s.note} for s in steps]
+    return pay_histories(db, [decision_id]).get(decision_id, [])
+
+
+def pay_histories(db: Session, decision_ids: list[int]) -> dict[int, list[dict]]:
+    """The sign-off steps of many pay rises in one query: {decision id: [step, ...]}, each oldest first."""
+    found: dict[int, list[dict]] = {}
+    if not decision_ids:
+        return found
+    steps = db.scalars(select(PayReview).where(PayReview.decision_id.in_(decision_ids)).order_by(PayReview.at, PayReview.id))
+    for s in steps:
+        found.setdefault(s.decision_id, []).append(
+            {"action": s.action, "by": s.by_name, "at": iso(s.at), "raise": s.raise_percent, "note": s.note})
+    return found
 
 
 # ─── HR resubmits a pay rise Finance sent back ────────────────────────────────
@@ -312,12 +340,8 @@ def resubmit(decision_id: int, body: ResubmitIn, background: BackgroundTasks, us
     if decision.pay_status != "returned":
         raise HTTPException(status.HTTP_409_CONFLICT, "Only a pay rise Finance has sent back can be resubmitted.")
     raise_percent = round(body.approved_raise, 1)
-    policy = pay_policy(db)
     raise_reason = (body.raise_reason or "").strip() or None
-    if not policy.min_raise <= raise_percent <= policy.max_raise and (raise_reason is None or len(raise_reason) < MIN_DISAGREEMENT_REASON):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
-                            f"{raise_percent:g}% is outside the pay policy ({policy.min_raise:g}% to {policy.max_raise:g}%), "
-                            f"so please explain why, in at least {MIN_DISAGREEMENT_REASON} characters.")
+    check_raise(pay_policy(db), raise_percent, raise_reason)
     decision.approved_raise, decision.raise_reason, decision.pay_status = raise_percent, raise_reason, "awaiting_finance"
     db.add(PayReview(decision_id=decision.id, action="resubmitted", by_user=user.id, by_name=user.full_name,
                      raise_percent=raise_percent, note=body.note.strip()))
@@ -332,7 +356,8 @@ def resubmit(decision_id: int, body: ResubmitIn, background: BackgroundTasks, us
 
 
 # ─── The decision log ─────────────────────────────────────────────────────────
-def log_entry(db: Session, decision: Decision) -> dict:
+def log_entry(db: Session, decision: Decision, histories: dict | None = None) -> dict:
+    """One decision as the log shows it. A list passes the pay histories it fetched for all its decisions at once."""
     employee = db.get(Employee, decision.employee_id)
     nomination = db.get(Nomination, decision.nomination_id)
     return {
@@ -353,14 +378,22 @@ def log_entry(db: Session, decision: Decision) -> dict:
         "approved_raise": decision.approved_raise,
         "raise_reason": decision.raise_reason,
         "pay_status": decision.pay_status,
-        "pay_history": pay_history(db, decision.id),
+        "pay_history": histories.get(decision.id, []) if histories is not None else pay_history(db, decision.id),
     }
 
 
 @router.get("/decisions")
-def decision_log(_: User = Depends(require_roles(HR, AUDITOR)), db: Session = Depends(get_db)):
-    """Every decision, newest first. HR, and the compliance auditor (read-only)."""
-    return [log_entry(db, d) for d in db.scalars(select(Decision).order_by(Decision.decided_at.desc(), Decision.id.desc()))]
+def decision_log(pay_status: str | None = None, _: User = Depends(require_roles(HR, AUDITOR)), db: Session = Depends(get_db)):
+    """
+    Every decision, newest first. HR, and the compliance auditor (read-only). `pay_status` keeps only those at one
+    step of Finance's sign-off (the notification bell asks only for the ones Finance sent back).
+    """
+    query = select(Decision).order_by(Decision.decided_at.desc(), Decision.id.desc())
+    if pay_status:
+        query = query.where(Decision.pay_status == pay_status)
+    decisions = list(db.scalars(query))
+    histories = pay_histories(db, [d.id for d in decisions])
+    return [log_entry(db, d, histories) for d in decisions]
 
 
 # ─── The employee's own promotions ────────────────────────────────────────────

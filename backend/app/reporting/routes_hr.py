@@ -23,9 +23,11 @@ hr_only = require_roles(HR)
 STATUSES = ["open", "investigating", "closed"]
 
 
-def summary(db: Session, report: Report) -> dict:
-    """One row of the inbox."""
-    last = db.scalar(select(Message).where(Message.case_id == report.case_id).order_by(Message.number.desc()).limit(1))
+def summary(db: Session, report: Report, facts: dict | None = None) -> dict:
+    """One row of the inbox. A list passes `facts` (last message and evidence count of every case, fetched at once)."""
+    if facts is None:
+        facts = case_facts(db, [report.case_id])
+    last, evidence_count = facts["last"].get(report.case_id), facts["evidence"].get(report.case_id, 0)
     return {
         "case_id": report.case_id,
         "category": CATEGORIES[report.category],
@@ -34,8 +36,19 @@ def summary(db: Session, report: Report) -> dict:
         "created_on": report.created_on.isoformat(),
         "messages": last.number if last else 0,
         "reporter_wrote_last": bool(last and last.sender == "reporter"),
-        "evidence_count": len(db.scalars(select(Evidence.id).where(Evidence.case_id == report.case_id)).all()),
+        "evidence_count": evidence_count,
     }
+
+
+def case_facts(db: Session, case_ids: list[str]) -> dict:
+    """For many cases in two queries: each case's last message, and how many evidence files it has."""
+    from sqlalchemy import func
+    last = {}
+    for m in db.scalars(select(Message).where(Message.case_id.in_(case_ids)).order_by(Message.case_id, Message.number)):
+        last[m.case_id] = m  # ordered by number, so the last one seen is the latest
+    evidence = dict(db.execute(select(Evidence.case_id, func.count()).where(Evidence.case_id.in_(case_ids))
+                               .group_by(Evidence.case_id)).all())
+    return {"last": last, "evidence": evidence}
 
 
 @router.get("/notifications")
@@ -45,8 +58,10 @@ def notifications(db: Session = Depends(get_db), _: User = Depends(hr_only)):
     worked out from the cases themselves, so no extra record (such as the time a reporter wrote) is kept.
     """
     items = []
-    for report in db.scalars(select(Report).where(Report.status != "closed")):
-        row = summary(db, report)
+    reports = list(db.scalars(select(Report).where(Report.status != "closed")))
+    facts = case_facts(db, [r.case_id for r in reports])
+    for report in reports:
+        row = summary(db, report, facts)
         if row["messages"] == 0:
             items.append({"case_id": report.case_id, "kind": "new_report", "priority": report.priority,
                           "text": f"New {row['category'].lower()} report ({LABELS[report.priority]} priority)"})
@@ -61,7 +76,8 @@ def inbox(db: Session = Depends(get_db), _: User = Depends(hr_only)):
     """Every report: open cases first, then by priority (high first), newest first."""
     reports = db.scalars(select(Report)).all()
     order = lambda r: (r.status == "closed", -LEVELS.index(r.priority), -r.created_on.toordinal())  # noqa: E731
-    return [summary(db, r) for r in sorted(reports, key=order)]
+    facts = case_facts(db, [r.case_id for r in reports])
+    return [summary(db, r, facts) for r in sorted(reports, key=order)]
 
 
 def get_report(db: Session, case_id: str) -> Report:

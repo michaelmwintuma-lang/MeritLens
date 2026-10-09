@@ -228,3 +228,11 @@ def test_the_model_page_lists_everything_the_model_never_uses(client):
     names = {n["name"] for n in data["never_used"]}
     assert {"department", "gender", "age", "salary"} <= names and len(names) == len(EXCLUDED)
     assert data["sample_size"] == len(get_model().background)
+
+
+def test_scoring_many_at_once_gives_exactly_the_same_scores():
+    """Phase 8: lists score everyone in one call to the model; it must not change any score."""
+    model = get_model()
+    records = model.background.head(50).to_dict("records")
+    assert model.scores(records) == [model.score(r) for r in records]
+    assert model.scores([]) == []

@@ -148,3 +148,17 @@ def test_teams_only_for_managers_and_only_by_the_admin(client):
     assert client.put(f"/api/admin/users/{hr_id}/team", headers=admin, json={"employee_ids": []}).status_code == 400
     assert client.put(f"/api/admin/users/{manager_id(client)}/team", headers=admin, json={"employee_ids": [999999999]}).status_code == 404
     assert client.put(f"/api/admin/users/{manager_id(client)}/team", headers=login(client, "hr"), json={"employee_ids": []}).status_code == 403
+
+
+def test_the_decision_log_can_be_filtered_by_pay_status(client):
+    """Phase 8: the notification bell asks only for the pay rises Finance sent back."""
+    from tests.test_finance import approve, send_back
+    team = client.get("/api/promotion/employees", headers=login(client, "manager")).json()["employees"]
+    sent_back = approve(client, employee_id=team[0]["id"])
+    approve(client, employee_id=team[1]["id"])                     # this one stays with Finance
+    send_back(client, sent_back["id"])
+    hr = login(client, "hr")
+    everything = client.get("/api/promotion/decisions", headers=hr).json()
+    returned = client.get("/api/promotion/decisions", headers=hr, params={"pay_status": "returned"}).json()
+    assert len(everything) == 2 and [d["id"] for d in returned] == [sent_back["id"]]
+    assert returned[0]["pay_history"] == next(d for d in everything if d["id"] == sent_back["id"])["pay_history"]

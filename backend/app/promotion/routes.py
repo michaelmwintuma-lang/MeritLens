@@ -76,11 +76,10 @@ def list_employees(user: User = Depends(promotion_roles), db: Session = Depends(
     elif user.role == EMPLOYEE:
         query = query.where(Employee.id == (user.employee_id or -1))
     live = model()
-    rows = []
-    for employee in db.scalars(query):
-        score = live.score(employee.record)
-        rows.append({"id": employee.id, "full_name": employee.full_name, "department": employee.department,
-                     "score": round(score, 4), "recommended": score >= live.threshold})
+    employees = list(db.scalars(query))
+    rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
+             "score": round(score, 4), "recommended": score >= live.threshold}
+            for e, score in zip(employees, live.scores([e.record for e in employees]))]  # scored all at once
     return {"threshold": live.threshold, "employees": rows}
 
 
