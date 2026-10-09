@@ -40,9 +40,23 @@ router = APIRouter(prefix="/api/reports", tags=["reporting"])
 # Employees and managers report; HR handles reports in their inbox, and admins manage accounts
 reporters = require_roles(*REPORTER_ROLES)
 
-# What can be reported, in groups for the form. The keys are stored with each report, so they never change
-# (labels can). Some categories have a minimum priority: see app/reporting/triage.py.
+# What can be reported, in groups for the form. Reporting is part of the employee feedback channel: its purpose is
+# to raise an unfair promotion assessment, or anything else that went wrong at work, without being identified.
+# The keys are stored with each report, so they never change (labels can).
 CATEGORY_GROUPS = [
+    ("Promotion and appraisal", [
+        ("biased_rating", "Biased rating or appraisal"),
+        ("favouritism", "Favouritism"),
+        ("discrimination", "Discrimination"),
+        ("wrong_record", "Wrong or missing record"),
+    ]),
+    ("Anything else", [
+        ("other_concern", "Other workplace concern"),
+    ]),
+]
+# The categories offered before reporting was aligned with the feedback channel. Reports already saved keep
+# showing theirs; new reports use CATEGORY_GROUPS above. Some have a minimum priority: see app/reporting/triage.py.
+EARLIER_CATEGORY_GROUPS = [
     ("How people are treated", [
         ("harassment", "Harassment"),
         ("sexual_harassment", "Sexual harassment or assault"),
@@ -71,12 +85,16 @@ CATEGORY_GROUPS = [
         ("other", "Something else"),
     ]),
 ]
-CATEGORIES = {key: label for _, items in CATEGORY_GROUPS for key, label in items}
+REPORTABLE = {key for _, items in CATEGORY_GROUPS for key, _ in items}
+CATEGORIES = {key: label for _, items in EARLIER_CATEGORY_GROUPS + CATEGORY_GROUPS for key, label in items}
 OUTCOMES = {
     "substantiated": "Concern upheld",
     "not_substantiated": "Concern not upheld",
     "inconclusive": "Not enough evidence either way",
     "resolved": "Resolved informally",
+    # The concern was about an assessment, and it was unfair: HR can then open a re-appraisal of the affected value
+    # (a record correction that is never linked to the report)
+    "rating_unfair": "Rating found unfair",
 }
 MAX_ATTEMPTS = 5
 LOCK_MINUTES = 15
@@ -130,7 +148,7 @@ def submit(body: ReportIn, background: BackgroundTasks, db: Session = Depends(ge
     Save the approved, anonymised text. The signed-in user is checked (organisation members only) but is not
     passed on or saved anywhere. Returns the case ID and the secret key; the key is never shown again.
     """
-    if body.category not in CATEGORIES:
+    if body.category not in REPORTABLE:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Please choose one of the categories.")
     # The reporter may have edited the cleaned text; make sure no name, email, phone or date crept back in
     leftovers = still_identifying(body.text, directory_names(db))

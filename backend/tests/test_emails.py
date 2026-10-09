@@ -77,17 +77,17 @@ def test_a_rejection_emails_only_the_manager(client):
 
 # ─── Report alerts: nothing about the reporter, nothing of the text ───────────
 def test_hr_gets_a_report_alert_without_the_text(client):
-    case = client.post("/api/reports", headers=login(client, "employee"), json={"category": "harassment", "text": REPORT}).json()
+    case = client.post("/api/reports", headers=login(client, "employee"), json={"category": "favouritism", "text": REPORT}).json()
     alert = emails_to(HR_EMAIL)[-1]
     assert alert["subject"] == "New anonymous report (high priority)"
-    assert case["case_id"] in alert["text"] and "Harassment" in alert["text"]
+    assert case["case_id"] in alert["text"] and "Favouritism" in alert["text"]
     for leak in ["threatened", "supervisor", "unsafe", "Eli", "employee", case["key"]]:
         assert leak not in alert["text"] and leak not in alert["html"]
 
 
 def test_the_reporter_gets_no_email_about_their_report(client):
     before = count(EMPLOYEE_EMAIL)
-    client.post("/api/reports", headers=login(client, "employee"), json={"category": "bullying", "text": REPORT})
+    client.post("/api/reports", headers=login(client, "employee"), json={"category": "biased_rating", "text": REPORT})
     assert count(EMPLOYEE_EMAIL) == before  # an email to the reporter would link them to the report
 
 

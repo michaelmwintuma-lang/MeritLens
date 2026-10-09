@@ -15,7 +15,7 @@ TEXT = "My manager shouted at me and humiliated me in front of the whole team ag
 
 
 def new_case(client):
-    return client.post("/api/reports", headers=login(client, "employee"), json={"category": "bullying", "text": TEXT}).json()
+    return client.post("/api/reports", headers=login(client, "employee"), json={"category": "biased_rating", "text": TEXT}).json()
 
 
 def upload(client, case, data, name="IMG_Jane_Doe_2026-03-01.jpg", key=None, **form):

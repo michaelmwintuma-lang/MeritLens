@@ -7,7 +7,7 @@ from tests.conftest import login
 TEXT = "My manager shouted at me and humiliated me in front of the whole team again this week."
 
 
-def submit(client, text=TEXT, category="bullying"):
+def submit(client, text=TEXT, category="biased_rating"):
     return client.post("/api/reports", headers=login(client, "employee"), json={"category": category, "text": text}).json()
 
 
@@ -115,8 +115,8 @@ def test_reporter_sees_the_outcome_and_cannot_write_to_a_closed_case(client):
 
 
 def test_inbox_shows_open_high_priority_first_and_who_wrote_last(client):
-    low = submit(client, "I would like more flexible hours for everyone in our area.", "other")
-    high = submit(client, "He threatened me in the car park last week and I feel unsafe.", "other")
+    low = submit(client, "I would like more flexible hours for everyone in our area.", "other_concern")
+    high = submit(client, "He threatened me in the car park last week and I feel unsafe.", "other_concern")
     reporter(client, low, "/api/reports/messages", text="Any news on this please?")
     inbox = client.get("/api/hr/reports", headers=hr(client)).json()
     assert [r["case_id"] for r in inbox][:2] == [high["case_id"], low["case_id"]]

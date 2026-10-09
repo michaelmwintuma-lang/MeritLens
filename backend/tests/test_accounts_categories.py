@@ -72,16 +72,23 @@ def test_the_job_title_is_optional(client):
 
 
 # ─── Report categories ────────────────────────────────────────────────────────
-def test_the_form_lists_every_category_in_groups(client):
+def test_the_form_offers_the_promotion_focused_categories(client):
+    """Reporting is part of the feedback channel: new reports use the five promotion-focused categories."""
     groups = client.get("/api/reports/categories", headers=login(client, "employee")).json()
-    values = [item["value"] for group in groups for item in group["items"]]
-    assert len(values) == len(CATEGORIES) >= 15 and len(set(values)) == len(values)
-    assert {"sexual_harassment", "violence", "harm_risk", "data_privacy", "theft", "other"} <= set(values)
+    labels = [item["label"] for group in groups for item in group["items"]]
+    assert labels == ["Biased rating or appraisal", "Favouritism", "Discrimination", "Wrong or missing record",
+                      "Other workplace concern"]
 
 
-def test_the_original_categories_still_work(client):
-    """Reports already saved keep their category."""
-    assert {"harassment", "discrimination", "bullying", "safety", "ethics", "other"} <= set(CATEGORIES)
+def test_reports_already_saved_keep_their_category(client):
+    assert {"harassment", "discrimination", "bullying", "safety", "ethics", "other", "harm_risk"} <= set(CATEGORIES)
+    assert CATEGORIES["bullying"] == "Bullying or intimidation"
+
+
+def test_new_reports_cant_use_the_earlier_categories(client):
+    res = client.post("/api/reports", headers=login(client, "employee"),
+                      json={"category": "bullying", "text": "My team lead keeps mocking my work in front of everyone."})
+    assert res.status_code == 422
 
 
 @pytest.mark.parametrize("category,minimum", [("sexual_harassment", "high"), ("violence", "high"), ("harm_risk", "high"),
@@ -90,8 +97,8 @@ def test_serious_categories_have_a_minimum_priority(category, minimum):
     assert triage("Something happened that I want to raise.", category)["priority"] == minimum
 
 
-def test_a_report_can_be_sent_in_a_new_category(client):
+def test_a_risk_of_self_harm_is_still_high_priority_in_any_category(client):
     res = client.post("/api/reports", headers=login(client, "employee"),
-                      json={"category": "harm_risk", "text": "A colleague keeps saying they don't see the point in going on."})
+                      json={"category": "other_concern", "text": "A colleague keeps saying they don't see the point in going on."})
     assert res.status_code == 201
     assert emails_to("hr@example.org")[-1]["subject"] == "New anonymous report (high priority)"

@@ -65,7 +65,7 @@ def test_nothing_a_reporter_does_is_logged(client):
         before = db.query(ActivityEntry).count()
     text = "My team lead keeps mocking my work in front of everyone during stand-ups."
     client.post("/api/reports/preview", headers=employee, json={"text": text})
-    case = client.post("/api/reports", headers=employee, json={"category": "bullying", "text": text}).json()
+    case = client.post("/api/reports", headers=employee, json={"category": "biased_rating", "text": text}).json()
     client.post("/api/reports/access", headers=employee, json={"case_id": case["case_id"], "key": case["key"]})
     client.post("/api/reports/messages", headers=employee, json={"case_id": case["case_id"], "key": case["key"], "text": "It happened again."})
     with SessionLocal() as db:
@@ -74,7 +74,7 @@ def test_nothing_a_reporter_does_is_logged(client):
 
 def test_hrs_actions_on_reports_are_logged_without_the_reporter(client):
     case = client.post("/api/reports", headers=login(client, "employee"),
-                       json={"category": "bullying", "text": "My team lead keeps mocking my work in front of everyone."}).json()
+                       json={"category": "biased_rating", "text": "My team lead keeps mocking my work in front of everyone."}).json()
     hr = login(client, "hr")
     client.post(f"/api/hr/reports/{case['case_id']}/messages", headers=hr, json={"text": "Thank you, we are looking into it."})
     client.patch(f"/api/hr/reports/{case['case_id']}", headers=hr, json={"priority": "high"})

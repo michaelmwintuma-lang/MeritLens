@@ -45,7 +45,7 @@ def test_identifying_phrases_are_flagged_once():
 
 
 # ─── Submitting ───────────────────────────────────────────────────────────────
-def submit(client, user="employee", text=TEXT, category="harassment"):
+def submit(client, user="employee", text=TEXT, category="favouritism"):
     return client.post("/api/reports", headers=login(client, user), json={"category": category, "text": text})
 
 
@@ -159,7 +159,7 @@ def test_promotion_code_never_imports_the_reporting_code():
 def test_predictions_are_identical_before_and_after_reports(client):
     hr = login(client, "hr")
     before = client.get("/api/promotion/employees", headers=hr).json()
-    for category in ["harassment", "discrimination", "bullying"]:
+    for category in ["biased_rating", "discrimination", "favouritism"]:
         submit(client, category=category)
     after = client.get("/api/promotion/employees", headers=hr).json()
     assert before == after

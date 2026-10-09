@@ -66,7 +66,7 @@ TEXT = "He threatened me in the car park after the meeting and I feel unsafe at 
 
 
 def report(client):
-    return client.post("/api/reports", headers=login(client, "employee"), json={"category": "other", "text": TEXT}).json()
+    return client.post("/api/reports", headers=login(client, "employee"), json={"category": "other_concern", "text": TEXT}).json()
 
 
 def test_hr_is_notified_of_new_reports_and_replies(client):
