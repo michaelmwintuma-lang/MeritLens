@@ -5,8 +5,9 @@ export default function ReportingPage() {
   return (
     <>
       <PageIntro title="Reporting a concern without giving your name">
-        Staff sign in, so only people in the organisation can report. The report itself is never linked to their
-        account.
+        Reporting is part of the employee feedback channel: if an assessment seems unfair, an employee can say so
+        without being identified. Staff sign in, so only people in the organisation can report. The report itself
+        is never linked to their account.
       </PageIntro>
 
       <Screenshot src="/landing/report.webp" alt="The report form's check step, with a name, a date and a phone number replaced by tags">
@@ -16,8 +17,9 @@ export default function ReportingPage() {
       <section className="prose">
         <h2>After it's sent</h2>
         <p>
-          The reporter gets a case ID and a secret key, shown once. With those they can read HR's replies and answer
-          them. The key itself is never stored, and five wrong tries lock the case for 15 minutes.
+          The reporter gets a case ID and a secret key, shown once, to keep in a downloaded receipt or a password
+          manager. With those they can read HR's replies and answer them. The website never keeps the key, the server
+          stores only a hash of it, and five wrong tries lock the case for 15 minutes.
         </p>
         <p>
           They can attach photos or videos. Location, phone model, owner name and the time taken are stripped from
@@ -25,8 +27,10 @@ export default function ReportingPage() {
           for faces, reflections and their own voice.
         </p>
         <p>
-          Reports can be about anything from harassment and bullying to safety hazards, fraud or data breaches. There
-          are 19 categories.
+          A report can be about a biased rating or appraisal, favouritism, discrimination, a wrong or missing record, or
+          any other workplace concern. When HR closes a case finding a rating unfair, they can re-appraise the value
+          concerned. That correction is never linked to the report, and the report itself never reaches the
+          promotion model.
         </p>
       </section>
 

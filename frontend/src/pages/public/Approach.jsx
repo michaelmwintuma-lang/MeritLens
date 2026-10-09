@@ -2,18 +2,19 @@
 import { PageIntro } from "./parts";
 
 const ROLES = [
-  ["Employee", "Their own readiness score and what's behind it", "Try what-if changes, report a concern, follow up on it"],
+  ["Employee", "Their own readiness score and what's behind it", "Try what-if changes; rate the explanation, ask HR to correct their record, or report a concern anonymously"],
   ["Manager", "Their team's scores", "Recommend someone, with ratings, examples and a proposed pay rise"],
-  ["HR", "All employees, recommendations, the decision log and the report inbox", "Decide on promotions, set the pay range, handle reports"],
+  ["HR", "All employees, recommendations, the decision log, record corrections, the feedback dashboard and the report inbox", "Decide on promotions, confirm or reject record corrections, set the pay range, handle reports"],
   ["Finance", "Approved pay rises and the pay range", "Confirm a pay rise or send it back to HR"],
-  ["Admin", "Accounts and the activity log", "Create accounts and set managers' teams"],
+  ["Admin", "Accounts, the activity log and the system's health", "Create accounts and set managers' teams"],
+  ["Compliance auditor", "The decision log, the model and its fairness, and the feedback dashboard (totals only)", "Check decisions; read-only, never sees reports"],
 ];
 
 export default function Approach() {
   return (
     <>
       <PageIntro title="Who uses it">
-        Five roles, each seeing only what it needs. A manager can't see other teams, Finance doesn't see scores, and
+        Six roles, each seeing only what it needs. A manager can't see other teams, Finance doesn't see scores, and
         nobody can see who sent a report.
       </PageIntro>
 

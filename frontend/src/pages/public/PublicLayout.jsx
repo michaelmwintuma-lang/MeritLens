@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { BrandMark, ThemeToggle } from "../../components/ui";
 import { BRAND, PAGES } from "./parts";
+import { PROJECT } from "../../brand";
 import "./public.css";
 
 export default function PublicLayout() {
@@ -62,6 +63,15 @@ export default function PublicLayout() {
             <Link to="/demo">Book a demo</Link>
             <Link to="/login">Sign in</Link>
           </nav>
+        </div>
+        <div className="footer-project">
+          <p className="footer-title">{PROJECT.title}</p>
+          {/* Only the details that have been filled in (brand.js) are shown */}
+          <dl className="footer-credits">
+            {PROJECT.university && <div><dt>University</dt><dd>{PROJECT.university}</dd></div>}
+            {PROJECT.team.length > 0 && <div><dt>Team</dt><dd>{PROJECT.team.join(", ")}</dd></div>}
+            {PROJECT.supervisors.length > 0 && <div><dt>Supervised by</dt><dd>{PROJECT.supervisors.join(", ")}</dd></div>}
+          </dl>
         </div>
         <p className="footer-note">A final-year project. Demonstrated on synthetic employee data; screenshots use made-up names.</p>
       </footer>

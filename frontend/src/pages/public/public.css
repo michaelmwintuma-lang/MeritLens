@@ -99,3 +99,33 @@ html { scroll-behavior: smooth; }
 .demo-done p { color: var(--muted); max-width: 380px; margin: 0 0 14px; }
 .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 @media (max-width: 900px) { .demo-page { grid-template-columns: 1fr; gap: 24px; } }
+
+/* Landing page: predict → explain → respond */
+.eyebrow { font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; color: var(--primary); margin: 0 0 10px; }
+.intro-note { margin-top: 14px; max-width: 640px; }
+.home-section { margin: 56px 0; }
+.home-section > h2 { font-size: 26px; margin-bottom: 20px; }
+.how-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.how-steps li { border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); position: relative; }
+.how-steps li:not(:last-child)::after { content: "→" / ""; position: absolute; right: -18px; top: 30px; color: var(--muted); font-weight: 700; }
+.how-steps p, .feature-grid p, .promise-grid p { color: var(--muted); margin: 0; font-size: 15px; }
+.how-icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); color: var(--primary); margin-bottom: 12px; }
+.how-number { color: var(--muted); }
+.feature-grid, .promise-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px 32px; }
+.feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.promise-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.feature-icon { color: var(--primary); margin-bottom: 8px; }
+.trust { border-top: 1px solid var(--border); padding-top: 40px; }
+@media (max-width: 860px) {
+  .how-steps, .feature-grid, .promise-grid { grid-template-columns: 1fr; }
+  .how-steps li:not(:last-child)::after { content: "↓" / ""; right: 22px; top: auto; bottom: -22px; }
+}
+@media (min-width: 561px) and (max-width: 860px) { .feature-grid { grid-template-columns: 1fr 1fr; } }
+
+/* Footer: the project behind it */
+.footer-project { max-width: 1080px; margin: 18px auto 0; padding: 0 24px; }
+.footer-title { font-weight: 700; font-size: 14px; margin: 0 0 6px; max-width: 760px; }
+.footer-credits { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 0; font-size: 14px; }
+.footer-credits dt { display: inline; color: var(--muted); }
+.footer-credits dt::after { content: ": "; }
+.footer-credits dd { display: inline; margin: 0; }
