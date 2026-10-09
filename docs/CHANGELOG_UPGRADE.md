@@ -117,3 +117,21 @@ HR confirming a record correction, which is logged.
 - Fixes found on the way: a score below 0.5% read "0%" (now "under 1%"), and signing in from "Report a concern
   anonymously" landed on the overview instead of the report form.
 - The browser checks now run against a production build (`vite preview`), which never reloads a page mid-check.
+
+## Phase 7: UI/UX and accessibility
+
+- **The explanation page reads in plain words first**, for every role: the score with "readiness is compared with
+  an average employee", what raised and lowered it, the path to promotion (tips, now before the what-if), the
+  what-if, and the respond panel; the exact numbers, LIME and the model's details are under **"Show technical
+  details"**. On the employee's own "My growth" page the prediction runs as the page opens and the bars carry no
+  log-odds numbers. LIME and the tips run at the same time.
+- **One loading and error pattern**: a spinner announced to screen readers, and errors with a "Try again" button,
+  on every page and panel (19 places). HR's nomination review no longer spins forever when only the explanation
+  fails to load.
+- **Accessibility**: segmented controls are a group of toggle buttons (they claimed to be tabs without arrow-key
+  support); tables that scroll sideways on a phone can be reached with the keyboard. axe-core (WCAG 2.1 A/AA) on
+  17 pages in light and dark themes: no findings (`docs/screenshots/PHASE7.md`).
+- **Before/after screenshots** of 17 pages on a computer and a phone: `docs/screenshots/phase7-before`,
+  `phase7-after`, made with `scripts/ui_capture.js`. Nothing is wider than a phone's screen.
+- The existing design (teal, light and dark themes, phone tab bar) is kept; the "indigo for promotion" colour of
+  the plan doesn't exist in this design, so no colour scheme was changed.
