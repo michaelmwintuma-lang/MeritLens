@@ -104,5 +104,28 @@ def test_only_hr_gets_hr_notifications(client, username):
 def test_the_landing_page_summary_needs_no_sign_in_and_reveals_no_one(client):
     res = client.get("/api/public/summary")
     assert res.status_code == 200
-    assert set(res.json()) <= {"trained", "model", "roc_auc", "pr_auc", "pr_auc_baseline", "test_size",
-                               "fairness_passes", "lowest_fairness_ratio"}
+    assert set(res.json()) <= {"trained", "model", "inputs", "threshold", "roc_auc", "pr_auc", "pr_auc_baseline",
+                               "test_size", "fairness_passes", "lowest_fairness_ratio", "anonymiser_recall",
+                               "urgent_caught", "urgent_total"}
+
+
+def test_the_landing_page_numbers_are_the_measured_ones(client):
+    """Review B2, B3: the website showed hard-coded numbers (0.93, 79%, 87%, 14 of 14)."""
+    import json
+    from pathlib import Path
+    results = Path(__file__).resolve().parents[2] / "results"
+    facts = client.get("/api/public/summary").json()
+    metrics = json.loads((results / "metrics.json").read_text())
+    evaluation = json.loads((results / "reporting_evaluation.json").read_text())["developer"]
+    assert facts["roc_auc"] == metrics["roc_auc"] and facts["threshold"] == metrics["threshold"]
+    assert facts["inputs"] == 20
+    assert facts["anonymiser_recall"] == evaluation["anonymiser"]["overall"]["recall"]
+    assert facts["urgent_total"] == evaluation["triage"]["per_class"]["high"]["count"]
+
+
+def test_the_website_shows_no_made_up_numbers():
+    from pathlib import Path
+    pages = Path(__file__).resolve().parents[2] / "frontend" / "src" / "pages" / "public"
+    text = "".join(p.read_text(encoding="utf-8") for p in pages.glob("*.jsx"))
+    for invented in ['"0.93"', '"93%"', '"20,000"', "79%", "87%", "14 of 14", "21 performance"]:
+        assert invented not in text, invented

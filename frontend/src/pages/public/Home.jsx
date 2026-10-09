@@ -1,5 +1,5 @@
-// Home page. The first two results come from the last training run (/api/public/summary); the reporting results
-// are from results/reporting_evaluation.md.
+// Home page. Every result comes from the last training and evaluation runs (/api/public/summary). A result that
+// hasn't been measured yet shows as "–", never as an example number.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -34,7 +34,8 @@ export default function Home() {
         <article>
           <h2>Promotion readiness</h2>
           <p>
-            The model looks at 21 performance and development measures. It never sees gender, age, education or pay.
+            The model looks at {trained ? `${facts.inputs} ` : ""}performance and development measures. It never sees
+            gender, age, education, department or pay.
             Anyone looking at a score can open it and see the factors behind it, plus a few realistic things the person
             could work on.
           </p>
@@ -54,12 +55,14 @@ export default function Home() {
         <h2>How it did in testing</h2>
         <p className="muted">Measured on synthetic (made-up) employee data and 50 hand-labelled test reports.</p>
         <dl className="results">
-          <div><dt>{trained ? facts.roc_auc.toFixed(2) : "0.93"}</dt>
-            <dd>ROC-AUC for the promotion model on {trained ? facts.test_size.toLocaleString() : "20,000"} employees it hadn't seen during training.</dd></div>
-          <div><dt>{trained ? `${Math.round(facts.lowest_fairness_ratio * 100)}%` : "93%"}</dt>
+          <div><dt>{trained ? facts.roc_auc.toFixed(2) : "–"}</dt>
+            <dd>ROC-AUC for the promotion model on {trained ? `${facts.test_size.toLocaleString()} employees` : "employees"} it hadn't seen during training.</dd></div>
+          <div><dt>{trained ? `${Math.round(facts.lowest_fairness_ratio * 100)}%` : "–"}</dt>
             <dd>Lowest selection ratio between groups (gender, age, education). The four-fifths rule asks for at least 80%.</dd></div>
-          <div><dt>87%</dt><dd>Of names, emails, phone numbers and dates removed automatically. The reporter reviews the rest before sending.</dd></div>
-          <div><dt>14 of 14</dt><dd>Urgent test reports given high priority. The trade-off: some less urgent ones were rated too high.</dd></div>
+          <div><dt>{facts?.anonymiser_recall != null ? `${Math.round(facts.anonymiser_recall * 100)}%` : "–"}</dt>
+            <dd>Of names, emails, phone numbers and dates removed automatically. The reporter reviews the rest before sending.</dd></div>
+          <div><dt>{facts?.urgent_total ? `${facts.urgent_caught} of ${facts.urgent_total}` : "–"}</dt>
+            <dd>Urgent test reports given high priority. The trade-off: some less urgent ones were rated too high.</dd></div>
         </dl>
       </section>
 

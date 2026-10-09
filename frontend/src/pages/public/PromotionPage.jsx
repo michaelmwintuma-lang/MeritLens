@@ -1,7 +1,11 @@
 // How a promotion decision is made, from the model's score to Finance's sign-off.
+import { useEffect, useState } from "react";
+import { api } from "../../api";
 import { PageIntro, Screenshot } from "./parts";
 
 export default function PromotionPage() {
+  const [facts, setFacts] = useState(null);
+  useEffect(() => { api("/public/summary").then(setFacts).catch(() => setFacts(null)); }, []);
   return (
     <>
       <PageIntro title="How a promotion decision is made">
@@ -14,7 +18,7 @@ export default function PromotionPage() {
           <h3>The model scores readiness</h3>
           <p>
             It uses performance and development data only: ratings, results, training, projects, attendance and time
-            in role. A score above 79% counts as recommended. Opening a score shows each factor's contribution, a second
+            in role{facts?.trained ? `. A score of ${Math.round(facts.threshold * 100)}% or more counts as recommended` : ""}. Opening a score shows each factor's contribution, a second
             explanation from a different method (LIME) as a cross-check, and a what-if tool for trying changes.
           </p>
         </li>
