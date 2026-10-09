@@ -50,3 +50,35 @@ Each fix has tests; the review's numbers are in brackets.
   app, including every menu page for all six roles.
 - The public summary moved to `app/public/` after the isolation test caught it reading reporting results from
   inside the promotion package.
+
+## Phase 4: the employee feedback channel (predict → explain → **respond**)
+
+A new backend module, `app/feedback`, which the promotion code never imports. Nothing in it changes a score except
+HR confirming a record correction, which is logged.
+
+- **Respond panel** on the employee's "My growth" page, after the explanation, with three routes:
+  1. *Rate this explanation*: "This explanation was clear" and "This explanation was useful" (1–5), optional
+     "seems wrong" / "seems unfair" marks per factor and a comment. Stored with the model version and the score it
+     explained; rating the same model's explanation again replaces the earlier rating. HR and the auditor see only
+     aggregates (rates withheld below 5 ratings); managers see nothing.
+  2. *Correct my record*: pick a value from your own record (the 20 fields HR types in; nothing protected), the
+     correct value, evidence in words and optionally a PDF, JPEG or PNG. Your requests and HR's decisions are listed.
+  3. *Report anonymously*: opens the report form with "Biased rating or appraisal" chosen. All anonymity
+     protections are unchanged.
+- **Reporting aligned with the feedback channel:** new reports use five categories (biased rating or appraisal,
+  favouritism, discrimination, wrong or missing record, other workplace concern); saved reports keep theirs.
+- **HR correction queue** (`/corrections`): confirm with the verified value (the record is corrected, the employee
+  re-scored, and who, old and new value, reason, readiness before and after and the model version go to the record
+  history and the activity log) or reject with a reason of at least 20 characters, which the employee receives.
+  The employee is told by email and in the notification bell.
+- **Committee note:** HR's nomination review shows pending corrections for the nominee and can hold the decision
+  until they're resolved. A hold is not a decision (never counted as an override) and lifts when the correction is
+  decided.
+- **Re-appraisal:** a case closed as "Rating found unfair" lets HR open a correction for the affected value. The
+  case is checked but its ID is stored nowhere with the correction; the employee doesn't see HR's note.
+- **Isolation test** (`tests/test_isolation.py`): the explanation (as HR, the manager and the employee see it),
+  tips, a what-if and everyone's scores are byte-for-byte identical after ratings, corrections, a held decision and
+  four reports with conversations and outcomes; a confirmed correction then changes the prediction and is logged.
+  **Static check:** nothing in `app/promotion` imports or names the feedback or reporting code or tables.
+  **Run-time check:** the prediction endpoints run no SQL on those tables.
+- The employee's "My readiness" is now "My growth".
