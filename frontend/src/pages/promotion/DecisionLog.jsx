@@ -1,6 +1,6 @@
 // HR: every promotion decision, with what the model said at the time and the reason.
-import { useEffect, useState } from "react";
 import { api } from "../../api";
+import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
 import { AgreesWithModel } from "../../components/promotion/Status";
 import { PayStatus } from "../../components/promotion/PayStatus";
@@ -8,10 +8,7 @@ import { BookCheck } from "lucide-react";
 import { EmptyState, LoadError, Loading, PageHeader, StatCard } from "../../components/ui";
 
 export default function DecisionLog() {
-  const [log, setLog] = useState(null);
-  const [error, setError] = useState("");
-  const load = () => { setError(""); return api("/promotion/decisions").then(setLog).catch((err) => setError(err.message)); };
-  useEffect(() => { load(); }, []);
+  const { data: log, error, reload: load } = useLoad(() => api("/promotion/decisions"), []);
 
   if (error) return <LoadError message={error} onRetry={load} />;
   if (!log) return <Loading />;

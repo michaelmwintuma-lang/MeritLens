@@ -1,39 +1,42 @@
 // Pages and who may open them.
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
 import { REPORTER_ROLES } from "./roles";
-import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Loading } from "./components/ui";
 import PublicLayout from "./pages/public/PublicLayout";
 import PublicHome from "./pages/public/Home";
-import Approach from "./pages/public/Approach";
-import PromotionPage from "./pages/public/PromotionPage";
-import ReportingPage from "./pages/public/ReportingPage";
-import Privacy from "./pages/public/Privacy";
-import BookDemo from "./pages/public/BookDemo";
 import Login from "./pages/Login";
-import Home from "./pages/Home";
-import Account from "./pages/Account";
-import Users from "./pages/admin/Users";
-import ActivityLog from "./pages/admin/ActivityLog";
-import Email from "./pages/admin/Email";
-import DemoRequests from "./pages/admin/DemoRequests";
-import Readiness from "./pages/promotion/Readiness";
-import EmployeeList from "./pages/promotion/EmployeeList";
-import EmployeeForm from "./pages/promotion/EmployeeForm";
-import ImportEmployees from "./pages/promotion/ImportEmployees";
-import ModelOverview from "./pages/promotion/ModelOverview";
-import Nominations from "./pages/promotion/Nominations";
-import PaySignOff from "./pages/finance/PaySignOff";
-import ReviewNomination from "./pages/promotion/ReviewNomination";
-import DecisionLog from "./pages/promotion/DecisionLog";
-import Corrections from "./pages/feedback/Corrections";
-import FeedbackDashboard from "./pages/feedback/FeedbackDashboard";
-import Report from "./pages/reporting/Report";
-import CheckReport from "./pages/reporting/CheckReport";
-import ReportInbox from "./pages/reporting/ReportInbox";
-import ReportCase from "./pages/reporting/ReportCase";
+
+// Only the landing page and sign-in load straight away; every other page is fetched the first time it's opened
+const Layout = lazy(() => import("./components/Layout"));
+const Approach = lazy(() => import("./pages/public/Approach"));
+const PromotionPage = lazy(() => import("./pages/public/PromotionPage"));
+const ReportingPage = lazy(() => import("./pages/public/ReportingPage"));
+const Privacy = lazy(() => import("./pages/public/Privacy"));
+const BookDemo = lazy(() => import("./pages/public/BookDemo"));
+const Home = lazy(() => import("./pages/Home"));
+const Account = lazy(() => import("./pages/Account"));
+const Users = lazy(() => import("./pages/admin/Users"));
+const ActivityLog = lazy(() => import("./pages/admin/ActivityLog"));
+const Email = lazy(() => import("./pages/admin/Email"));
+const DemoRequests = lazy(() => import("./pages/admin/DemoRequests"));
+const Readiness = lazy(() => import("./pages/promotion/Readiness"));
+const EmployeeList = lazy(() => import("./pages/promotion/EmployeeList"));
+const EmployeeForm = lazy(() => import("./pages/promotion/EmployeeForm"));
+const ImportEmployees = lazy(() => import("./pages/promotion/ImportEmployees"));
+const ModelOverview = lazy(() => import("./pages/promotion/ModelOverview"));
+const Nominations = lazy(() => import("./pages/promotion/Nominations"));
+const PaySignOff = lazy(() => import("./pages/finance/PaySignOff"));
+const ReviewNomination = lazy(() => import("./pages/promotion/ReviewNomination"));
+const DecisionLog = lazy(() => import("./pages/promotion/DecisionLog"));
+const Corrections = lazy(() => import("./pages/feedback/Corrections"));
+const FeedbackDashboard = lazy(() => import("./pages/feedback/FeedbackDashboard"));
+const Report = lazy(() => import("./pages/reporting/Report"));
+const CheckReport = lazy(() => import("./pages/reporting/CheckReport"));
+const ReportInbox = lazy(() => import("./pages/reporting/ReportInbox"));
+const ReportCase = lazy(() => import("./pages/reporting/ReportCase"));
 
 /**
  * /login once signed in: go where the person was heading ("Report a concern anonymously" on the website passes
@@ -60,6 +63,7 @@ export default function App() {
   if (!user) {
     return (
       <ErrorBoundary resetKey={pathname}>
+      <Suspense fallback={<div className="center-page"><Loading /></div>}>
       <Routes>
         <Route element={<PublicLayout />}>
           <Route index element={<PublicHome />} />
@@ -72,6 +76,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </Suspense>
       </ErrorBoundary>
     );
   }
@@ -82,6 +87,7 @@ export default function App() {
   const viewAll = user.role === "admin" && user.can_view_employees ? ["hr", "admin"] : ["hr"];
 
   return (
+    <Suspense fallback={<div className="center-page"><Loading /></div>}>
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Home />} />
@@ -113,5 +119,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }

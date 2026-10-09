@@ -1,8 +1,9 @@
 // HR: every anonymous report, urgent and open ones first.
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Inbox, Paperclip } from "lucide-react";
 import { api } from "../../api";
+import { useLoad } from "../../useLoad";
 import { Card, EmptyState, LoadError, Loading, PageHeader, Segmented, StatCard } from "../../components/ui";
 import { CaseStatus, PriorityTag } from "../../components/reporting/Conversation";
 
@@ -14,11 +15,8 @@ const VIEWS = [
 ];
 
 export default function ReportInbox() {
-  const [reports, setReports] = useState(null);
   const [view, setView] = useState("open");
-  const [error, setError] = useState("");
-  const load = () => { setError(""); return api("/hr/reports").then(setReports).catch((err) => setError(err.message)); };
-  useEffect(() => { load(); }, []);
+  const { data: reports, error, reload: load } = useLoad(() => api("/hr/reports"), []);
 
   if (error) return <LoadError message={error} onRetry={load} />;
   if (!reports) return <Loading />;

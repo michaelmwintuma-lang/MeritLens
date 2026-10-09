@@ -12,11 +12,12 @@ import { useAuth } from "../auth";
 const CHECK_EVERY_MS = 60_000;
 
 async function hrItems() {
-  const [items, decisions, waiting] = await Promise.all([api("/hr/reports/notifications"), api("/promotion/decisions"),
+  const [items, decisions, waiting] = await Promise.all([api("/hr/reports/notifications"),
+    api("/promotion/decisions?pay_status=returned"), // only those Finance sent back, not the whole log
     api("/hr/feedback/corrections?status_filter=pending")]);
   const corrections = waiting.length ? [{ id: "corrections", text: `${waiting.length} record correction${waiting.length === 1 ? "" : "s"} waiting`,
     detail: "Check the evidence and decide", to: "/corrections" }] : [];
-  const sentBack = decisions.filter((d) => d.pay_status === "returned").map((d) => ({
+  const sentBack = decisions.map((d) => ({
     id: `pay-${d.id}`, text: "Finance sent a pay rise back", detail: d.employee.full_name, to: `/nominations/${d.nomination_id}` }));
   return [...corrections, ...sentBack, ...items.map((i) => ({ id: `${i.case_id}-${i.kind}`, text: i.text, detail: `Case ${i.case_id}`, to: `/reports/${i.case_id}` }))];
 }

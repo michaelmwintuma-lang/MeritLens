@@ -1,15 +1,12 @@
 // What the model looks at overall, across all employees.
-import { useEffect, useState } from "react";
 import { api } from "../../api";
+import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
 import { Brain } from "lucide-react";
 import { LoadError, Loading, PageHeader } from "../../components/ui";
 
 export default function ModelOverview() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
-  const load = () => { setError(""); return api("/promotion/importance").then(setData).catch((err) => setError(err.message)); };
-  useEffect(() => { load(); }, []);
+  const { data: data, error, reload: load } = useLoad(() => api("/promotion/importance"), []);
 
   if (error) return <><PageHeader icon={Brain} title="How the model works" /><LoadError message={error} onRetry={load} /></>;
   if (!data) return <Loading />;

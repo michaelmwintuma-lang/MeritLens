@@ -155,6 +155,17 @@ const CHECKS = {
     }
   },
 
+  /** Phase 8: long lists come a page at a time. */
+  async "the employee list shows 50 people at a time"(c) {
+    await signIn(c, "hr");
+    await goto(c, "/employees");
+    await waitFor(c, `document.querySelectorAll("tbody tr").length > 0`);
+    const first = await c.evaluate(`document.querySelectorAll("tbody tr").length`);
+    if (first !== 50) throw new Error(`the first page shows ${first} rows, not 50`);
+    await c.evaluate(`[...document.querySelectorAll(".pager button")].find((b) => b.innerText === "Next").click()`);
+    if (!(await waitFor(c, `document.querySelector(".pager").innerText.includes("51–100")`))) throw new Error("Next didn't show 51–100");
+  },
+
   /** No dead links or broken pages: every menu page opens for every role, without errors. */
   async "every menu page opens for every role"(first) {
     const problems = [];

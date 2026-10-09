@@ -626,3 +626,4 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
 .technical-details[open] > summary { margin-bottom: 14px; }
 .technical-details h3 { margin-top: 22px; }
 .helper { border-left: 3px solid var(--primary); padding-left: 12px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 14px; border-top: 1px solid var(--border); }
