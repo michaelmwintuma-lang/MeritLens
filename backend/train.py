@@ -125,9 +125,10 @@ def main():
         return
 
     joblib.dump(model, MODELS / "model.joblib")
+    trained_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     save_json(MODELS / "model_info.json", {
         "model": chosen, "reason": reason, "threshold": round(threshold, 4), "features": MODEL_FEATURES,
-        "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "trained_at": trained_at, "version": "v" + "".join(ch for ch in trained_at if ch.isdigit())[:14],
         **reference_statistics(train),
     })
     # A sample of training employees, used by LIME and for model-wide importance (step 3)

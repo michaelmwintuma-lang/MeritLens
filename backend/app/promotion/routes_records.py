@@ -15,9 +15,9 @@ from app.accounts.contacts import notify_new_team_members
 from app.accounts.models import User
 from app.core.activity import record as log
 from app.core.database import get_db
-from app.core.roles import HR, MANAGER
+from app.core.roles import AUDITOR, HR, MANAGER
 from app.core.security import require_roles
-from app.promotion.models import Employee
+from app.promotion.models import Employee, RecordChange
 from app.promotion.records import CSV_COLUMNS, GROUPS, field_list, read_csv, to_entry, to_record
 from app.promotion.routes import model
 
@@ -30,6 +30,7 @@ class RecordIn(BaseModel):
     department: str
     manager_user_id: int | None = None
     values: dict[str, float | str | None]
+    reason: str | None = Field(default=None, max_length=1000)  # why the record changed (kept in its history)
 
 
 class ImportIn(BaseModel):
@@ -107,13 +108,51 @@ def edit_record(employee_id: int, body: RecordIn, background: BackgroundTasks, d
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such employee.")
     record, warnings = check(body, db, ignore_id=employee_id)
     new_manager = body.manager_user_id if body.manager_user_id != employee.manager_user_id else None
+    old_record = json.loads(employee.record_json)
     employee.full_name, employee.department = body.full_name.strip(), body.department
     employee.manager_user_id, employee.record_json = body.manager_user_id, json.dumps(record)
+    record_history(db, employee, old_record, record, user, "hr_edit", body.reason)
     log(db, user, "employee_edited", employee.full_name)
     db.commit()
     if new_manager:  # moved to a different manager: tell the new one
         notify_new_team_members(background, db, {new_manager: [employee.full_name]})
     return {"id": employee.id, "warnings": warnings}
+
+
+def record_history(db: Session, employee: Employee, old: dict, new: dict, user: User, source: str,
+                   reason: str | None) -> RecordChange | None:
+    """
+    Keep a change to the model's inputs in the record's history, with the score before and after. Nothing is
+    written when no input changed (a new name or manager doesn't change the score). The caller commits.
+    """
+    changes = [{"field": f, "old": old.get(f), "new": new[f]} for f in new if old.get(f) != new[f]]
+    if not changes:
+        return None
+    live = model()
+    entry = RecordChange(employee_id=employee.id, changed_by=user.id, changed_by_name=user.full_name, source=source,
+                         changes_json=json.dumps(changes), reason=(reason or "").strip() or None,
+                         score_before=round(live.score(old), 4), score_after=round(live.score(new), 4),
+                         model_version=live.version)
+    db.add(entry)
+    return entry
+
+
+@router.get("/{employee_id}/history")
+def history(employee_id: int, db: Session = Depends(get_db), _: User = Depends(require_roles(HR, AUDITOR))):
+    """Every change to this employee's work record, newest first."""
+    from app.promotion.labels import format_value, label
+
+    if db.get(Employee, employee_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such employee.")
+    rows = db.scalars(select(RecordChange).where(RecordChange.employee_id == employee_id)
+                      .order_by(RecordChange.changed_at.desc(), RecordChange.id.desc()))
+    return [{"id": r.id, "changed_at": r.changed_at.isoformat(timespec="seconds"), "changed_by": r.changed_by_name,
+             "source": r.source, "reason": r.reason, "score_before": r.score_before, "score_after": r.score_after,
+             "model_version": r.model_version,
+             "changes": [{**c, "label": label(c["field"]),
+                          "old_display": format_value(c["field"], c["old"]) if c["old"] is not None else "–",
+                          "new_display": format_value(c["field"], c["new"])} for c in json.loads(r.changes_json)]}
+            for r in rows]
 
 
 @router.post("/import")

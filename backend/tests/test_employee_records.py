@@ -146,3 +146,45 @@ def test_adding_and_importing_are_in_the_activity_log(client):
                 json={"csv": csv_text(("Gus Log", "HR", "", {})), "save": True})
     actions = [e["action"] for e in client.get("/api/admin/activity", headers=login(client, "admin")).json()["entries"]]
     assert "employee_added" in actions and "employees_imported" in actions
+
+
+# ─── Record history (review B7) ───────────────────────────────────────────────
+def test_an_edit_keeps_old_and_new_values_the_scores_and_the_model_version(client):
+    employee_id = add(client).json()["id"]
+    hr = login(client, "hr")
+    record = client.get(f"/api/promotion/records/{employee_id}", headers=hr).json()
+    before = client.post(f"/api/promotion/employees/{employee_id}/predict", headers=hr).json()
+    record["values"]["projects_completed"] = 9
+    record["reason"] = "Two projects were missing from the review form."
+    client.put(f"/api/promotion/records/{employee_id}", headers=hr, json=record)
+    after = client.post(f"/api/promotion/employees/{employee_id}/predict", headers=hr).json()
+
+    [entry] = client.get(f"/api/promotion/records/{employee_id}/history", headers=hr).json()
+    assert entry["changes"] == [{"field": "projects_completed", "old": 6, "new": 9, "label": "Projects completed",
+                                 "old_display": "6", "new_display": "9"}]
+    assert entry["changed_by"] == "Hana Reviewer" and entry["source"] == "hr_edit"
+    assert entry["reason"] == "Two projects were missing from the review form."
+    assert entry["score_before"] == before["score"] and entry["score_after"] == after["score"]
+    assert entry["model_version"] == before["model_version"]
+
+
+def test_an_edit_that_changes_no_input_adds_nothing_to_the_history(client):
+    employee_id = add(client).json()["id"]
+    hr = login(client, "hr")
+    record = client.get(f"/api/promotion/records/{employee_id}", headers=hr).json()
+    client.put(f"/api/promotion/records/{employee_id}", headers=hr, json=record | {"full_name": "Ada Renamed"})
+    assert client.get(f"/api/promotion/records/{employee_id}/history", headers=hr).json() == []
+
+
+@pytest.mark.parametrize("username, allowed", [("hr", True), ("auditor", True), ("manager", False), ("employee", False)])
+def test_who_may_read_a_records_history(client, username, allowed):
+    employee_id = add(client).json()["id"]
+    res = client.get(f"/api/promotion/records/{employee_id}/history", headers=login(client, username))
+    assert (res.status_code == 200) == allowed
+
+
+def test_the_history_cannot_be_changed_or_deleted(client):
+    employee_id = add(client).json()["id"]
+    hr = login(client, "hr")
+    for method in ("PUT", "PATCH", "DELETE"):
+        assert client.request(method, f"/api/promotion/records/{employee_id}/history", headers=hr).status_code == 405

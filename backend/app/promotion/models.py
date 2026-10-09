@@ -91,6 +91,27 @@ class PayReview(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class RecordChange(Base):
+    """
+    One change to an employee's work record (the model's inputs), kept for audit and never changed or deleted:
+    who changed what, from what to what, why, and the readiness score before and after with the model version
+    that gave both. Written when HR edits a record and when HR confirms a record correction.
+    """
+    __tablename__ = "record_changes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), index=True)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    changed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    changed_by_name: Mapped[str] = mapped_column(String(120))      # kept even if the account is renamed or deleted
+    source: Mapped[str] = mapped_column(String(20))                 # hr_edit or correction
+    changes_json: Mapped[str] = mapped_column(Text)                 # [{"field", "old", "new"}, ...] in model units
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    score_before: Mapped[float] = mapped_column(Float)
+    score_after: Mapped[float] = mapped_column(Float)
+    model_version: Mapped[str] = mapped_column(String(40))
+
+
 class PayPolicy(Base):
     """
     The range a promotion pay rise should fall in, set by HR (one row). Managers propose within it; HR may go

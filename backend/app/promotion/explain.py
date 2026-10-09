@@ -53,6 +53,8 @@ class PromotionModel:
         self.pipeline = joblib.load(MODELS / "model.joblib")
         self.info = json.loads((MODELS / "model_info.json").read_text())
         self.threshold = self.info["threshold"]
+        # A short name for this trained model, stored with every score that is recorded (e.g. "v20261008222710")
+        self.version = self.info.get("version") or "v" + "".join(ch for ch in self.info["trained_at"] if ch.isdigit())[:14]
         self.stats = self.info["feature_stats"]
         self.background = pd.read_csv(MODELS / "background.csv")
 
@@ -260,6 +262,7 @@ class PromotionModel:
         contributions = self.contributions(record)
         return {
             "model": self.info["model"],
+            "model_version": self.version,
             "score": round(score, 4),
             "threshold": self.threshold,
             "recommended": score >= self.threshold,

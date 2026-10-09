@@ -15,6 +15,7 @@ import WhatIf from "../../components/promotion/WhatIf";
 import Tips from "../../components/promotion/Tips";
 import NominateBox from "../../components/promotion/NominateBox";
 import RunPrediction from "../../components/promotion/RunPrediction";
+import RecordHistory from "../../components/promotion/RecordHistory";
 
 export default function Readiness() {
   const { user } = useAuth();
@@ -99,6 +100,8 @@ export default function Readiness() {
           </section>
         </div>
       )}
+
+      {user.role === "hr" && <RecordHistory employeeId={profile.id} />}
 
       {user.role === "manager" && (
         <section className="card">

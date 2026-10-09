@@ -100,6 +100,15 @@ export default function EmployeeForm() {
           </Card>
         ))}
 
+        {editing && (
+          <Card title="Why are you changing this record?" subtitle="Optional. Kept in the record's history, with the readiness score before and after.">
+            <label className="field">Reason
+              <textarea rows={2} maxLength={1000} value={form.reason || ""} onChange={set("reason")}
+                placeholder="e.g. Two projects were missing from this year's review" />
+            </label>
+          </Card>
+        )}
+
         <div className="row" style={{ gap: 10 }}>
           <Button icon={Save} busy={saving} busyText="Checking and saving…">{editing ? "Save changes" : "Add employee"}</Button>
           <Link to={editing ? `/employees/${id}` : "/employees"} className="btn btn-plain">Cancel</Link>
