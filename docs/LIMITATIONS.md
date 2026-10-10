@@ -25,7 +25,9 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 - **Department partly comes back through two inputs.** Tasks and projects completed differ by department, so the
   model still recommends 24.7% of Engineering but 7.9% of HR, although department isn't an input
   (`results/proxy_analysis.json`). Comparing those counts within each department would reduce this.
-- **The dataset's origin is unverified.** Its Kaggle page, author and licence aren't recorded in the project.
+- **The dataset is a single simulation.** Kumar (2026), *Employee Promtion Prediction Dataset*, Kaggle, CC0. Its
+  author deliberately left some causes of promotion (such as managerial support) out of the data, which limits how
+  accurate any model can be, and the simulation hasn't been validated against real HR data.
 - **One input dominates.** Change in performance since last year accounts for about half of the model's effect.
 - **Monotonic constraints are a design choice.** The model can never lower a score when an input a person can
   improve goes up. That rules out patterns the data might hold, such as diminishing or negative returns at the

@@ -21,7 +21,8 @@ a static check, a run-time check and an end-to-end isolation test prove it. Only
 confirms against evidence changes a record; the employee is then re-scored and the change is logged. A manager
 recommends, HR decides (going against the model needs a written reason), and Finance signs off the pay rise.
 
-> All employee data is **synthetic** (100,000 made-up employees). No real person's data was used to build or
+> All employee data is **synthetic**: 100,000 simulated employees from the *Employee Promtion Prediction Dataset* by
+> Rohit Kumar on Kaggle (CC0), <https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction>. No real person's data was used to build or
 > evaluate the system.
 
 ---

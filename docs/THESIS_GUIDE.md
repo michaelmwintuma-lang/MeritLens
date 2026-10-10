@@ -183,6 +183,8 @@ All commands run from `backend/`, except `scripts/…`, which run from the proje
   Data Mining*, 259–268.
 - Hardt, M., Price, E., & Srebro, N. (2016). Equality of opportunity in supervised learning. *Advances in Neural
   Information Processing Systems 29*.
+- Kumar, R. (2026). Employee Promtion Prediction Dataset (Version 1) [Data set]. Kaggle.
+  https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction
 - Lou, Y., Caruana, R., Gehrke, J., & Hooker, G. (2013). Accurate intelligible models with pairwise interactions.
   *Proceedings of the 19th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining*, 623–631.
 - Lundberg, S. M., & Lee, S.-I. (2017). A unified approach to interpreting model predictions. *Advances in Neural
@@ -209,16 +211,25 @@ original source; cite a credit-scoring text you have access to, or describe it a
 
 ### 9.1 Dataset
 
-**Which dataset.** One file, `backend/data/employee_promotion_dataset_100000.csv`: 100,000 employees, 43 columns plus
-the target `promoted`.
+**Which dataset.** *Employee Promtion Prediction Dataset* (the misspelling is the dataset's own title), by Rohit
+Kumar, on Kaggle: <https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction>.
 
-> **Fill in before submitting:** the dataset's exact Kaggle title, its author and its link, from the page you
-> downloaded it from, with its licence and the date you accessed it. The project doesn't record them, and a web
-> search on 2026-10-10 didn't find this file on Kaggle; its exact columns appear only in an unattributed GitHub
-> project. If you can't find the page again, say so, and describe the dataset as a synthetic employee dataset of
-> unverified origin.
+| | |
+|---|---|
+| Version | 1, published 14 March 2026 |
+| Licence | CC0: Public Domain, so it can be used and redistributed without permission |
+| Size | 100,000 employees, 43 columns plus the target `promoted` |
+| File | `employee_promotion_prediction.csv` on Kaggle, saved in the project as `backend/data/employee_promotion_dataset_100000.csv` |
+| Checked | On 2026-10-10 the project's file was identical in size (52,710,327 bytes) to the one on Kaggle |
 
-Suggested citation: *[Author] ([year]). [Dataset title] [Data set]. Kaggle. [URL]. Accessed [date].*
+Citation: *Kumar, R. (2026). Employee Promtion Prediction Dataset (Version 1) [Data set]. Kaggle.
+https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction. Accessed [your access date].*
+
+**How it was made, according to its author:** a simulation of 100,000 employees in seven departments. Promotion
+depends on performance, leadership, productivity and behaviour. A promotion budget means only about the top 10% are
+promoted. Department affects salary, workload and promotion chances. About 2% of values are outliers. Some factors
+that influence promotion, such as managerial support and project visibility, were deliberately left out of the data
+to make prediction harder.
 
 **Inputs used: 20, all about performance and development.**
 
@@ -246,23 +257,28 @@ Suggested citation: *[Author] ([year]). [Dataset title] [Data set]. Kaggle. [URL
 
 **Limitations of the dataset** (measured with the project's own scripts):
 
-1. **It is synthetic.** It is too clean to be real HR data:
+1. **It is synthetic,** as its author states. The project's own checks confirm it is too clean to be real HR data:
    - there are no missing values and no duplicate rows;
    - gender is 50.1% female and 49.9% male;
    - each department holds 14.1–14.5% of employees;
    - the promotion rate is exactly 10.0% for every city tier and both marital statuses.
 
    Results describe this generated data, not a real organisation.
-2. **The way "promoted" was generated is unknown,** so it isn't known which inputs truly caused it. It depends
-   heavily on department (2.0% in Support, 33.2% in Engineering) and hardly at all on gender (9.7% women, 10.3% men),
-   age (10.0% in both groups) or education (9.9–10.3%).
-3. **A single snapshot.** There are no dates or repeated measurements, so the model can't follow change over time,
+2. **The exact rule that generated "promoted" isn't published.** The author describes it only in outline, so it
+   isn't known which inputs truly caused promotion, or how much. It depends heavily on department (2.0% in Support,
+   33.2% in Engineering), as the author's "department effects" would suggest, and hardly at all on gender (9.7% women,
+   10.3% men), age (10.0% in both groups) or education (9.9–10.3%).
+3. **Some causes of promotion are missing by design.** The author left factors such as managerial support and
+   project visibility out of the data. This sets a ceiling on how accurate any model can be, and partly explains
+   the modest PR-AUC (0.474).
+4. **A single snapshot.** There are no dates or repeated measurements, so the model can't follow change over time,
    apart from the engineered year-on-year change in performance.
-4. **Only binary gender and three education levels are recorded.** There is no ethnicity, disability or other
+5. **Only binary gender and three education levels are recorded.** There is no ethnicity, disability or other
    protected characteristic, so fairness can be audited for only three.
-5. **The groups are uneven:** PhDs are 5.1% of employees, so their rates are less precise than the others'.
-6. **The class balance is 10% promoted.** That is why PR-AUC is the main metric (Saito and Rehmsmeier, 2015).
-7. **The origin and licence are unverified** (see above).
+6. **The groups are uneven:** PhDs are 5.1% of employees, so their rates are less precise than the others'.
+7. **The class balance is 10% promoted,** fixed by the simulation's promotion budget. That is why PR-AUC is the main metric (Saito and Rehmsmeier, 2015).
+8. **A single, recent, little-used source.** Version 1 of a dataset published in March 2026 by one author, so
+   there are few other studies to compare results with. Its simulation hasn't been validated against real HR data.
 
 ### 9.2 Definition of promotion readiness
 
