@@ -12,6 +12,26 @@ The platform follows one cycle, and the results follow it too: **predict → exp
 
 ---
 
+## 0. The dataset
+
+**Source:** Kumar, R. (2026). *Employee Promtion Prediction Dataset* (Version 1) [Data set]. Kaggle, CC0.
+<https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction>. The project's copy is
+`backend/data/employee_promotion_dataset_100000.csv`, identical in size (52,710,327 bytes) to the Kaggle file.
+
+| Measure | Value |
+|---|---|
+| Employees | 100,000 (43 columns plus `promoted`) |
+| Promoted | 10.0% |
+| Missing values / duplicate rows | 0 / 0 |
+| Gender | 50.1% female, 49.9% male; promoted 9.7% and 10.3% |
+| Age | 22–59; 47.1% under 40, 52.9% 40+; promoted 10.0% in both |
+| Education | Bachelor 64.8%, Master 30.1%, PhD 5.1%; promoted 9.9%, 10.1%, 10.3% |
+| Department | 7 departments, 14.1–14.5% each; promoted from 2.0% (Support) to 33.2% (Engineering) |
+| City tier, marital status | promoted exactly 10.0% in every group (a sign of simulated data) |
+| Correlation of this year's and last year's performance | 0.918 |
+
+The choice of dataset, inputs and exclusions, with their justification, is in `docs/THESIS_GUIDE.md`, section 9.1.
+
 ## 1. Predict: the promotion model
 
 **Source:** `results/model_comparison.json`, `results/metrics.json`, `results/fairness.json`

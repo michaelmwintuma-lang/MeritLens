@@ -47,7 +47,8 @@ explains the reasons behind each prediction, and lets employees respond to those
    - actionable recourse;
    - organisational justice (Colquitt's informational and procedural justice);
    - voice and anonymous reporting.
-3. **Methodology:** sections 3 and 4 below.
+3. **Methodology:** sections 3 and 4 below, with the dataset, the definition of readiness and the fairness method
+   justified in section 9.
 4. **Results:** section 5 below.
 5. **Discussion:** section 6 below.
 6. **Conclusion and future work:** limitations from `docs/LIMITATIONS.md` and the residual risks in
@@ -56,7 +57,8 @@ explains the reasons behind each prediction, and lets employees respond to those
 ## 3. Methodology: predict and explain
 
 The three decisions a supervisor will ask about (which dataset, what "promotion readiness" means, and how fairness
-and proxies are assessed) are answered in full in **section 9**. Use them in the methodology chapter.
+and proxies are assessed) are answered in full in **section 9**, each with its justification, the alternatives
+considered, its limitations and suggested wording. Use them in the methodology chapter.
 
 - **Data:** 100,000 synthetic employees (`backend/data/`); 10% were promoted. 20 inputs. Every column left out has a
   written reason (`backend/app/promotion/features.py`).
@@ -207,31 +209,65 @@ All commands run from `backend/`, except `scripts/…`, which run from the proje
 Check each reference against the original before submitting. The population stability index has no single
 original source; cite a credit-scoring text you have access to, or describe it as standard practice.
 
-## 9. Answers to the supervisor's questions
+## 9. Methodological decisions and their justification (the supervisor's questions)
+
+This section answers the supervisor's three questions: which dataset, what "promotion readiness" means, and how
+fairness and proxies are assessed. Each answer has the same parts:
+
+- **Decision:** what the study does.
+- **Justification:** each reason, why it matters, and the evidence for it.
+- **Alternatives considered:** what else could have been done, and why it wasn't.
+- **Limitations:** what the decision can't do. State these in the thesis.
+- **Suggested wording:** a paragraph to adapt for the methodology chapter. Rewrite it in your own words.
+
+Every number comes from the project's scripts (`docs/EVALUATION_RESULTS.md`).
 
 ### 9.1 Dataset
 
-**Which dataset.** *Employee Promtion Prediction Dataset* (the misspelling is the dataset's own title), by Rohit
+#### Decision
+
+**The dataset.** *Employee Promtion Prediction Dataset* (the misspelling is the dataset's own title), by Rohit
 Kumar, on Kaggle: <https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction>.
 
 | | |
 |---|---|
 | Version | 1, published 14 March 2026 |
 | Licence | CC0: Public Domain, so it can be used and redistributed without permission |
-| Size | 100,000 employees, 43 columns plus the target `promoted` |
+| Size | 100,000 employees, 43 columns plus the target `promoted` (1 = promoted, 0 = not) |
 | File | `employee_promotion_prediction.csv` on Kaggle, saved in the project as `backend/data/employee_promotion_dataset_100000.csv` |
 | Checked | On 2026-10-10 the project's file was identical in size (52,710,327 bytes) to the one on Kaggle |
 
-Citation: *Kumar, R. (2026). Employee Promtion Prediction Dataset (Version 1) [Data set]. Kaggle.
-https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction. Accessed [your access date].*
+**Citation:** Kumar, R. (2026). *Employee Promtion Prediction Dataset* (Version 1) [Data set]. Kaggle.
+https://www.kaggle.com/datasets/rohit8527kmr7518/employee-promtion-prediction. Accessed [your access date].
 
-**How it was made, according to its author:** a simulation of 100,000 employees in seven departments. Promotion
-depends on performance, leadership, productivity and behaviour. A promotion budget means only about the top 10% are
-promoted. Department affects salary, workload and promotion chances. About 2% of values are outliers. Some factors
-that influence promotion, such as managerial support and project visibility, were deliberately left out of the data
-to make prediction harder.
+**How it was made, according to its author:**
+- a simulation of 100,000 employees in seven departments;
+- promotion depends on performance, leadership, productivity and behaviour;
+- a promotion budget means only about the top 10% are promoted;
+- department affects salary, workload and promotion chances;
+- about 2% of values are outliers;
+- some factors that influence promotion, such as managerial support and project visibility, were deliberately left
+  out of the data to make prediction harder.
 
-**Inputs used: 20, all about performance and development.**
+#### Justification: why this dataset
+
+| Reason | Why it matters | Evidence |
+|---|---|---|
+| It holds the information a promotion decision needs | The model can be built from performance and development only, and still has protected characteristics to audit fairness with | 43 columns: performance over three years, productivity, skills and development, leadership, reliability, and gender, age and education |
+| It has a promotion outcome | Supervised learning needs a known answer to learn from and to test against (section 9.2) | The `promoted` column, for every employee |
+| It is large | Enough employees for separate training, validation and test sets, and for reliable rates in each group | 100,000 employees, so 20,000 in the test set and about 1,000 PhDs among them |
+| It is synthetic | Real HR records are confidential; a simulated dataset needs no consent or ethics approval to model, and no real person can be harmed or identified | The author describes it as "100,000 synthetic employee records" |
+| It is openly licensed | It can be used, shared and published with the code | CC0: Public Domain |
+| It was made for this kind of research | Its author lists "fairness and bias analysis" and "explainable AI for HR decisions" as intended uses | The dataset's description on Kaggle |
+
+**Alternatives considered:**
+- **Real HR data from an organisation** would be more realistic, but it is confidential, needs consent and ethics
+  approval, and couldn't be published with the project.
+- **The older Kaggle "HR Analytics: Employee Promotion Data"** (Kaggle, `arashnic/hr-ana`) has fewer
+  performance and development measures (no peer feedback, leadership, attendance, mentoring or year-on-year
+  performance), so it supports less useful explanations and tips.
+
+#### Decision: the 20 inputs used
 
 | Group | Inputs |
 |---|---|
@@ -240,22 +276,28 @@ to make prediction harder.
 | Reliability | attendance rate; late days |
 | Career stage | years since last promotion; years in current role |
 
-**Columns left out: 22, each with a written reason** (`backend/app/promotion/features.py`):
+#### Justification: what is used and what is left out
 
-- **protected characteristics:** gender, age, education level and marital status. Gender, age and education are
-  kept aside only for the fairness audit.
-- **department:** two people with the same record would get different scores only because of where they work;
-- **pay:** salary, salary increase, bonus and stock options, which reflect past decisions and could carry old pay
-  gaps forward;
-- **not performance:**
-  - attitude surveys (engagement, job satisfaction);
-  - where someone lives (city tier);
-  - working patterns (monthly hours, overtime, meetings, remote ratio), which reward long hours rather than results;
-  - team size, contract type, tenure, and internal mobility;
-- **the two earlier performance scores,** replaced by the change in performance: the yearly scores correlate at
-  0.92, which made a linear model's explanations misleading.
+**The principle:** an input is used only if it describes **how well someone works or develops**, the things a fair
+promotion decision should rest on. Every column left out has a written reason in `backend/app/promotion/features.py`.
 
-**Limitations of the dataset** (measured with the project's own scripts):
+| Columns left out (22) | Reason | Evidence or source |
+|---|---|---|
+| Gender, age, education level, marital status | Protected characteristics: deciding on them is discrimination. Gender, age and education are kept aside only to **audit** fairness. | Fairness by "unawareness"; section 9.3 checks that no input stands in for them |
+| Department | Two people with the same record would get different scores only because of where they work | Historical promotion rates range from 2.0% (Support) to 33.2% (Engineering). Department was the earlier model's second-largest influence (26%) |
+| Salary, salary increase, bonus, stock options | Pay reflects past decisions, so it could carry old pay gaps into promotions. Pay rises are decided separately, as percentages. | The system never stores salaries |
+| Engagement, job satisfaction | Surveys of attitudes, not measures of performance | |
+| Average monthly hours, overtime, meeting hours | Reward long hours rather than results, and disadvantage people with caring duties | |
+| Remote-work ratio, contract type, city tier, team size | Working arrangements and circumstances, not performance | |
+| Years at company, internal mobility | Tenure is already covered by years in role and since last promotion; mobility isn't performance | |
+| Performance last year, performance two years ago | Replaced by "change in performance since last year". The three yearly scores move together so closely that a model splits their effect in confusing ways, making explanations misleading | The scores correlate at 0.92 |
+
+**Why add "change in performance":** it says something the scores alone don't: whether someone is improving. It is
+also the strongest signal, at 51.5% of the model's effect.
+
+#### Limitations of the dataset
+
+Measured with the project's own scripts:
 
 1. **It is synthetic,** as its author states. The project's own checks confirm it is too clean to be real HR data:
    - there are no missing values and no duplicate rows;
@@ -276,96 +318,164 @@ to make prediction harder.
 5. **Only binary gender and three education levels are recorded.** There is no ethnicity, disability or other
    protected characteristic, so fairness can be audited for only three.
 6. **The groups are uneven:** PhDs are 5.1% of employees, so their rates are less precise than the others'.
-7. **The class balance is 10% promoted,** fixed by the simulation's promotion budget. That is why PR-AUC is the main metric (Saito and Rehmsmeier, 2015).
-8. **A single, recent, little-used source.** Version 1 of a dataset published in March 2026 by one author, so
-   there are few other studies to compare results with. Its simulation hasn't been validated against real HR data.
+7. **The class balance is 10% promoted,** fixed by the simulation's promotion budget. That is why PR-AUC is the main
+   metric (Saito and Rehmsmeier, 2015).
+8. **A single, recent, little-used source.** Version 1 of a dataset published in March 2026 by one author, so there
+   are few other studies to compare results with. Its simulation hasn't been validated against real HR data.
+
+#### Suggested wording
+
+> This study uses the Employee Promotion Prediction Dataset (Kumar, 2026), a publicly available, CC0-licensed
+> synthetic dataset of 100,000 employee records with a binary promotion outcome, of whom about 10% were promoted.
+> A synthetic dataset was chosen because real HR records are confidential and could not be published or used without
+> consent. Of its 43 attributes, 20 describing performance, development, reliability and career stage were used as
+> model inputs. Protected characteristics (gender, age, education and marital status) were excluded from the model
+> and retained only to audit fairness. Department, pay, attitude surveys and working patterns were also excluded,
+> because they describe circumstances rather than how well someone works, and could carry past inequalities into
+> the model. The three yearly performance scores (correlation 0.92) were replaced by the current score and its change
+> since last year. The data's main limitations are that it is simulated, that its promotion rule is unpublished, and
+> that its author deliberately omitted some causes of promotion.
 
 ### 9.2 Definition of promotion readiness
 
-**Definition used.** *Promotion readiness is how closely an employee's current performance and development record
-resembles the records of employees who were promoted.* It is learned from the **historical promotion outcome**
-(`promoted`, yes or no). The score is a ranking against a threshold chosen on validation data (0.2283), not a
-probability.
+#### Decision
 
-**Why historical outcomes rather than independently defined criteria:**
+*Promotion readiness is how closely an employee's current performance and development record resembles the records
+of employees who were promoted.*
 
-- **A model needs a known answer to learn from and be tested against.** The dataset has one: who was promoted.
-  Independently defined criteria (for example "ready when performance ≥ 80 and leadership ≥ 4") would need experts
-  to set and validate them. Without them, the model would only re-learn rules the researcher wrote, and accuracy
-  against those rules would prove nothing.
-- **Historical outcomes reflect what the organisation actually rewards,** which is what a decision-support tool must
-  first describe.
-- **The known weakness is past bias.** Historical outcomes repeat whatever bias past decisions had. Here, the
-  outcome depends strongly on department. So the study **constrains** the historical definition instead of
-  accepting it as it is:
-  - only performance and development inputs are used, with protected characteristics, pay and department removed;
-  - monotonic constraints stop the model learning that improving something lowers readiness;
-  - the four-fifths fairness gate must pass;
-  - the score only advises.
+- It is learned from the **historical promotion outcome** (`promoted`, yes or no).
+- The model gives a score between 0 and 1. At or above the threshold (0.2283, chosen as the best F1 on validation
+  data), it recommends promotion.
+- The score is a **ranking**, not a probability of promotion.
 
-**Independently defined criteria still have a place, in the human decision.** A manager's recommendation rates
-four criteria from 1 to 5, each with a real example: performance, leadership, skills and impact. A manager must
-write a reason to recommend someone the model doesn't, and HR must write one to decide against the model. So the
-system combines the two: the **model** describes the historical pattern, and **people** apply explicit criteria.
+#### Justification: why historical outcomes
 
-**State this limitation plainly:** the definition is partly circular. The model predicts who *would have been*
-promoted, not who *should be*. The fairness checks and the human decision exist because of this.
+| Reason | Why it matters | Evidence |
+|---|---|---|
+| A model needs a known answer to learn from and to be tested against | Without one, accuracy can't be measured, and claims about the model can't be checked | `promoted` is recorded for all 100,000 employees, so the model can be tested on 20,000 it has never seen (ROC-AUC 0.883, PR-AUC 0.474) |
+| Self-defined criteria would make the results circular | If the researcher writes "ready = performance ≥ 80 and leadership ≥ 4" and trains a model on it, the model only re-learns the researcher's rule, and its accuracy proves nothing | |
+| Historical outcomes show what the organisation actually rewards | A decision-support tool must first describe current practice before it can help improve it | The dataset's promotions depend on performance, leadership and productivity (Kumar, 2026) |
+| It is the established approach | Promotion and HR prediction studies learn from recorded outcomes | |
+
+#### Justification: how the weakness of historical outcomes is controlled
+
+**The weakness:** historical outcomes repeat whatever bias past decisions had. Here the outcome depends strongly
+on department (2.0% to 33.2%). So the study **constrains** the historical definition rather than accepting it as it
+is:
+
+| Control | What it prevents | Evidence |
+|---|---|---|
+| Only performance and development inputs (department, pay and protected characteristics removed) | Scores based on who someone is or where they work | Section 9.1; no input is a proxy for gender, age or education (section 9.3) |
+| Monotonic constraints | Learning that improving something (more training, fewer late days) lowers readiness | 0 of 2,040 checks lowered a score |
+| The four-fifths fairness gate | A model that treats groups unequally being used | All three ratios ≥ 0.887 |
+| The model only advises | The score becoming the decision | Managers recommend, HR decides, and disagreeing with the model needs a written reason |
+
+**Independently defined criteria are used, in the human decision.** A manager's recommendation rates four
+criteria from 1 to 5, each with a real example: performance, leadership, skills and impact. So the system combines
+both definitions: the **model** describes the historical pattern, and **people** apply explicit criteria.
+
+**Alternatives considered:**
+- **Independently defined criteria as the target** would need HR experts to define and validate them, and the
+  results would only reproduce the researcher's own rules.
+- **Expert ratings as the target** would need real experts to rate employees; none are available for a synthetic
+  dataset.
+- **A probability of promotion** isn't possible to claim: the model is trained to rank, and its scores aren't
+  calibrated, so the score is presented as a ranking against a threshold.
+
+#### Limitations
+
+- **The definition is partly circular.** The model predicts who *would have been* promoted, not who *should be*.
+  The fairness checks and the human decision exist because of this.
+- **It inherits whatever drove past promotions,** including causes the data doesn't contain.
+
+#### Suggested wording
+
+> Promotion readiness is defined as the degree to which an employee's current performance and development record
+> resembles those of employees who were promoted, learned from the historical promotion outcome. A historical
+> outcome was chosen because a supervised model needs a known answer to learn from and be evaluated against;
+> criteria defined by the researcher would have made the evaluation circular. Because historical outcomes can encode
+> past bias, the definition is constrained: only performance and development inputs are used, the model may never
+> lower readiness when an improvable input rises, a fairness gate must be passed, and the score only supports a
+> decision that people make using explicit criteria. The score is therefore interpreted as a ranking against a
+> threshold, not as a probability, and the study acknowledges that it predicts who would have been promoted rather
+> than who should be.
 
 ### 9.3 Fairness and bias assessment
 
-**Metric: the selection-rate ratio (disparate-impact ratio).** For each characteristic, take the share of each
-group the model recommends (its selection rate), then divide the lowest group's rate by the highest's.
+#### Decision
 
-**Threshold: 0.80, the four-fifths rule.** A model below 0.80 for gender, age group (under 40 / 40+) or education is
-never put into use (`backend/app/promotion/fairness.py`, enforced in `train.py`).
+**Metric: the selection-rate ratio** (also called the disparate-impact ratio).
+1. For each group, the selection rate is the share of the group the model recommends.
+2. The ratio is the lowest group's selection rate divided by the highest group's.
 
-**Why this metric and threshold:**
+**Threshold: 0.80, the four-fifths rule.**
+- It is applied to gender, age group (under 40 / 40+) and education, on the 20,000 test employees.
+- A model below 0.80 for any of them is never put into use (`backend/app/promotion/fairness.py`, enforced in
+  `train.py`).
 
-- **It matches the decision the system makes:** who is recommended. Selection rates are what an organisation would
-  be held to account for.
-- **It is an established benchmark:** the four-fifths rule of the US Uniform Guidelines on Employee Selection
-  Procedures (EEOC, 1978), widely used in algorithmic fairness (Feldman et al., 2015).
-- **It doesn't rely on the historical labels.** Those could themselves be biased (section 9.2), whereas metrics
-  such as equal opportunity treat past promotions as correct.
-- **It is simple to explain** to HR and to employees.
+**Also reported: equal opportunity** (Hardt et al., 2016). Among people who were actually promoted, it compares the
+share the model recommends (the true-positive rate) across groups.
 
-**Its limits, to state:**
-- 0.80 is a rule of thumb, not a statistical test;
-- it says nothing about accuracy within each group;
-- it isn't applied to combinations of characteristics, such as older women;
-- small groups (PhD, 5.1%) make it noisier.
+#### Justification: why this metric
 
-So **equal opportunity** (Hardt et al., 2016) is also reported: among people who were actually promoted, the share
-the model recommends, compared across groups.
+| Reason | Why it matters | Evidence or source |
+|---|---|---|
+| It measures the decision the system actually makes | The system's output is a recommendation; who gets recommended is what employees experience and what an organisation is accountable for | |
+| It doesn't trust the historical labels | Past promotions may be biased (section 9.2). Metrics built on them, such as equal opportunity, treat past decisions as correct; the selection ratio doesn't | |
+| It is an established benchmark in employment | It comes from employment-selection practice, and is widely used in algorithmic fairness research | EEOC (1978); Feldman et al. (2015) |
+| It is simple to explain | HR and employees can understand "each group is recommended at a similar rate" | |
 
-**Results on the 20,000 test employees** (`results/fairness.json`, `results/proxy_analysis.json`):
+**Why equal opportunity as well:** the selection ratio could be met by recommending people at random within each
+group. Equal opportunity checks that the model finds deserving people *equally well* in every group.
 
-| Characteristic | Selection rates | Selection ratio | True-positive-rate ratio |
+#### Justification: why 0.80
+
+| Reason | Why it matters | Evidence or source |
+|---|---|---|
+| It is the established line for adverse impact | A recognised standard is more defensible than a number chosen by the researcher | Four-fifths rule, EEOC (1978), 29 C.F.R. § 1607.4(D) |
+| It allows some difference from noise | Groups are never exactly equal in a finite sample, especially small ones such as PhDs (5.1%) | |
+| It is commonly used in fairness research | Results can be compared with other studies | Feldman et al. (2015) |
+
+**Alternatives considered:**
+- **Statistical parity difference** (the gap between rates, rather than their ratio) has no established threshold
+  in employment.
+- **Equalised odds and calibration by group** rely on the historical labels being fair. Equal opportunity is
+  reported instead of gated for the same reason.
+- **A stricter threshold (0.90)** would have no recognised standard behind it. The results show how the model
+  would fare anyway: gender and age are above 0.90, and education is just below (0.887).
+
+#### Results
+
+On the 20,000 test employees (`results/fairness.json`, `results/proxy_analysis.json`):
+
+| Characteristic | Selection rates | Selection ratio | Equal-opportunity ratio |
 |---|---|---|---|
 | Gender | female 14.6%, male 14.4% | **0.981** | 0.952 |
 | Age group | under 40: 14.8%, 40+: 14.3% | **0.963** | 0.899 |
 | Education | Bachelor 14.3%, Master 14.7%, PhD 16.1% | **0.887** | 0.958 |
 
-All three pass. The lowest true-positive-rate ratio is age: the model recommends 62.9% of the promoted under-40s but
-56.6% of the promoted 40+. Discuss this, even though it is above 0.80.
+All three pass. The weakest result is age on equal opportunity: the model recommends 62.9% of the promoted
+under-40s but 56.6% of the promoted over-40s. That passes, but discuss it.
 
-**Identifying and assessing proxy variables.** A proxy is an input that carries information about a protected
-characteristic, so a model could discriminate through it without ever seeing the characteristic (Barocas and
-Selbst, 2016). Three checks (`backend/evaluation/proxy_analysis.py`):
+#### Decision: how proxies are identified and assessed
 
-1. **One input at a time,** to find any single input that could act as a proxy:
-   - gender and age group: the standardised difference between the groups (Cohen's d; below 0.2 is negligible,
-     Cohen, 1988);
-   - age in years: the correlation (below 0.1 is negligible);
-   - education and department: the share of the input's spread the groups explain (η²; below 0.01 is negligible).
-2. **All inputs together,** to find combinations that act as a proxy even when no single input does. Two
-   classifiers (logistic regression, and gradient boosting, which finds non-linear combinations) are trained to
-   predict each characteristic from the 20 inputs, and scored on the test set by ROC-AUC, where 0.5 means no better
-   than guessing.
-3. **The model's own output:** how strongly the readiness score is linked to each characteristic, and each group's
-   selection and true-positive rates.
+**What a proxy is:** an input that carries information about a protected characteristic, so a model could
+discriminate through it without ever seeing the characteristic (Barocas and Selbst, 2016). For example, part-time
+hours could stand in for gender. Removing gender, age and education from the inputs is not enough: it must be
+checked that nothing else carries them.
 
-**Results:**
+Three checks (`backend/evaluation/proxy_analysis.py`, `python -m evaluation.proxy_analysis`):
+
+| Check | What it finds | Measure and threshold | Why this measure |
+|---|---|---|---|
+| 1. Each input on its own | A single input that differs between groups | Gender and age group: Cohen's d (under 0.2 is negligible). Age in years: correlation r (under 0.1 is negligible). Education and department: η², the share of an input's spread explained by the groups (under 0.01 is negligible) | Each measure suits its type of characteristic (two groups, a number, several groups), and each has standard thresholds (Cohen, 1988) |
+| 2. All 20 inputs together | Combinations that reveal a characteristic even when no single input does | Two classifiers predict the characteristic from the 20 inputs and are scored on the test set by ROC-AUC (0.5 = guessing, 1.0 = perfect) | This is the direct test: if a classifier can't recover the characteristic, the promotion model can't use it either. Gradient boosting finds non-linear combinations a linear model would miss. Testing on unseen data avoids overstating it |
+| 3. The model's own output | Whether the scores themselves follow a characteristic | The same measures, applied to the readiness score; plus selection and true-positive rates per group | Checks the end result, not only the inputs |
+
+**Why department is checked too:** department isn't a protected characteristic, but it was removed as an input
+because of its large effect, so it must be confirmed that it doesn't come back through other inputs.
+
+#### Results
 
 | Characteristic | Strongest single link (input) | Predicting it from all 20 inputs (ROC-AUC) | Score's link to it |
 |---|---|---|---|
@@ -386,5 +496,27 @@ Selbst, 2016). Three checks (`backend/evaluation/proxy_analysis.py`):
     unfair;
   - a fix would be to compare tasks and projects only within a department (within-department percentiles);
     that is future work.
-- **On real data, the proxy analysis must be re-run.** In real organisations, proxies are common: hours worked and
-  gender, years of experience and age. The script works on any dataset with these columns.
+- **On real data, the proxy analysis must be re-run.** In real organisations proxies are common, such as hours
+  worked and gender, or years of experience and age. The script works on any dataset with these columns.
+
+#### Limitations
+
+- **0.80 is a rule of thumb, not a statistical test.**
+- **The metric says nothing about accuracy within each group.** Equal opportunity partly covers this.
+- **Combinations of characteristics** (such as older women) aren't checked.
+- **Only three characteristics can be audited,** because the dataset records no others.
+- **Small groups (PhDs, 5.1%) make rates noisier.**
+
+#### Suggested wording
+
+> Fairness is assessed with the selection-rate (disparate-impact) ratio: the lowest group's recommendation rate
+> divided by the highest group's, for gender, age group and education on the held-out test set. A model with a
+> ratio below 0.80, the four-fifths rule of the Uniform Guidelines on Employee Selection Procedures (EEOC, 1978),
+> is never deployed. This metric was chosen because it measures the decision the system actually makes, does not
+> assume the historical promotion labels are fair, and is an established standard in employment selection. Equal
+> opportunity (Hardt et al., 2016) is reported alongside it. To detect proxy variables, each input's association
+> with each protected characteristic was measured (Cohen's d, correlation and η², with conventional negligibility
+> thresholds), and two classifiers were trained to predict each characteristic from all inputs together, evaluated
+> by ROC-AUC on unseen data. Neither classifier predicted gender, age or education better than chance (ROC-AUC
+> 0.50), indicating no proxies; department, which had been excluded, remained partly predictable (ROC-AUC 0.67)
+> through tasks and projects completed.
