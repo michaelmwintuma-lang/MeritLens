@@ -1,0 +1,344 @@
+{
+  "model_version": "v20261008215310",
+  "test_employees": 20000,
+  "historical_promotion_rate_by_group": {
+    "gender": {
+      "Female": 0.0974,
+      "Male": 0.1026
+    },
+    "age_group": {
+      "40+": 0.0998,
+      "under 40": 0.1003
+    },
+    "education": {
+      "Bachelor": 0.0992,
+      "Master": 0.1012,
+      "PhD": 0.1029
+    },
+    "department": {
+      "Engineering": 0.3321,
+      "Finance": 0.0797,
+      "HR": 0.029,
+      "Marketing": 0.0869,
+      "Operations": 0.0445,
+      "Sales": 0.1098,
+      "Support": 0.0196
+    }
+  },
+  "one_input_at_a_time": {
+    "largest": {
+      "gender_abs_d": {
+        "input": "performance_change",
+        "gender_d": 0.0113,
+        "age_group_d": -0.0063,
+        "age_r": -0.0039,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      "age_group_abs_d": {
+        "input": "innovation_score",
+        "gender_d": -0.003,
+        "age_group_d": 0.0155,
+        "age_r": 0.0107,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      "age_abs_r": {
+        "input": "innovation_score",
+        "gender_d": -0.003,
+        "age_group_d": 0.0155,
+        "age_r": 0.0107,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      "education_eta2": {
+        "input": "performance_score",
+        "gender_d": -0.0027,
+        "age_group_d": -0.0036,
+        "age_r": -0.0009,
+        "education_eta2": 0.0001,
+        "department_eta2": 0.0001
+      },
+      "department_eta2": {
+        "input": "tasks_completed",
+        "gender_d": 0.0074,
+        "age_group_d": 0.005,
+        "age_r": 0.0025,
+        "education_eta2": 0.0,
+        "department_eta2": 0.2716
+      }
+    },
+    "all": [
+      {
+        "input": "performance_score",
+        "gender_d": -0.0027,
+        "age_group_d": -0.0036,
+        "age_r": -0.0009,
+        "education_eta2": 0.0001,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "performance_change",
+        "gender_d": 0.0113,
+        "age_group_d": -0.0063,
+        "age_r": -0.0039,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "manager_rating",
+        "gender_d": -0.0072,
+        "age_group_d": -0.0044,
+        "age_r": -0.0011,
+        "education_eta2": 0.0001,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "peer_feedback_score",
+        "gender_d": -0.0015,
+        "age_group_d": -0.0052,
+        "age_r": -0.0022,
+        "education_eta2": 0.0001,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "kpi_achievement_percent",
+        "gender_d": -0.0023,
+        "age_group_d": -0.0049,
+        "age_r": -0.0013,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "projects_completed",
+        "gender_d": 0.0087,
+        "age_group_d": 0.0075,
+        "age_r": 0.0027,
+        "education_eta2": 0.0,
+        "department_eta2": 0.184
+      },
+      {
+        "input": "tasks_completed",
+        "gender_d": 0.0074,
+        "age_group_d": 0.005,
+        "age_r": 0.0025,
+        "education_eta2": 0.0,
+        "department_eta2": 0.2716
+      },
+      {
+        "input": "deadline_adherence_rate",
+        "gender_d": 0.0029,
+        "age_group_d": 0.0095,
+        "age_r": 0.0036,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0
+      },
+      {
+        "input": "innovation_score",
+        "gender_d": -0.003,
+        "age_group_d": 0.0155,
+        "age_r": 0.0107,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "leadership_score",
+        "gender_d": -0.0098,
+        "age_group_d": -0.001,
+        "age_r": 0.001,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0
+      },
+      {
+        "input": "problem_solving_score",
+        "gender_d": 0.0005,
+        "age_group_d": 0.0084,
+        "age_r": 0.0052,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "skill_assessment_score",
+        "gender_d": -0.0001,
+        "age_group_d": 0.0075,
+        "age_r": 0.006,
+        "education_eta2": 0.0001,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "training_hours_last_year",
+        "gender_d": 0.0112,
+        "age_group_d": 0.0016,
+        "age_r": -0.0006,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0
+      },
+      {
+        "input": "certifications_count",
+        "gender_d": 0.0073,
+        "age_group_d": 0.0061,
+        "age_r": 0.0029,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "cross_department_projects",
+        "gender_d": -0.0004,
+        "age_group_d": 0.0011,
+        "age_r": -0.0007,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0
+      },
+      {
+        "input": "mentoring_sessions",
+        "gender_d": -0.002,
+        "age_group_d": 0.0097,
+        "age_r": 0.0034,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "attendance_rate",
+        "gender_d": 0.0057,
+        "age_group_d": -0.0081,
+        "age_r": -0.0063,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "late_days",
+        "gender_d": 0.0015,
+        "age_group_d": -0.0047,
+        "age_r": -0.0034,
+        "education_eta2": 0.0001,
+        "department_eta2": 0.0001
+      },
+      {
+        "input": "years_since_last_promotion",
+        "gender_d": 0.0023,
+        "age_group_d": 0.0006,
+        "age_r": -0.0,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0
+      },
+      {
+        "input": "years_in_current_role",
+        "gender_d": -0.0001,
+        "age_group_d": -0.0072,
+        "age_r": -0.0026,
+        "education_eta2": 0.0,
+        "department_eta2": 0.0
+      }
+    ]
+  },
+  "all_inputs_together_auc": {
+    "gender": {
+      "logistic_regression": 0.5,
+      "gradient_boosting": 0.5026,
+      "highest": 0.5026
+    },
+    "age_group": {
+      "logistic_regression": 0.4988,
+      "gradient_boosting": 0.4972,
+      "highest": 0.4988
+    },
+    "education": {
+      "logistic_regression": 0.4991,
+      "gradient_boosting": 0.5039,
+      "highest": 0.5039
+    },
+    "department": {
+      "logistic_regression": 0.6644,
+      "gradient_boosting": 0.6671,
+      "highest": 0.6671
+    }
+  },
+  "model_on_test_set": {
+    "gender": {
+      "groups": {
+        "Female": {
+          "selection_rate": 0.1464,
+          "true_positive_rate": 0.6101
+        },
+        "Male": {
+          "selection_rate": 0.1437,
+          "true_positive_rate": 0.5807
+        }
+      },
+      "selection_ratio": 0.9814,
+      "true_positive_rate_ratio": 0.9519
+    },
+    "age_group": {
+      "groups": {
+        "40+": {
+          "selection_rate": 0.1425,
+          "true_positive_rate": 0.5659
+        },
+        "under 40": {
+          "selection_rate": 0.148,
+          "true_positive_rate": 0.6295
+        }
+      },
+      "selection_ratio": 0.9629,
+      "true_positive_rate_ratio": 0.899
+    },
+    "education": {
+      "groups": {
+        "Bachelor": {
+          "selection_rate": 0.143,
+          "true_positive_rate": 0.5862
+        },
+        "Master": {
+          "selection_rate": 0.1467,
+          "true_positive_rate": 0.6119
+        },
+        "PhD": {
+          "selection_rate": 0.1612,
+          "true_positive_rate": 0.6
+        }
+      },
+      "selection_ratio": 0.8869,
+      "true_positive_rate_ratio": 0.9579
+    },
+    "department": {
+      "groups": {
+        "Engineering": {
+          "selection_rate": 0.2466,
+          "true_positive_rate": 0.5753
+        },
+        "Finance": {
+          "selection_rate": 0.1071,
+          "true_positive_rate": 0.5744
+        },
+        "HR": {
+          "selection_rate": 0.0787,
+          "true_positive_rate": 0.5618
+        },
+        "Marketing": {
+          "selection_rate": 0.1571,
+          "true_positive_rate": 0.6419
+        },
+        "Operations": {
+          "selection_rate": 0.1368,
+          "true_positive_rate": 0.6179
+        },
+        "Sales": {
+          "selection_rate": 0.1845,
+          "true_positive_rate": 0.6258
+        },
+        "Support": {
+          "selection_rate": 0.104,
+          "true_positive_rate": 0.6552
+        }
+      },
+      "selection_ratio": 0.319,
+      "true_positive_rate_ratio": 0.8575
+    }
+  },
+  "score_link_to_characteristic": {
+    "gender_d": 0.0124,
+    "age_r": -0.0044,
+    "education_eta2": 0.0,
+    "department_eta2": 0.033
+  }
+}

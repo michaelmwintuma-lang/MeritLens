@@ -67,6 +67,23 @@ ROC-AUC 0.9295, but it scored people by where they work: past promotion rates ra
 
 A model that fails this check is never saved as the live model.
 
+### Equal opportunity and proxies
+
+**Source:** `results/proxy_analysis.json`
+**Reproduce:** `cd backend && python -m evaluation.proxy_analysis`
+
+**Equal opportunity** (true-positive-rate ratio): gender 0.952, age group 0.899, education 0.958.
+
+**Proxies for gender, age and education: none.** The strongest single link is |d| = 0.016 for age group (Cohen's d,
+where under 0.2 is negligible). Classifiers given all 20 inputs predict each of the three at a ROC-AUC of 0.50, no
+better than guessing.
+
+**Department** (removed as an input) **is partly recoverable:**
+- through tasks completed (η² 0.27) and projects completed (0.18);
+- predicting department from the 20 inputs reaches ROC-AUC 0.67;
+- the model recommends 24.7% of Engineering against 7.9% of HR (selection ratio 0.32), where historically it was
+  33.2% against 2.9%.
+
 ### Drift (admin dashboard, live)
 
 The population stability index (PSI) compares each input in today's 120-person directory with the training sample.

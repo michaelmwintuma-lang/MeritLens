@@ -22,6 +22,10 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 - **Fairness costs accuracy.** Department was removed from the model because it scored people by where they work.
   Test PR-AUC fell from 0.633 (an earlier logistic regression with department) to 0.474. The model predicts past
   decisions less well because it no longer repeats their departmental pattern.
+- **Department partly comes back through two inputs.** Tasks and projects completed differ by department, so the
+  model still recommends 24.7% of Engineering but 7.9% of HR, although department isn't an input
+  (`results/proxy_analysis.json`). Comparing those counts within each department would reduce this.
+- **The dataset's origin is unverified.** Its Kaggle page, author and licence aren't recorded in the project.
 - **One input dominates.** Change in performance since last year accounts for about half of the model's effect.
 - **Monotonic constraints are a design choice.** The model can never lower a score when an input a person can
   improve goes up. That rules out patterns the data might hold, such as diminishing or negative returns at the

@@ -477,6 +477,7 @@ All commands run from the `backend` folder (on Windows, use `.venv\Scripts\pytho
 python train.py                                  # trains, compares, tests once, fairness-checks; writes results/
 python -m evaluation.choose_priority_model       # cross-validates the triage model's settings (training data only)
 python -m evaluation.evaluate_reporting          # anonymiser, warnings and triage → results/reporting_evaluation.md
+python -m evaluation.proxy_analysis              # proxies for gender, age, education, department; equal opportunity
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
