@@ -1,4 +1,4 @@
-"""Step 8 tests: the activity log records important actions, by day, and never anything a reporter does."""
+"""Step 8 tests: the activity log records important actions, by day."""
 import pytest
 from sqlalchemy import inspect
 
@@ -58,32 +58,6 @@ def test_nominations_and_decisions_are_logged(client):
     assert entries["decision_made"]["user"] == "Hana Reviewer" and "rejected" in entries["decision_made"]["details"]
 
 
-def test_nothing_a_reporter_does_is_logged(client):
-    """Sending a report, replying, previewing and opening the case leave no trace in the activity log."""
-    employee = login(client, "employee")  # the sign-in itself is logged, like everyone's
-    with SessionLocal() as db:
-        before = db.query(ActivityEntry).count()
-    text = "My team lead keeps mocking my work in front of everyone during stand-ups."
-    client.post("/api/reports/preview", headers=employee, json={"text": text})
-    case = client.post("/api/reports", headers=employee, json={"category": "biased_rating", "text": text}).json()
-    client.post("/api/reports/access", headers=employee, json={"case_id": case["case_id"], "key": case["key"]})
-    client.post("/api/reports/messages", headers=employee, json={"case_id": case["case_id"], "key": case["key"], "text": "It happened again."})
-    with SessionLocal() as db:
-        assert db.query(ActivityEntry).count() == before
-
-
-def test_hrs_actions_on_reports_are_logged_without_the_reporter(client):
-    case = client.post("/api/reports", headers=login(client, "employee"),
-                       json={"category": "biased_rating", "text": "My team lead keeps mocking my work in front of everyone."}).json()
-    hr = login(client, "hr")
-    client.post(f"/api/hr/reports/{case['case_id']}/messages", headers=hr, json={"text": "Thank you, we are looking into it."})
-    client.patch(f"/api/hr/reports/{case['case_id']}", headers=hr, json={"priority": "high"})
-    hr_entries = [e for e in log(client) if e["action"] in ("report_replied", "report_updated")]
-    assert {e["user"] for e in hr_entries} == {"Hana Reviewer"}
-    assert all(case["case_id"] in e["details"] for e in hr_entries)
-    assert not any("Eli Employee" in e["details"] or e["user"] == "Eli Employee" and e["action"] != "sign_in" for e in log(client))
-
-
 def test_filtering_and_searching(client):
     login(client, "hr")
     login(client, "manager")
@@ -94,3 +68,24 @@ def test_filtering_and_searching(client):
 @pytest.mark.parametrize("username", ["employee", "manager", "hr"])
 def test_only_the_admin_reads_the_activity_log(client, username):
     assert client.get("/api/admin/activity", headers=login(client, username)).status_code == 403
+
+
+def test_a_database_from_the_version_with_reporting_is_cleaned_up(client):
+    """Anonymous reporting was removed: its tables, log entries and evidence folder go when the app starts."""
+    from pathlib import Path
+    from app.core.database import drop_removed_reporting
+    evidence = Path(engine.url.database).parent / "evidence"  # beside the test database, never the real one
+    with engine.begin() as connection:  # what the earlier version left behind
+        connection.exec_driver_sql('CREATE TABLE reports (case_id TEXT PRIMARY KEY, text TEXT)')
+        connection.exec_driver_sql('CREATE TABLE report_messages (case_id TEXT, number INTEGER)')
+        connection.exec_driver_sql("INSERT INTO activity_log (on_date, user_name, action, details) "
+                                   "VALUES ('2026-10-01', 'Hana Reviewer', 'report_replied', 'R-ABCD-EFGH')")
+    evidence.mkdir(exist_ok=True)
+    drop_removed_reporting()
+    tables = inspect(engine).get_table_names()
+    assert "reports" not in tables and "report_messages" not in tables
+    with SessionLocal() as db:
+        assert db.query(ActivityEntry).filter_by(action="report_replied").count() == 0
+    assert not evidence.exists()
+    # The activity log still opens (an unknown action would have broken it)
+    assert client.get("/api/admin/activity", headers=login(client, "admin")).status_code == 200

@@ -1,13 +1,12 @@
 """
-Isolation: feedback and reports never change a prediction. Only HR confirming a record correction does, and that
-is logged.
+Isolation: feedback never changes a prediction. Only HR confirming a record correction does, and that is logged.
 
-1. End to end: an employee's prediction and explanation are recorded; then ratings, anonymous reports, case
-   conversations, case outcomes and correction requests about that employee and their manager are added; the
-   prediction and explanation must be byte-for-byte identical. Then HR confirms a correction: the prediction
-   must change, and the change must be logged.
-2. Static: no file in the promotion code imports, or even names, the feedback or reporting code and tables.
-3. At run time: the prediction endpoints run no SQL that touches a feedback or reporting table.
+1. End to end: an employee's prediction and explanation are recorded; then ratings, correction requests (one left
+   pending, one rejected) and a decision held for a correction are added; the prediction and explanation must be
+   byte-for-byte identical. Then HR confirms a correction: the prediction must change, and the change must be
+   logged.
+2. Static: no file in the promotion code imports, or even names, the feedback code and tables.
+3. At run time: the prediction endpoints run no SQL that touches a feedback table.
 """
 import ast
 from pathlib import Path
@@ -15,12 +14,11 @@ from pathlib import Path
 import pytest
 from sqlalchemy import event
 
-from app.core.database import Base, engine
+from app.core.database import engine
 from tests.conftest import login, recommendation
 
 PROMOTION = Path(__file__).resolve().parents[1] / "app" / "promotion"
-FEEDBACK_AND_REPORT_TABLES = {"explanation_ratings", "correction_requests", "nomination_deferrals",
-                              "reports", "report_messages", "report_evidence"}
+FEEDBACK_TABLES = {"explanation_ratings", "correction_requests", "nomination_deferrals"}
 
 
 def employee_id(client):
@@ -43,8 +41,8 @@ def prediction_bytes(client, person: int) -> dict:
     }
 
 
-def add_every_kind_of_feedback_and_report(client, person: int) -> None:
-    """Ratings, reports, conversations and outcomes about the employee and their manager, and correction requests."""
+def add_every_kind_of_feedback(client, person: int) -> None:
+    """A harsh rating, a pending and a rejected correction request, and a nomination held for the correction."""
     employee, hr, manager = login(client, "employee"), login(client, "hr"), login(client, "manager")
     client.post("/api/feedback/ratings", headers=employee, json={
         "clarity": 1, "usefulness": 1, "comment": "This is unfair and my manager rated me down.",
@@ -61,28 +59,14 @@ def add_every_kind_of_feedback_and_report(client, person: int) -> None:
     client.post(f"/api/hr/feedback/nominations/{nomination['id']}/defer", headers=hr)
     assert pending["status"] == "pending"
 
-    texts = {"biased_rating": "Mo Manager rated Eli Employee far below the work they actually delivered this year.",
-             "favouritism": "Mo Manager gives the best projects to friends, never to Eli Employee.",
-             "discrimination": "I believe my appraisal was marked down because of who I am, not my work.",
-             "wrong_record": "My training hours are missing from the record the promotion model uses."}
-    for category, text in texts.items():
-        # As a reporter does: the anonymiser's version is what gets sent (names become [PERSON 1] and so on)
-        cleaned = client.post("/api/reports/preview", headers=employee, json={"text": text}).json()["text"]
-        case = client.post("/api/reports", headers=employee, json={"category": category, "text": cleaned}).json()
-        client.post(f"/api/hr/reports/{case['case_id']}/messages", headers=hr, json={"text": "Thank you, we are looking into it."})
-        client.post("/api/reports/messages", headers=employee,
-                    json={"case_id": case["case_id"], "key": case["key"], "text": "It happened again this month."})
-        outcome = "rating_unfair" if category == "biased_rating" else "substantiated"
-        client.patch(f"/api/hr/reports/{case['case_id']}", headers=hr, json={"outcome": outcome, "status": "closed"})
 
-
-def test_feedback_and_reports_never_change_a_prediction_but_a_confirmed_correction_does(client):
+def test_feedback_never_changes_a_prediction_but_a_confirmed_correction_does(client):
     person = employee_id(client)
     before = prediction_bytes(client, person)
-    add_every_kind_of_feedback_and_report(client, person)
+    add_every_kind_of_feedback(client, person)
     after = prediction_bytes(client, person)
     for name in before:
-        assert after[name] == before[name], f"{name} changed after feedback and reports"
+        assert after[name] == before[name], f"{name} changed after feedback"
 
     # The only way feedback changes a prediction: HR confirms a correction to the record
     hr = login(client, "hr")
@@ -97,36 +81,33 @@ def test_feedback_and_reports_never_change_a_prediction_but_a_confirmed_correcti
     assert len(log["entries"]) == 1
 
 
-def test_the_promotion_code_never_imports_or_names_feedback_or_reports():
+def test_the_promotion_code_never_imports_or_names_feedback():
     """A static check over every file in app/promotion: imports, table names and model names."""
-    forbidden_names = FEEDBACK_AND_REPORT_TABLES | {"ExplanationRating", "CorrectionRequest", "NominationDeferral",
-                                                    "Report", "Message", "Evidence"}
+    forbidden_names = FEEDBACK_TABLES | {"ExplanationRating", "CorrectionRequest", "NominationDeferral"}
     for file in PROMOTION.glob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                assert not (node.module or "").startswith(("app.feedback", "app.reporting")), f"{file.name}: {node.module}"
+                assert not (node.module or "").startswith("app.feedback"), f"{file.name}: {node.module}"
             elif isinstance(node, ast.Import):
-                assert not any(a.name.startswith(("app.feedback", "app.reporting")) for a in node.names), file.name
+                assert not any(a.name.startswith("app.feedback") for a in node.names), file.name
             elif isinstance(node, ast.Name) and node.id in forbidden_names:
                 pytest.fail(f"{file.name} uses {node.id}")
             elif isinstance(node, ast.Constant) and isinstance(node.value, str):
                 words = set(node.value.replace('"', " ").replace("'", " ").split())
-                assert not words & FEEDBACK_AND_REPORT_TABLES, f"{file.name} names a feedback or report table"
+                assert not words & FEEDBACK_TABLES, f"{file.name} names a feedback table"
 
 
-def test_the_tables_checked_are_all_the_feedback_and_report_tables():
-    """If a new feedback or reporting table is added, the checks above must know about it."""
-    import app.feedback.models  # noqa: F401
-    import app.reporting.models  # noqa: F401
-    owned = {t.name for t in Base.metadata.sorted_tables
-             if any(m in t.name for m in ("rating", "correction", "deferral", "report"))}
-    assert owned == FEEDBACK_AND_REPORT_TABLES
+def test_the_tables_checked_are_all_the_feedback_tables():
+    """If a new feedback table is added, the checks above must know about it."""
+    from app.feedback import models
+    owned = {obj.__tablename__ for obj in vars(models).values() if isinstance(obj, type) and "__tablename__" in vars(obj)}
+    assert owned == FEEDBACK_TABLES
 
 
-def test_the_prediction_endpoints_run_no_sql_on_feedback_or_report_tables(client):
+def test_the_prediction_endpoints_run_no_sql_on_feedback_tables(client):
     person = employee_id(client)
-    add_every_kind_of_feedback_and_report(client, person)
+    add_every_kind_of_feedback(client, person)
     statements = []
     listener = lambda conn, cursor, statement, *args: statements.append(statement.lower())  # noqa: E731
     event.listen(engine, "before_cursor_execute", listener)
@@ -139,5 +120,5 @@ def test_the_prediction_endpoints_run_no_sql_on_feedback_or_report_tables(client
         event.remove(engine, "before_cursor_execute", listener)
     assert statements, "no SQL was captured"
     for statement in statements:
-        for table in FEEDBACK_AND_REPORT_TABLES:
+        for table in FEEDBACK_TABLES:
             assert f" {table}" not in statement and f'"{table}"' not in statement, statement[:120]

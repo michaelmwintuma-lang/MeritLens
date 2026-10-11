@@ -3,7 +3,7 @@ fastapi>=0.110
 uvicorn>=0.29
 sqlalchemy>=2.0,<2.1  # 2.1 has no pure-Python fallback, which Windows Smart App Control needs
 pyjwt>=2.8
-python-multipart>=0.0.9  # file uploads (evidence for reports)
+python-multipart>=0.0.9  # file uploads (evidence for record corrections)
 
 # Tests
 pytest>=8.0
@@ -20,6 +20,3 @@ joblib==1.6.0
 matplotlib==3.11.2
 lime==0.2.0.1
 
-# Evidence for reports: Pillow cleans photos; imageio-ffmpeg brings its own ffmpeg to clean videos
-pillow>=10.0
-imageio-ffmpeg>=0.5

@@ -1,4 +1,4 @@
-"""Emails: who gets which email, what it says, and that report alerts reveal nothing about the reporter."""
+"""Emails: who gets which email, and what it says."""
 import pytest
 
 from app.core import email_templates as templates
@@ -6,7 +6,6 @@ from app.core import mailer
 from tests.conftest import emails_to, login, recommendation, sign_off
 
 HR_EMAIL, MANAGER_EMAIL, EMPLOYEE_EMAIL = "hr@example.org", "manager@example.org", "employee@example.org"
-REPORT = "My supervisor threatened me after the meeting and said I would regret complaining. I feel unsafe."
 
 
 def count(address):
@@ -73,22 +72,6 @@ def test_a_rejection_emails_only_the_manager(client):
     client.post(f"/api/promotion/nominations/{nomination['id']}/decision", headers=login(client, "hr"), json={"decision": "reject"})
     assert "Not approved" in emails_to(MANAGER_EMAIL)[-1]["text"]
     assert count(EMPLOYEE_EMAIL) == before_employee  # the employee isn't told of a rejection by email
-
-
-# ─── Report alerts: nothing about the reporter, nothing of the text ───────────
-def test_hr_gets_a_report_alert_without_the_text(client):
-    case = client.post("/api/reports", headers=login(client, "employee"), json={"category": "favouritism", "text": REPORT}).json()
-    alert = emails_to(HR_EMAIL)[-1]
-    assert alert["subject"] == "New anonymous report (high priority)"
-    assert case["case_id"] in alert["text"] and "Favouritism" in alert["text"]
-    for leak in ["threatened", "supervisor", "unsafe", "Eli", "employee", case["key"]]:
-        assert leak not in alert["text"] and leak not in alert["html"]
-
-
-def test_the_reporter_gets_no_email_about_their_report(client):
-    before = count(EMPLOYEE_EMAIL)
-    client.post("/api/reports", headers=login(client, "employee"), json={"category": "biased_rating", "text": REPORT})
-    assert count(EMPLOYEE_EMAIL) == before  # an email to the reporter would link them to the report
 
 
 # ─── The admin's email page ───────────────────────────────────────────────────

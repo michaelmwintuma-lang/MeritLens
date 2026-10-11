@@ -1,8 +1,6 @@
 """
 The text of every email the platform sends, in one place. Each function returns the parts of one email; mailer.py
 turns them into the HTML and plain-text versions.
-
-Rule for anything about anonymous reports: never the report's text, and nothing about who sent it.
 """
 from app.core.config import APP_NAME
 from app.core.mailer import link
@@ -131,23 +129,6 @@ def pay_returned(hr_name: str, employee_name: str, finance_name: str, note: str)
     }
 
 
-# Priorities are stored as low, medium and high; the middle one is called "moderate" wherever people read it
-PRIORITY_WORDS = {"low": "low", "medium": "moderate", "high": "high"}
-
-
-def report_alert(hr_name: str, case_id: str, category: str, priority: str) -> dict:
-    """A new anonymous report. Only the case ID, category and priority: never the text or anything about the reporter."""
-    return {
-        "subject": f"New anonymous report ({PRIORITY_WORDS.get(priority, priority)} priority)",
-        "heading": "A new anonymous report is waiting",
-        "greeting": f"Hello {hr_name},",
-        "paragraphs": ["A new report has arrived through the anonymous reporting channel. For the reporter's protection, "
-                       "this email doesn't include what it says: please read it in the report inbox."],
-        "details": [("Case", case_id), ("Category", category), ("Priority", PRIORITY_WORDS.get(priority, priority).capitalize())],
-        "button": ("Open the report inbox", link(f"/reports/{case_id}")),
-    }
-
-
 def test_email(name: str) -> dict:
     return {
         "subject": f"Test email from {APP_NAME}",
@@ -213,19 +194,17 @@ def correction_received(hr_name: str, employee_name: str, field: str) -> dict:
     }
 
 
-def correction_decided(employee_name: str, field: str, confirmed: bool, value: str, reason: str | None,
-                       reappraisal: bool = False) -> dict:
+def correction_decided(employee_name: str, field: str, confirmed: bool, value: str, reason: str | None) -> dict:
     if confirmed:
-        opening = (f"HR reviewed your {field} and corrected it in your record." if reappraisal else
-                   f"HR checked your evidence and corrected your {field}.")
-        paragraphs = [opening, "Your readiness score has been worked out again with the corrected record."]
+        paragraphs = [f"HR checked your evidence and corrected your {field}.",
+                      "Your readiness score has been worked out again with the corrected record."]
         details = [("Value", field), ("Corrected to", value)]
     else:
         paragraphs = [f"HR checked your request about your {field} and kept the value in your record as it is."]
         details = [("Value", field), ("HR's reason", reason or "")]
     return {
         "subject": f"Your record correction: {'corrected' if confirmed else 'not changed'}",
-        "heading": "HR has decided on your record correction" if not reappraisal else "Your record was reviewed",
+        "heading": "HR has decided on your record correction",
         "greeting": f"Hello {employee_name},",
         "paragraphs": paragraphs,
         "details": details,

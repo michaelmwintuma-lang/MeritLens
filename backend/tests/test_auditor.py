@@ -1,4 +1,4 @@
-"""The compliance auditor: read-only oversight of decisions and the model, never reports or individual records."""
+"""The compliance auditor: read-only oversight of decisions and the model, never individual records or feedback."""
 import pytest
 
 from tests.conftest import login
@@ -19,13 +19,12 @@ def test_the_auditor_reads_the_decision_log_and_the_model(client):
     ("GET", "/api/promotion/nominations"),
     ("POST", "/api/promotion/nominations/1/decision"),
     ("GET", "/api/promotion/records/fields"),
-    ("GET", "/api/hr/reports"),                     # never the reports
-    ("GET", "/api/hr/reports/notifications"),
-    ("POST", "/api/reports"),                       # and doesn't report through the system
+    ("GET", "/api/hr/feedback/corrections"),        # never an individual's feedback
+    ("GET", "/api/feedback/corrections/mine"),
     ("GET", "/api/admin/users"),
     ("GET", "/api/finance/pay-reviews"),
 ])
-def test_the_auditor_cannot_see_reports_or_people_or_change_anything(client, method, path):
+def test_the_auditor_cannot_see_feedback_or_people_or_change_anything(client, method, path):
     res = client.request(method, path, headers=login(client, "auditor"), json={})
     assert res.status_code == 403, path
 

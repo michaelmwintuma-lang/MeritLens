@@ -8,7 +8,7 @@ protection of small groups, and saved to results/feedback_measures.json:
 - clarity rate and usefulness rate: the share of rated explanations scored 4 or 5 (withheld below 5 ratings);
 - contest share per factor: how often each factor was marked "seems wrong" or "seems unfair";
 - record corrections: received, confirmed, rejected, pending, the confirmation rate and the mean time to decide;
-- anonymous reports per promotion category, and the committee's override rate.
+- the committee's override rate.
 
 Optional:  --start 2026-01-01 --end 2026-12-31  --department Finance  --model-version v20261008215310
 """
@@ -38,7 +38,6 @@ def export(db, start=None, end=None, department=None, model_version=None) -> dic
             "contest_share_per_factor": data["ratings"]["contested"],
         },
         "record_corrections": data["corrections"],
-        "anonymous_reports_by_category": data["reports"]["by_category"],
         "committee": {key: data["committee"][key] for key in ("decisions", "overrides", "override_rate")},
     }
 

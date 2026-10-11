@@ -1,12 +1,11 @@
 """
 The activity log: important actions, with who did them, what, and on which day.
 
-Recorded: sign-ins (and failed sign-ins on existing accounts), account changes, nominations, promotion decisions,
-and HR's actions on reports (replies, priority, status and outcome changes).
+Recorded: sign-ins (and failed sign-ins on existing accounts), account changes, employee records, nominations,
+promotion decisions, pay sign-off, and record corrections.
 
-Deliberately NOT recorded: anything a reporter does (sending a report, replying, opening a case with the key,
-checking text). And only the date is kept, never the time, like the reports themselves: exact sign-in times could
-be lined up with a report's date to narrow down who wrote it.
+Only the date is kept, never the time: a log of exact times would show more about people's habits than an audit
+needs.
 """
 from datetime import date, datetime, timezone
 
@@ -43,11 +42,8 @@ ACTIONS = {
     "correction_requested": "Asked HR to correct their record",
     "correction_confirmed": "Confirmed a record correction",
     "correction_rejected": "Rejected a record correction",
-    "reappraisal_started": "Started a re-appraisal",
     "nomination_deferred": "Put a promotion decision on hold for a correction",
     "nomination_resumed": "Took a promotion decision off hold",
-    "report_replied": "Replied to a report",
-    "report_updated": "Updated a report",
 }
 
 

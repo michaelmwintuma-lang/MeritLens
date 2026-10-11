@@ -1,10 +1,7 @@
 """
-Public facts for the landing page: the model's tested results, its fairness check and the reporting evaluation,
-read from the files the training and evaluation scripts wrote. Nothing about any person is included, so no sign-in
-is needed. A number that hasn't been measured yet is left out (null), never filled in.
-
-Kept outside app/promotion on purpose: it reads the reporting evaluation's results, and the promotion code must
-never refer to anything about reporting (tests/test_reporting.py checks this).
+Public facts for the landing page: the model's tested results and its fairness check, read from the files the
+training script wrote. Nothing about any person is included, so no sign-in is needed. A number that hasn't been
+measured yet is left out, never filled in.
 """
 import json
 from pathlib import Path
@@ -23,24 +20,12 @@ def read(path: Path) -> dict | None:
         return None
 
 
-def reporting_facts() -> dict:
-    """The anonymiser's and triage's results on the developer evaluation set (backend/evaluation/)."""
-    evaluation = read(RESULTS / "reporting_evaluation.json")
-    try:
-        developer = evaluation["developer"]
-        return {"anonymiser_recall": developer["anonymiser"]["overall"]["recall"],
-                "urgent_caught": developer["triage"]["confusion"]["high"]["high"],
-                "urgent_total": developer["triage"]["per_class"]["high"]["count"]}
-    except (TypeError, KeyError):
-        return {"anonymiser_recall": None, "urgent_caught": None, "urgent_total": None}
-
-
 @router.get("/summary")
 def summary():
     """The numbers the landing page shows, straight from the last training and evaluation runs."""
     metrics, fairness, info = read(RESULTS / "metrics.json"), read(RESULTS / "fairness.json"), read(MODELS / "model_info.json")
     if not (metrics and fairness and info):
-        return {"trained": False, **reporting_facts()}
+        return {"trained": False}
     return {
         "trained": True,
         "model": metrics["model"],
@@ -52,5 +37,4 @@ def summary():
         "test_size": metrics["test_size"],
         "fairness_passes": fairness["passes"],
         "lowest_fairness_ratio": min(check["ratio"] for check in fairness["checks"].values()),
-        **reporting_facts(),
     }

@@ -5,7 +5,7 @@ from app.demo import routes as demo
 from tests.conftest import emails_to, login
 
 REQUEST = {"name": "Grace Visitor", "email": "grace@company.example", "organisation": "Acme Ltd", "job_title": "HR Director",
-           "size": "250–999", "interest": "Both", "message": "We'd like to see the reporting side."}
+           "size": "250–999", "interest": "Both", "message": "We'd like to see the feedback side."}
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def test_the_request_is_emailed_with_reply_to_the_visitor(client):
     ask(client)
     email = emails_to(demo.DEMO_INBOX or "demo-requests")[-1]
     assert email["subject"] == "Demo request: Acme Ltd"
-    assert "Grace Visitor" in email["text"] and "HR Director" in email["text"] and "reporting side" in email["text"]
+    assert "Grace Visitor" in email["text"] and "HR Director" in email["text"] and "feedback side" in email["text"]
     assert email["reply_to"] == "grace@company.example"
 
 

@@ -61,66 +61,23 @@ def test_changing_your_username_needs_your_password(client):
     login(client, "mo.m")
 
 
-# ─── Notifications ────────────────────────────────────────────────────────────
-TEXT = "He threatened me in the car park after the meeting and I feel unsafe at work."
-
-
-def report(client):
-    return client.post("/api/reports", headers=login(client, "employee"), json={"category": "other_concern", "text": TEXT}).json()
-
-
-def test_hr_is_notified_of_new_reports_and_replies(client):
-    hr = login(client, "hr")
-    case = report(client)
-    first = client.get("/api/hr/reports/notifications", headers=hr).json()
-    assert first == [{"case_id": case["case_id"], "kind": "new_report", "priority": "high", "text": first[0]["text"]}]
-    client.post(f"/api/hr/reports/{case['case_id']}/messages", headers=hr, json={"text": "Thank you, we are on it."})
-    assert client.get("/api/hr/reports/notifications", headers=hr).json() == []  # answered
-    client.post("/api/reports/messages", headers=login(client, "employee"),
-                json={"case_id": case["case_id"], "key": case["key"], "text": "It happened again today."})
-    assert client.get("/api/hr/reports/notifications", headers=hr).json()[0]["kind"] == "reporter_replied"
-
-
-def test_hr_notifications_hold_nothing_about_the_reporter(client):
-    report(client)
-    item = client.get("/api/hr/reports/notifications", headers=login(client, "hr")).json()[0]
-    assert set(item) == {"case_id", "kind", "priority", "text"}  # no names, accounts or times
-
-
-def test_there_is_no_bulk_check_of_saved_cases(client):
-    """Review S2: the browser used to send every saved case ID and key with the login token each minute."""
-    case = report(client)
-    res = client.post("/api/reports/updates", headers=login(client, "employee"),
-                      json={"cases": [{"case_id": case["case_id"], "key": case["key"]}]})
-    assert res.status_code in (404, 405)
-
-
-@pytest.mark.parametrize("username", ["employee", "manager", "admin"])
-def test_only_hr_gets_hr_notifications(client, username):
-    assert client.get("/api/hr/reports/notifications", headers=login(client, username)).status_code == 403
-
-
 # ─── Public summary for the landing page ──────────────────────────────────────
 def test_the_landing_page_summary_needs_no_sign_in_and_reveals_no_one(client):
     res = client.get("/api/public/summary")
     assert res.status_code == 200
     assert set(res.json()) <= {"trained", "model", "inputs", "threshold", "roc_auc", "pr_auc", "pr_auc_baseline",
-                               "test_size", "fairness_passes", "lowest_fairness_ratio", "anonymiser_recall",
-                               "urgent_caught", "urgent_total"}
+                               "test_size", "fairness_passes", "lowest_fairness_ratio"}
 
 
 def test_the_landing_page_numbers_are_the_measured_ones(client):
-    """Review B2, B3: the website showed hard-coded numbers (0.93, 79%, 87%, 14 of 14)."""
+    """Review B2, B3: the website showed hard-coded numbers (0.93, 79%)."""
     import json
     from pathlib import Path
     results = Path(__file__).resolve().parents[2] / "results"
     facts = client.get("/api/public/summary").json()
     metrics = json.loads((results / "metrics.json").read_text())
-    evaluation = json.loads((results / "reporting_evaluation.json").read_text())["developer"]
     assert facts["roc_auc"] == metrics["roc_auc"] and facts["threshold"] == metrics["threshold"]
     assert facts["inputs"] == 20
-    assert facts["anonymiser_recall"] == evaluation["anonymiser"]["overall"]["recall"]
-    assert facts["urgent_total"] == evaluation["triage"]["per_class"]["high"]["count"]
 
 
 def test_the_website_shows_no_made_up_numbers():

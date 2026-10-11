@@ -39,3 +39,30 @@ def add_missing_columns() -> None:
                 if column.name not in have and column.nullable:
                     connection.exec_driver_sql(
                         f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {column.type.compile(engine.dialect)}')
+
+
+# Anonymous reporting was removed from this version (see git tag with-anonymous-reporting). A database made by an
+# earlier version still holds its tables, its activity-log entries and its evidence files; they are removed once.
+REMOVED_TABLES = ("report_evidence", "report_messages", "reports")
+REMOVED_ACTIONS = ("report_replied", "report_updated", "reappraisal_started")
+
+
+def drop_removed_reporting() -> None:
+    """
+    Remove anonymous reporting's tables, activity-log entries and evidence folder, if an older version left them.
+    The evidence folder was kept next to the database file (backend/instance/evidence).
+    """
+    import shutil
+    from pathlib import Path
+    from sqlalchemy import inspect
+
+    tables = inspect(engine)
+    with engine.begin() as connection:
+        for name in REMOVED_TABLES:
+            if tables.has_table(name):
+                connection.exec_driver_sql(f'DROP TABLE "{name}"')
+        if tables.has_table("activity_log"):
+            marks = ", ".join("?" for _ in REMOVED_ACTIONS)
+            connection.exec_driver_sql(f"DELETE FROM activity_log WHERE action IN ({marks})", REMOVED_ACTIONS)
+    if engine.url.database:
+        shutil.rmtree(Path(engine.url.database).parent / "evidence", ignore_errors=True)

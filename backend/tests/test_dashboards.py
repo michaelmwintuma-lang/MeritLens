@@ -9,7 +9,6 @@ from app.core.database import SessionLocal
 from app.feedback.models import CorrectionRequest, ExplanationRating
 from app.promotion.drift import psi
 from app.promotion.models import Decision, Employee
-from app.reporting.models import Report
 from tests.conftest import login
 
 
@@ -70,23 +69,12 @@ def test_correction_measures(client):
     assert c["confirmation_rate"] == round(2 / 3, 4) and c["mean_resolution_hours"] == 28.0
 
 
-def test_reports_are_counted_by_category_with_small_counts_hidden(client):
-    employee = login(client, "employee")
-    text = "My appraisal ignored two of my projects completely this year."
-    for category in ["biased_rating"] * 3 + ["favouritism"]:
-        client.post("/api/reports", headers=employee, json={"category": category, "text": text})
-    counts = {c["category"]: c["count"] for c in dashboard(client).json()["reports"]["by_category"]}
-    assert counts == {"biased_rating": 3, "favouritism": "<3", "discrimination": 0, "wrong_record": 0, "other_concern": 0}
-
-
-def test_the_dashboard_never_shows_names_comments_or_report_texts(client):
+def test_the_dashboard_never_shows_names_or_comments(client):
     add_ratings([4] * 5, flagged=[{"feature": "late_days", "kind": "unfair"}])
     with SessionLocal() as db:
         db.query(ExplanationRating).update({"comment": "A private comment"})
         names = [e.full_name for e in db.query(Employee).limit(5)]
         db.commit()
-    client.post("/api/reports", headers=login(client, "employee"),
-                json={"category": "biased_rating", "text": "A private report text about my appraisal this year."})
     shown = dashboard(client, "auditor").text + client.get("/api/feedback/dashboard/export.csv", headers=login(client, "auditor")).text
     assert "private" not in shown and not any(name in shown for name in names)
 

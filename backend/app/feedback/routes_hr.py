@@ -7,8 +7,6 @@ HR's side of the feedback channel.
   after, model version); the employee is told either way.
 - The committee note: while a correction is pending for someone with a nomination, HR's review page says so, and
   HR may put the decision on hold until it is resolved. A hold is not a decision.
-- Re-appraisal: when HR closes a report as "rating found unfair", HR can open a correction for the affected value.
-  The report is checked but never linked to the correction, and the model never sees the report.
 - The ratings summary for HR and the auditor: aggregates only, never one person's rating.
 """
 import json
@@ -35,7 +33,6 @@ from app.promotion.features import MODEL_FEATURES
 from app.promotion.labels import label
 from app.promotion.models import Employee, Nomination
 from app.promotion.routes_records import record_history
-from app.reporting.models import Report
 
 router = APIRouter(prefix="/api/hr/feedback", tags=["feedback (HR)"])
 hr_only = require_roles(HR)
@@ -91,8 +88,7 @@ def tell_employee(background: BackgroundTasks, db: Session, request: CorrectionR
     if login and login.email:
         background.add_task(mailer.send, login.email, templates.correction_decided(
             login.full_name, corrections.field_label(request.field), request.status == "confirmed",
-            corrections.show(request.field, request.verified_value), request.decision_reason,
-            request.source == "reappraisal"))
+            corrections.show(request.field, request.verified_value), request.decision_reason))
 
 
 class ConfirmIn(BaseModel):
@@ -205,42 +201,6 @@ def resume(nomination_id: int, db: Session = Depends(get_db), user: User = Depen
         record(db, user, "nomination_resumed", name_of(db, nomination.employee_id))
         db.commit()
     return committee_note(nomination.id, db)
-
-
-# ─── Re-appraisal after a report closed as "rating found unfair" ──────────────
-class ReappraisalIn(BaseModel):
-    case_id: str
-    employee_id: int
-    field: str
-    requested_value: float
-    note: str = Field(min_length=10, max_length=2000)
-
-
-@router.post("/reappraisals", status_code=status.HTTP_201_CREATED)
-def start_reappraisal(body: ReappraisalIn, db: Session = Depends(get_db), user: User = Depends(hr_only)):
-    """
-    Open a correction for the affected value, after a report was closed as "rating found unfair". The case is
-    checked, but its ID is not stored with the correction or in the activity log, so the two can't be linked.
-    The correction then goes through the queue like any other.
-    """
-    report = db.get(Report, body.case_id.strip().upper())
-    if report is None or report.status != "closed" or report.outcome != "rating_unfair":
-        raise HTTPException(status.HTTP_409_CONFLICT, "A re-appraisal needs a case closed as \"rating found unfair\".")
-    employee = db.get(Employee, body.employee_id)
-    if employee is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such employee.")
-    value = corrections.check_value(body.field, body.requested_value)
-    current = corrections.current_value(employee, body.field)
-    if value == current:
-        raise corrections.unprocessable("That is already the value in the record.")
-    if any(r.field == body.field for r in corrections.pending_for(db, employee.id)):
-        raise HTTPException(status.HTTP_409_CONFLICT, "A correction of this value is already waiting in the queue.")
-    request = CorrectionRequest(employee_id=employee.id, source="reappraisal", requested_by=user.id, field=body.field,
-                                current_value=current, requested_value=value, note=body.note.strip())
-    db.add(request)
-    record(db, user, "reappraisal_started", f"{employee.full_name}: {corrections.field_label(body.field)}")
-    db.commit()
-    return corrections.describe(request, employee.full_name)
 
 
 # ─── Ratings, in aggregate ────────────────────────────────────────────────────

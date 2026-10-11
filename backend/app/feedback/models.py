@@ -43,8 +43,7 @@ class CorrectionRequest(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), index=True)
-    # employee: the employee asked; reappraisal: HR opened it after a report closed as "rating found unfair"
-    # (the report itself is never linked to it)
+    # Who started it. Always "employee" in this version (an earlier version also had HR-opened re-appraisals)
     source: Mapped[str] = mapped_column(String(20), default="employee")
     requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)

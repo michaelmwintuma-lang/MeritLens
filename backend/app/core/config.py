@@ -71,9 +71,6 @@ SMTP = {
 # Where "Book a demo" requests are emailed (default: the Gmail address that sends the platform's emails)
 DEMO_INBOX = os.getenv("DEMO_INBOX", "") or os.getenv("SMTP_USER", "")
 OUTBOX_DIR = Path(os.getenv("OUTBOX_DIR", str(INSTANCE_DIR / "outbox")))
-# Photos and videos attached to anonymous reports, after their hidden details have been removed. Never committed,
-# never served directly: only through the reporting API, to the reporter (with their key) and to HR.
-EVIDENCE_DIR = Path(os.getenv("EVIDENCE_DIR", str(INSTANCE_DIR / "evidence")))
 # Evidence employees attach to record-correction requests (PDF, JPEG, PNG). Never committed, never served directly:
 # only through the feedback API, to the employee who sent it and to HR.
 FEEDBACK_FILES_DIR = Path(os.getenv("FEEDBACK_FILES_DIR", str(INSTANCE_DIR / "correction_evidence")))

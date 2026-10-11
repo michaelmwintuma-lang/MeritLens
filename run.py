@@ -22,8 +22,8 @@ VENV_PYTHON = BACKEND / ".venv" / ("Scripts/python.exe" if os.name == "nt" else 
 NPM = "npm.cmd" if os.name == "nt" else "npm"
 WSL_PYTHON = "$HOME/venvs/hr-simple/bin/python"  # made by backend/setup_wsl.sh
 
-# --no-access-log: the server keeps no record of requests (addresses, times, paths), so nothing shows
-# when a report was sent. See docs/HOW_IT_WORKS.md, step 6.
+# --no-access-log: the server keeps no record of requests (addresses, times, paths): only what the activity log
+# records is kept.
 UVICORN = "-m uvicorn app.main:app --port 8000 --no-access-log"
 
 

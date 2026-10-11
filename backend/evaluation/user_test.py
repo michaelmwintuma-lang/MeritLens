@@ -25,7 +25,7 @@ SUS_FILE, TASKS_FILE = HERE / "user_test_sus.csv", HERE / "user_test_tasks.csv"
 EXTRA = {
     "e1": "The explanations helped me understand why a readiness score was what it was.",
     "e2": "I would trust a promotion decision made with this system's advice.",
-    "e3": "When reporting, I felt my identity was protected.",
+    "e3": "I understood what I could do if I disagreed with my score.",
     "e4": "I could find what I needed without help.",
 }
 # Adapted from Colquitt (2001): informational justice (the explanation) and procedural justice (the process)

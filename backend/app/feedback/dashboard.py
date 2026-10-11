@@ -1,13 +1,13 @@
 """
 The feedback dashboard, for HR and the compliance auditor: how employees respond to their explanations, how
-record corrections are handled, what is reported, and where committees went against the model.
+record corrections are handled, and where committees went against the model.
 
 Every number is worked out here from the database, with the filters applied (date range, department, model
 version). Small groups are protected:
 - clarity, usefulness and contest shares are withheld below MIN_GROUP ratings;
-- counts of 1 or 2 (reports per category, factor marks) are shown as "<3";
+- counts of 1 or 2 (factor marks) are shown as "<3";
 - only departments with at least MIN_GROUP employees can be chosen, so a filter can't single anyone out.
-Never a name, a comment, a report's text or one person's rating.
+Never a name, a comment or one person's rating.
 """
 import csv
 import io
@@ -29,8 +29,6 @@ from app.promotion.features import MODEL_FEATURES
 from app.promotion.labels import label
 from app.promotion.models import Decision, Employee
 from app.promotion.routes import model
-from app.reporting.models import Report
-from app.reporting.routes import CATEGORY_GROUPS
 
 router = APIRouter(prefix="/api/feedback/dashboard", tags=["feedback dashboard"])
 viewers = require_roles(HR, AUDITOR)
@@ -106,17 +104,6 @@ def measures(db: Session, start: str | None, end: str | None, department: str | 
     decided = [r for r in requests if r.status != "pending"]
     hours = [(r.decided_at - r.created_at).total_seconds() / 3600 for r in decided]
 
-    # ─── Anonymous reports: counts per category, by date only ─────────────────
-    query = select(Report.category, func.count()).group_by(Report.category)
-    if first:
-        query = query.where(Report.created_on >= first)
-    if last:
-        query = query.where(Report.created_on <= last)
-    counts = dict(db.execute(query).all())
-    categories = [{"category": key, "label": name, "count": small(counts.get(key, 0))}
-                  for _, items in CATEGORY_GROUPS for key, name in items]
-    earlier = sum(n for key, n in counts.items() if key not in {c["category"] for c in categories})
-
     # ─── Committee decisions and overrides ────────────────────────────────────
     query = when(Decision.decided_at, select(Decision))
     if department:
@@ -136,8 +123,6 @@ def measures(db: Session, start: str | None, end: str | None, department: str | 
                         "pending": by_status["pending"],
                         "confirmation_rate": rate(by_status["confirmed"], len(decided), minimum=1),
                         "mean_resolution_hours": round(sum(hours) / len(hours), 1) if hours else None},
-        "reports": {"by_category": categories, "earlier_categories": small(earlier),
-                    "note": "Reports are counted by date only: they hold no department, person or model version."},
         "committee": {"decisions": len(decisions), "overrides": len(overrides),
                       "override_rate": rate(len(overrides), len(decisions), minimum=1),
                       "reasons": [{"decided_on": d.decided_at.date().isoformat(), "decision": d.decision,
@@ -189,9 +174,6 @@ def export(start: str | None = None, end: str | None = None, department: str | N
                           ["contested factor", f"{c['label']}: share of ratings", c["share"]]])
     for key, value in data["corrections"].items():
         writer.writerow(["corrections", key.replace("_", " "), value])
-    for c in data["reports"]["by_category"]:
-        writer.writerow(["anonymous reports", c["label"], c["count"]])
-    writer.writerow(["anonymous reports", "earlier categories", data["reports"]["earlier_categories"]])
     m = data["committee"]
     writer.writerows([["committee", "decisions", m["decisions"]], ["committee", "overrides", m["overrides"]],
                       ["committee", "override rate", m["override_rate"]]])

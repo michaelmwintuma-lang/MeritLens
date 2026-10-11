@@ -77,13 +77,13 @@ def test_admins_see_no_employee_data_until_allowed(client):
     assert client.post(f"/api/promotion/employees/{employees[0]['id']}/predict", headers=admin).status_code == 200
 
 
-def test_the_permission_is_read_only_and_never_includes_reports(client):
+def test_the_permission_is_read_only_and_never_includes_feedback(client):
     admin = login(client, "admin")
     client.patch(f"/api/admin/users/{admin_id(client)}/permissions", headers=admin, json={"can_view_employees": True})
     assert client.get("/api/promotion/nominations", headers=admin).status_code == 403
     assert client.get("/api/promotion/decisions", headers=admin).status_code == 403
     assert client.post("/api/promotion/records", headers=admin, json={"full_name": "X Y", "department": "Sales", "values": VALUES}).status_code == 403
-    assert client.get("/api/hr/reports", headers=admin).status_code == 403
+    assert client.get("/api/hr/feedback/corrections", headers=admin).status_code == 403
 
 
 def test_the_permission_can_be_taken_away_and_is_logged(client):

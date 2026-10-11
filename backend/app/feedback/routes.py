@@ -3,7 +3,6 @@ The employee's side of the feedback channel: respond to your own explanation.
 
 1. Rate it: clear? useful? (1-5), and mark any factor that seems wrong or unfair, with an optional comment.
 2. Ask HR to correct a value in your work record, with evidence (a note, and optionally a file).
-3. (Report an unfair assessment anonymously: that is the reporting part, /report, which never links to you.)
 
 Only employees use these endpoints, and only about themselves. Nothing here changes a score: a rating is stored
 for HR's aggregate view, and a correction request waits for HR. Only HR confirming a correction changes the
@@ -181,20 +180,13 @@ def my_corrections(user: User = Depends(employees_only), db: Session = Depends(g
     employee = own_employee(user, db)
     rows = db.scalars(select(CorrectionRequest).where(CorrectionRequest.employee_id == employee.id)
                       .order_by(CorrectionRequest.created_at.desc(), CorrectionRequest.id.desc()))
-    return [mine(corrections.describe(r)) for r in rows]
-
-
-def mine(row: dict) -> dict:
-    """A re-appraisal's note is HR's own; the employee sees only what changed and why HR decided."""
-    if row["source"] == "reappraisal":
-        row.update(note="HR reviewed this value in a re-appraisal.", has_evidence=False)
-    return row
+    return [corrections.describe(r) for r in rows]
 
 
 # ─── Notifications ────────────────────────────────────────────────────────────
 @router.get("/notifications")
 def notifications(user: User = Depends(employees_only), db: Session = Depends(get_db)):
-    """Decisions on your record (your requests, and corrections HR made after a re-appraisal) not yet seen."""
+    """HR's decisions on your correction requests that you haven't seen yet."""
     if not user.employee_id:
         return []
     rows = db.scalars(select(CorrectionRequest).where(CorrectionRequest.employee_id == user.employee_id,

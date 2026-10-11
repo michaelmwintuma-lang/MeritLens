@@ -31,7 +31,7 @@ admin_router = APIRouter(prefix="/api/admin/demo-requests", tags=["demo"])
 admin_only = require_roles(ADMIN)
 
 SIZES = ["1–49", "50–249", "250–999", "1,000+"]
-INTERESTS = ["Promotion readiness", "Anonymous reporting", "Both"]
+INTERESTS = ["Promotion readiness", "Employee feedback", "Both"]
 PER_EMAIL_PER_DAY = 3
 PER_HOUR = 30
 _recent = deque()  # times of recent requests, for the hourly limit (kept in memory only)
