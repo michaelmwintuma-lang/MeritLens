@@ -20,19 +20,7 @@ const CHECKS = {
     if (!ok) throw new Error(`stayed on ${await c.evaluate("location.pathname")}: ${(await c.evaluate("document.body.innerText")).slice(0, 120)}`);
   },
 
-  /** Review S1: the website keeps no report keys, and there is no "My report keys" page. */
-  async "no report keys page and nothing saved in the browser"(c) {
-    await signIn(c, "employee");
-    if (await c.evaluate("location.pathname") !== "/") throw new Error("sign-in failed");
-    const menu = await c.evaluate("document.body.innerText");
-    if (/My report keys/.test(menu)) throw new Error("the menu still offers My report keys");
-    await goto(c, "/report-keys");
-    if (await c.evaluate("location.pathname") === "/report-keys") throw new Error("the page still exists");
-    const stored = await c.evaluate("Object.keys(localStorage).filter((k) => k.startsWith('report-'))");
-    if (stored.length) throw new Error(`report data in the browser: ${stored}`);
-  },
-
-  /** Phase 4: the three feedback routes, end to end, through the pages a person uses. */
+  /** Phase 4: the two feedback routes, end to end, through the pages a person uses. */
   async "an employee responds to their explanation and HR acts on it"(c) {
     const click = (selector, text) => c.evaluate(`(() => {
       const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find((e) => e.innerText.includes(${JSON.stringify(text)}));
@@ -77,19 +65,9 @@ const CHECKS = {
     await click("button", "Send to HR");
     if (!(await waitFor(c, `document.body.innerText.includes("Waiting for HR")`))) throw new Error("the request wasn't listed as waiting");
 
-    // 3. Report anonymously: the link opens the report form with the category chosen
-    await click("button[aria-pressed]", "Report anonymously");
-    // The tab explains which route fits: your own rating and willing to be known → Correct my record
-    if (!(await waitFor(c, `document.body.innerText.includes("Which route is right for you?")`))) throw new Error("no route guidance on the report tab");
-    await click("button", "Go to Correct my record");
-    if (!(await waitFor(c, `document.querySelector('button[aria-pressed="true"]')?.innerText === "Correct my record"`))) {
-      throw new Error("'Go to Correct my record' didn't switch tabs");
-    }
-    await click("button[aria-pressed]", "Report anonymously");
-    await click("a", "Report an unfair assessment");
-    if (!(await waitFor(c, `location.pathname === "/report" && document.querySelector("select")?.value === "biased_rating"`))) {
-      throw new Error("the report form didn't open with 'Biased rating or appraisal' chosen");
-    }
+    // Only these two routes are offered
+    const tabs = await c.evaluate(`[...document.querySelectorAll("button[aria-pressed]")].map((b) => b.innerText)`);
+    if (JSON.stringify(tabs) !== JSON.stringify(["Rate this explanation", "Correct my record"])) throw new Error(`the respond panel offers ${tabs}`);
 
     // HR: the committee note on the nomination, then the queue
     await signIn(c, "hr");
@@ -139,26 +117,33 @@ const CHECKS = {
     if (!(await text()).includes(system.model.version)) throw new Error("the admin dashboard doesn't show the live model version");
   },
 
-  /** Phase 6: the landing page, and "Report a concern anonymously" leading through sign-in to the report form. */
-  async "the landing page leads to sign-in and to anonymous reporting"(c) {
+  /** Phase 6: the landing page describes predict, explain, respond, and its "Sign in" leads to the app. */
+  async "the landing page leads to sign-in"(c) {
     await goto(c, "/");
+    // Wait until the page has drawn itself, rather than reading it the moment navigation ends
+    if (!(await waitFor(c, `document.body.innerText.includes("How it works")`))) throw new Error("the landing page didn't render");
     const text = await c.evaluate("document.body.innerText");
     for (const part of ["Fair, explainable promotion decisions", "How it works", "Predict", "Explain", "Respond",
-      "Explainable predictions", "Path to promotion", "Fairness audit", "Employee feedback channel", "Anonymous reporting",
-      "People decide", "A complaint never changes a score", "No one can unmask a reporter", "People make every decision",
+      "Explainable predictions", "Path to promotion", "Fairness audit", "Employee feedback channel", "Accountable records",
+      "People decide", "A complaint never changes a score", "A wrong record can be put right", "People make every decision",
       "Design and Development of an Explainable Machine Learning"]) {
       if (!text.includes(part)) throw new Error(`the landing page is missing "${part}"`);
     }
-    const broken = await c.evaluate(`[...document.images].filter((i) => !i.complete || i.naturalWidth === 0).map((i) => i.src)`);
+    // The screenshots load lazily (only when scrolled to), so ask for each one directly and check it is an image
+    const images = await c.evaluate(`Promise.all([...document.images].map((i) => fetch(i.src)
+      .then((r) => ({ src: i.src, ok: r.ok && (r.headers.get("content-type") || "").startsWith("image/") }))))`);
+    if (images.length === 0) throw new Error("the landing page shows no screenshots");
+    const broken = images.filter((i) => !i.ok).map((i) => i.src);
     if (broken.length) throw new Error(`images that don't load: ${broken}`);
-    await c.evaluate(`[...document.querySelectorAll("a")].find((a) => a.innerText.includes("Report a concern anonymously")).click()`);
-    if (!(await waitFor(c, `location.pathname === "/login"`))) throw new Error("the report button didn't lead to sign-in");
+    if (/anonym|report a concern|reporter/i.test(text)) throw new Error("the landing page still mentions anonymous reporting");
+    await c.evaluate(`[...document.querySelectorAll(".intro-actions a")].find((a) => a.innerText.includes("Sign in")).click()`);
+    if (!(await waitFor(c, `location.pathname === "/login"`))) throw new Error("Sign in didn't lead to the sign-in page");
     await c.evaluate(`(() => {
       const set = (el, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, v); el.dispatchEvent(new Event("input", { bubbles: true })); };
       set(document.getElementById("login-username"), "employee"); set(document.getElementById("login-password"), "demo1234");
       document.querySelector("form").requestSubmit(); })()`);
-    if (!(await waitFor(c, `location.pathname === "/report" && document.body.innerText.includes("Report anonymously")`))) {
-      throw new Error(`after signing in, the reporter landed on ${await c.evaluate("location.pathname")}, not the report form`);
+    if (!(await waitFor(c, `location.pathname === "/" && document.body.innerText.includes("My growth")`))) {
+      throw new Error(`after signing in, the employee landed on ${await c.evaluate("location.pathname")}, not their overview`);
     }
   },
 
@@ -173,7 +158,10 @@ const CHECKS = {
     if (!(await waitFor(c, `document.querySelector(".pager").innerText.includes("51–100")`))) throw new Error("Next didn't show 51–100");
   },
 
-  /** No dead links or broken pages: every menu page opens for every role, without errors. */
+  /**
+   * No dead links or broken pages: every menu page opens for every role, without errors. Anonymous reporting was
+   * removed, so no page may mention it, and its old addresses lead back to the overview.
+   */
   async "every menu page opens for every role"(first) {
     const problems = [];
     first.close();
@@ -197,6 +185,12 @@ const CHECKS = {
         if (/Not available|Something went wrong on this page/.test(text)) problems.push(`${role} ${link}: page not available or broken`);
         if (shown) problems.push(`${role} ${link}: error shown: ${shown.slice(0, 100)}`);
         if (c.errors.length > before) problems.push(`${role} ${link}: script error: ${c.errors.slice(before).join("; ").slice(0, 120)}`);
+        const mention = text.match(/anonymous|report inbox|reporter|case id|report a concern|report an unfair/i);
+        if (mention) problems.push(`${role} ${link}: mentions reporting ("${mention[0]}")`);
+      }
+      for (const old of ["/report", "/my-report", "/reports"]) {
+        await goto(c, old);
+        if (await c.evaluate("location.pathname") !== "/") problems.push(`${role}: ${old} still opens`);
       }
       } finally {
         c.close();

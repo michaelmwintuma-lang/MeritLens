@@ -1,10 +1,8 @@
-// "Respond to this explanation": the employee's three ways to answer back, on their own explanation page.
+// "Respond to this explanation": the employee's two ways to answer back, on their own explanation page.
 // 1. Rate it (clear? useful?) and mark factors that seem wrong or unfair.
 // 2. Ask HR to correct a value in their record, with evidence.
-// 3. Report an unfair assessment anonymously (the reporting pages; never linked to the account).
-// None of these changes the score. Only HR confirming a correction changes the record, and that is logged.
+// Neither changes the score. Only HR confirming a correction changes the record, and that is logged.
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { MessageSquareText } from "lucide-react";
 import { api, uploadFile } from "../../api";
 import { Button, Card, LoadError, Loading, Segmented } from "../ui";
@@ -182,7 +180,7 @@ function RequestCorrection() {
                 <tr key={r.id}>
                   <td className="nowrap">{r.created_at.slice(0, 10)}</td>
                   <td>{r.label}<div className="muted small">was {r.current_display}</div></td>
-                  <td>{r.source === "reappraisal" ? <span className="muted">HR re-appraisal</span> : r.requested_display}</td>
+                  <td>{r.requested_display}</td>
                   <td><CorrectionStatus request={r} />
                     {r.status === "confirmed" && <div className="small">Corrected to <strong>{r.verified_display}</strong></div>}
                     {r.status === "rejected" && <div className="small">HR's reason: {r.decision_reason}</div>}
@@ -197,62 +195,20 @@ function RequestCorrection() {
   );
 }
 
-/**
- * Reporting anonymously protects the reporter, but HR then can't know whose rating to fix: they act only on what
- * their own investigation finds. So the tab says plainly which route fits which situation.
- */
-function ReportUnfair({ onCorrectRecord }) {
-  return (
-    <>
-      <div className="alert alert-info route-choice">
-        <strong>Which route is right for you?</strong>
-        <ul>
-          <li>
-            <strong>It's about your own rating, and you're comfortable being known:</strong> use <em>Correct my
-            record</em>. HR checks your evidence and fixes your record directly, and tells you the outcome.
-          </li>
-          <li>
-            <strong>You'd rather not be identified, or it affects other people too:</strong> report anonymously.
-            You stay protected, but HR can't know whose rating you mean. They can only act on what their own
-            investigation finds, so your own record may not be changed.
-          </li>
-        </ul>
-        <button type="button" className="btn btn-plain" onClick={onCorrectRecord}>Go to Correct my record</button>
-      </div>
-      <p>
-        If you believe your assessment was unfair (a biased rating, favouritism, discrimination, or a record that's
-        wrong or missing), you can report it <strong>anonymously</strong>. Names and details are removed before
-        anything is sent, and the report is never linked to your account or to this page.
-      </p>
-      <p className="muted small">
-        If HR's investigation finds a rating was unfair, they can re-appraise it. The re-appraisal is never linked to
-        your report, and your report itself never reaches the model. HR can reply to you anonymously in the report's
-        conversation, but the system never tells them who you are.
-      </p>
-      <div className="row">
-        <Link className="btn btn-accent" to="/report" state={{ category: "biased_rating" }}>Report an unfair assessment</Link>
-        <Link className="btn btn-plain" to="/my-report">Follow up a report</Link>
-      </div>
-    </>
-  );
-}
-
 const TABS = [
   { value: "rate", label: "Rate this explanation" },
   { value: "correct", label: "Correct my record" },
-  { value: "report", label: "Report anonymously" },
 ];
 
 export default function RespondPanel({ contributions }) {
   const [tab, setTab] = useState("rate");
   return (
     <Card title="Respond to this explanation" actions={<MessageSquareText size={20} className="feedback-icon" aria-hidden="true" />}
-      subtitle="Tell us whether it helped, ask HR to fix a wrong value, or raise a concern anonymously. None of this changes your score.">
+      subtitle="Tell us whether it helped, or ask HR to fix a wrong value in your record. Neither changes your score.">
       <Segmented label="How to respond" options={TABS} value={tab} onChange={setTab} />
       <div className="respond-body">
         {tab === "rate" && <RateExplanation contributions={contributions} />}
         {tab === "correct" && <RequestCorrection />}
-        {tab === "report" && <ReportUnfair onCorrectRecord={() => setTab("correct")} />}
       </div>
     </Card>
   );

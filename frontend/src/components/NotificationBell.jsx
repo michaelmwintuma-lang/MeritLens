@@ -1,8 +1,5 @@
-// The bell at the top right. HR is told about new reports and replies, record corrections waiting, and pay rises
-// Finance sent back; Finance about pay rises waiting for sign-off; employees about HR's decisions on their record.
-//
-// Reporters get no notifications: that would need the website to know which cases are theirs. They open a case
-// with its ID and key when they want to check it.
+// The bell at the top right. HR is told about record corrections waiting and pay rises Finance sent back; Finance
+// about pay rises waiting for sign-off; employees about HR's decisions on their record.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
@@ -12,14 +9,14 @@ import { useAuth } from "../auth";
 const CHECK_EVERY_MS = 60_000;
 
 async function hrItems() {
-  const [items, decisions, waiting] = await Promise.all([api("/hr/reports/notifications"),
+  const [decisions, waiting] = await Promise.all([
     api("/promotion/decisions?pay_status=returned"), // only those Finance sent back, not the whole log
     api("/hr/feedback/corrections?status_filter=pending")]);
   const corrections = waiting.length ? [{ id: "corrections", text: `${waiting.length} record correction${waiting.length === 1 ? "" : "s"} waiting`,
     detail: "Check the evidence and decide", to: "/corrections" }] : [];
   const sentBack = decisions.map((d) => ({
     id: `pay-${d.id}`, text: "Finance sent a pay rise back", detail: d.employee.full_name, to: `/nominations/${d.nomination_id}` }));
-  return [...corrections, ...sentBack, ...items.map((i) => ({ id: `${i.case_id}-${i.kind}`, text: i.text, detail: `Case ${i.case_id}`, to: `/reports/${i.case_id}` }))];
+  return [...corrections, ...sentBack];
 }
 
 async function employeeItems() {

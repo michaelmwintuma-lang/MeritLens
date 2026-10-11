@@ -70,7 +70,7 @@ function RequestCard({ request, onDone }) {
   const [error, setError] = useState("");
   return (
     <Card title={`${request.employee_name}: ${request.label}`}
-      subtitle={`${request.source === "reappraisal" ? "Re-appraisal opened by HR" : "Asked by the employee"} on ${request.created_at.slice(0, 10)}`}
+      subtitle={`Asked by the employee on ${request.created_at.slice(0, 10)}`}
       actions={<CorrectionStatus request={request} />}>
       <dl className="details-list">
         <div><dt>In the record</dt><dd>{request.current_display}</dd></div>

@@ -126,7 +126,7 @@ export default function Users() {
 
   async function togglePermission(u) {
     const giving = !u.can_view_employees;
-    if (giving && !window.confirm(`Let ${u.full_name} view every employee's record and readiness score (read-only)? They still can't see reports, nominate or decide. This is recorded in the activity log.`)) return;
+    if (giving && !window.confirm(`Let ${u.full_name} view every employee's record and readiness score (read-only)? They still can't see feedback, nominate or decide. This is recorded in the activity log.`)) return;
     if (await act(() => api(`/admin/users/${u.id}/permissions`, { method: "PATCH", body: { can_view_employees: giving } }), `perm-${u.id}`)) load();
   }
 

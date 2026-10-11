@@ -1,4 +1,4 @@
-"""The employee feedback channel: rating explanations, record corrections, HR's queue, the committee note, re-appraisal."""
+"""The employee feedback channel: rating explanations, record corrections, HR's queue, the committee note and hold."""
 import json
 
 import pytest

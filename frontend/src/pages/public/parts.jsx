@@ -2,7 +2,7 @@
 export { BRAND } from "../../brand";
 
 // The pages in the top menu
-export const PAGES = [["/approach", "Who uses it"], ["/promotion", "Promotions"], ["/reporting", "Reporting"], ["/privacy", "Privacy"]];
+export const PAGES = [["/approach", "Who uses it"], ["/promotion", "Promotions"], ["/privacy", "Privacy"]];
 
 /** The top of a page: its title and a short paragraph. */
 export function PageIntro({ title, children }) {

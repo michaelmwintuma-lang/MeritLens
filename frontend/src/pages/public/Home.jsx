@@ -3,7 +3,7 @@
 // (/api/public/summary); a result that hasn't been measured yet shows as "–", never as an example number.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Gauge, ListChecks, Lock, MessageSquareText, Route, Scale, ScanSearch, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { ArrowRight, ClipboardPen, FileCheck2, Gauge, ListChecks, MessageSquareText, Route, Scale, ScanSearch, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { api } from "../../api";
 import { BRAND, TAGLINE } from "../../brand";
 import { Screenshot } from "./parts";
@@ -11,7 +11,7 @@ import { Screenshot } from "./parts";
 const STEPS = [
   { icon: Gauge, title: "Predict", text: "A fairness-checked model estimates how ready each person is for promotion, from their performance and development record only." },
   { icon: ScanSearch, title: "Explain", text: "Every score comes with the reasons in plain words, and the smallest realistic steps that would reach the threshold." },
-  { icon: MessageSquareText, title: "Respond", text: "Employees rate the explanation, ask HR to correct a wrong record, or report an unfair assessment anonymously." },
+  { icon: MessageSquareText, title: "Respond", text: "Employees rate the explanation, and ask HR to correct a wrong record, with evidence." },
 ];
 
 const FEATURES = [
@@ -19,13 +19,13 @@ const FEATURES = [
   { icon: Route, title: "Path to promotion", text: "The smallest realistic improvements that would reach the threshold, plus a what-if tool for trying changes. Nothing is saved." },
   { icon: Scale, title: "Fairness audit", text: "Before a model goes live it must pass the four-fifths rule for gender, age and education. A model that fails is never used." },
   { icon: MessageSquareText, title: "Employee feedback channel", text: "Rate the explanation, flag factors that seem wrong or unfair, and ask HR to correct your record with evidence." },
-  { icon: Lock, title: "Anonymous reporting", text: "Names, contacts and dates are removed before a report is sent, and the report is never linked to an account." },
+  { icon: FileCheck2, title: "Accountable records", text: "Every change to a record is kept: who made it, the old and new value, why, and the score before and after." },
   { icon: UserCheck, title: "People decide", text: "Managers recommend and HR decides; going against the model needs a written reason, and every decision is logged." },
 ];
 
 const PROMISES = [
-  { icon: ShieldCheck, title: "A complaint never changes a score", text: "Ratings and reports never reach the model. Only a record correction that HR confirms against evidence can, and it is logged. An automated test checks this." },
-  { icon: Lock, title: "No one can unmask a reporter", text: "There is nowhere to store who sent a report, not even for administrators. Only the day is kept, never the time." },
+  { icon: ShieldCheck, title: "A complaint never changes a score", text: "Ratings never reach the model. Only a record correction that HR confirms against evidence can, and it is logged. An automated test checks this." },
+  { icon: ClipboardPen, title: "A wrong record can be put right", text: "If a value in your record is wrong, ask HR to correct it with evidence. HR checks it and tells you the outcome, with a reason." },
   { icon: Users, title: "People make every decision", text: "The model only advises. Every decision records who made it, what the model said and, if they differed, why." },
 ];
 
@@ -45,12 +45,8 @@ export default function Home() {
         </p>
         <div className="row intro-actions">
           <Link className="btn btn-primary btn-lg" to="/login">Sign in</Link>
-          <Link className="btn btn-accent btn-lg" to="/login" state={{ next: "/report" }}>Report a concern anonymously</Link>
+          <a className="btn btn-accent btn-lg" href="#how-it-works">How it works</a>
         </div>
-        <p className="muted small intro-note">
-          Staff sign in first, so only people in the organisation can report. The report itself is never linked to the
-          account. <Link to="/reporting">How reporting works</Link>
-        </p>
       </section>
 
       <section aria-labelledby="how-it-works" className="home-section">
@@ -83,8 +79,8 @@ export default function Home() {
         </ul>
       </section>
 
-      <Screenshot src="/landing/respond.webp" alt="The Respond to this explanation panel, with tabs to rate the explanation, correct the record or report anonymously, and two 1 to 5 scales">
-        Further down: the smallest realistic steps to the threshold, then the panel to respond: rate the explanation, ask HR to correct a value, or report anonymously.
+      <Screenshot src="/landing/respond.webp" alt="The Respond to this explanation panel, with tabs to rate the explanation or correct the record, and two 1 to 5 scales">
+        Further down: the smallest realistic steps to the threshold, then the panel to respond: rate the explanation, or ask HR to correct a value.
       </Screenshot>
 
       <section aria-labelledby="promises" className="home-section trust">
@@ -103,16 +99,16 @@ export default function Home() {
 
       <section className="results-section">
         <h2>How it did in testing</h2>
-        <p className="muted">Measured on synthetic (made-up) employee data and 50 hand-labelled test reports.</p>
+        <p className="muted">Measured on synthetic (made-up) employee data, on employees the model never saw in training.</p>
         <dl className="results">
           <div><dt>{trained ? facts.roc_auc.toFixed(2) : "–"}</dt>
             <dd>ROC-AUC for the promotion model on {trained ? `${facts.test_size.toLocaleString()} employees` : "employees"} it hadn't seen during training, using {trained ? `${facts.inputs} ` : ""}performance and development measures only.</dd></div>
           <div><dt>{trained ? `${Math.round(facts.lowest_fairness_ratio * 100)}%` : "–"}</dt>
             <dd>Lowest selection ratio between groups (gender, age, education). The four-fifths rule asks for at least 80%.</dd></div>
-          <div><dt>{facts?.anonymiser_recall != null ? `${Math.round(facts.anonymiser_recall * 100)}%` : "–"}</dt>
-            <dd>Of names, emails, phone numbers and dates removed automatically. The reporter reviews the rest before sending.</dd></div>
-          <div><dt>{facts?.urgent_total ? `${facts.urgent_caught} of ${facts.urgent_total}` : "–"}</dt>
-            <dd>Urgent test reports given high priority. The trade-off: some less urgent ones were rated too high.</dd></div>
+          <div><dt>{trained ? facts.pr_auc.toFixed(2) : "–"}</dt>
+            <dd>PR-AUC, the measure that suits a rare outcome: about 1 in 10 employees were promoted, so guessing scores {trained ? facts.pr_auc_baseline.toFixed(2) : "–"}.</dd></div>
+          <div><dt>{trained ? facts.inputs : "–"}</dt>
+            <dd>Inputs, all about performance and development: never gender, age, education, department or pay.</dd></div>
         </dl>
         <p className="muted small"><ListChecks size={14} aria-hidden="true" style={{ verticalAlign: "-2px" }} /> The model never sees gender, age, education, department or pay.</p>
       </section>

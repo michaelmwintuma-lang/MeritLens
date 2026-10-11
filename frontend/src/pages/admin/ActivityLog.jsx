@@ -1,4 +1,4 @@
-// Admin: who did what, and on which day. Nothing a reporter does is recorded, and only the day is kept.
+// Admin: who did what, and on which day. Only the day is kept, never the time.
 import { useEffect, useState } from "react";
 import { EyeOff, ScrollText } from "lucide-react";
 import { api } from "../../api";
@@ -22,8 +22,8 @@ export default function ActivityLog() {
     <>
       <PageHeader icon={ScrollText} title="Activity log" subtitle="Recorded by day, not time." />
       <p className="alert alert-info">
-        <EyeOff size={16} style={{ verticalAlign: "-3px" }} /> <strong>Nothing a reporter does is recorded</strong>, and
-        only the day is kept, never the time, so this log can't be used to work out who sent a report.
+        <EyeOff size={16} style={{ verticalAlign: "-3px" }} /> <strong>Only the day is kept, never the time</strong>: an
+        audit needs to know what happened and when, not people's working habits.
       </p>
       {error && <LoadError message={error} />}
       <Card flush title="Entries" subtitle="Newest first (the latest 500)."

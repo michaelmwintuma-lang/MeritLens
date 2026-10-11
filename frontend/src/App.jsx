@@ -2,7 +2,6 @@
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
-import { REPORTER_ROLES } from "./roles";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Loading } from "./components/ui";
 import PublicLayout from "./pages/public/PublicLayout";
@@ -13,7 +12,6 @@ import Login from "./pages/Login";
 const Layout = lazy(() => import("./components/Layout"));
 const Approach = lazy(() => import("./pages/public/Approach"));
 const PromotionPage = lazy(() => import("./pages/public/PromotionPage"));
-const ReportingPage = lazy(() => import("./pages/public/ReportingPage"));
 const Privacy = lazy(() => import("./pages/public/Privacy"));
 const BookDemo = lazy(() => import("./pages/public/BookDemo"));
 const Home = lazy(() => import("./pages/Home"));
@@ -33,14 +31,10 @@ const ReviewNomination = lazy(() => import("./pages/promotion/ReviewNomination")
 const DecisionLog = lazy(() => import("./pages/promotion/DecisionLog"));
 const Corrections = lazy(() => import("./pages/feedback/Corrections"));
 const FeedbackDashboard = lazy(() => import("./pages/feedback/FeedbackDashboard"));
-const Report = lazy(() => import("./pages/reporting/Report"));
-const CheckReport = lazy(() => import("./pages/reporting/CheckReport"));
-const ReportInbox = lazy(() => import("./pages/reporting/ReportInbox"));
-const ReportCase = lazy(() => import("./pages/reporting/ReportCase"));
 
 /**
- * /login once signed in: go where the person was heading ("Report a concern anonymously" on the website passes
- * { next: "/report" }), or to their overview. Only addresses inside the app are followed.
+ * /login once signed in: go where the person was heading (a link can pass { next: "/some-page" }), or to their
+ * overview. Only addresses inside the app are followed.
  */
 function AfterSignIn() {
   const next = useLocation().state?.next;
@@ -69,7 +63,6 @@ export default function App() {
           <Route index element={<PublicHome />} />
           <Route path="approach" element={<Approach />} />
           <Route path="promotion" element={<PromotionPage />} />
-          <Route path="reporting" element={<ReportingPage />} />
           <Route path="privacy" element={<Privacy />} />
           <Route path="demo" element={<BookDemo />} />
         </Route>
@@ -110,11 +103,6 @@ export default function App() {
         <Route path="corrections" element={<OnlyFor roles={["hr"]}><Corrections /></OnlyFor>} />
         <Route path="feedback" element={<OnlyFor roles={["hr", "auditor"]}><FeedbackDashboard /></OnlyFor>} />
         <Route path="finance" element={<OnlyFor roles={["finance"]}><PaySignOff /></OnlyFor>} />
-        {/* Anonymous reporting: employees and managers. HR handles reports in the inbox. */}
-        <Route path="report" element={<OnlyFor roles={REPORTER_ROLES}><Report /></OnlyFor>} />
-        <Route path="my-report" element={<OnlyFor roles={REPORTER_ROLES}><CheckReport /></OnlyFor>} />
-        <Route path="reports" element={<OnlyFor roles={["hr"]}><ReportInbox /></OnlyFor>} />
-        <Route path="reports/:caseId" element={<OnlyFor roles={["hr"]}><ReportCase /></OnlyFor>} />
         <Route path="login" element={<AfterSignIn />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

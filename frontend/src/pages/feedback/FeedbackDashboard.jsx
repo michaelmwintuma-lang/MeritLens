@@ -1,5 +1,5 @@
 // The feedback dashboard (HR and the compliance auditor): how employees respond to their explanations, how record
-// corrections are handled, what is reported, and where committees went against the model. Every number comes from
+// corrections are handled, and where committees went against the model. Every number comes from
 // the server, already filtered and with small groups protected; nothing here is one person's answer.
 import { useEffect, useState } from "react";
 import { Download, MessageSquareText } from "lucide-react";
@@ -104,12 +104,7 @@ export default function FeedbackDashboard() {
             <StatCard label="Time to decide" value={hoursText(c.mean_resolution_hours)} note="Average, from request to HR's decision" />
           </div>
 
-          <div className="two-cards">
-            <Card title="Anonymous reports by category" subtitle={data.reports.note}>
-              <BarList label="Reports by category"
-                rows={data.reports.by_category.map((x) => ({ key: x.category, name: x.label, value: x.count }))} />
-              {data.reports.earlier_categories !== 0 && <p className="muted small">Reports in earlier categories: {data.reports.earlier_categories}</p>}
-            </Card>
+          <div>
             <Card title="Committee decisions" subtitle="Decisions that went against the model, each with its written reason.">
               <div className="stat-grid compact">
                 <StatCard label="Decisions" value={m.decisions} />

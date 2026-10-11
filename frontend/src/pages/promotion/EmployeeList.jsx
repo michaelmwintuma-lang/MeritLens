@@ -49,7 +49,7 @@ export default function EmployeeList() {
           </>
         )} />
 
-      {user.role === "admin" && <p className="alert alert-info">You're viewing employee data as an administrator: read-only. Nominations, decisions and reports stay with managers and HR.</p>}
+      {user.role === "admin" && <p className="alert alert-info">You're viewing employee data as an administrator: read-only. Nominations, decisions and feedback stay with managers and HR.</p>}
       <div className="card flush">
         <div className="card-head filters">
           <input placeholder="Search by name" value={search} onChange={filter(setSearch)} aria-label="Search by name" />

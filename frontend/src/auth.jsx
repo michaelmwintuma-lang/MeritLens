@@ -1,15 +1,12 @@
 // Who is signed in, shared with every page.
 import { createContext, useContext, useEffect, useState } from "react";
 import { SESSION_ENDED, api, getToken, setToken } from "./api";
-import { setKeyOwner } from "./keyStore";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }) {
-  const [user, setUserState] = useState(null);
-  // Saved report keys belong to the signed-in account on this device
-  const setUser = (next) => { setKeyOwner(next?.id); setUserState(next); };
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(getToken()));
   const [notice, setNotice] = useState(""); // why the user was signed out, shown on the sign-in page
 

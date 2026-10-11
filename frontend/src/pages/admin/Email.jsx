@@ -11,7 +11,8 @@ const EMAILS_SENT = [
   ["Security alert", "Their password or username changed", "the person"],
   ["Nomination received", "A manager nominated someone", "every HR account"],
   ["Decision", "HR approved or rejected a nomination", "the manager (and the employee, if approved)"],
-  ["New report alert", "Only the case ID, category and priority, never the text or anything about the reporter", "every HR account"],
+  ["Correction waiting", "An employee asked for a record correction", "every HR account"],
+  ["Correction decided", "HR confirmed or rejected a record correction, with the reason", "the employee"],
 ];
 
 export default function Email() {
@@ -67,7 +68,7 @@ export default function Email() {
           </form>
           {result && <p className={`alert ${result.sent ? "alert-success" : "alert-warning"}`} style={{ marginTop: 14 }}>{result.detail}</p>}
         </Card>
-        <Card title="What the platform emails" subtitle="Reporters are never emailed about their reports: that would link them to it.">
+        <Card title="What the platform emails" subtitle="Emails say what happened and link to the page; scores and records stay in the app.">
           <ul className="email-kinds">
             {EMAILS_SENT.map(([name, what, who]) => <li key={name}><strong>{name}</strong><span className="muted small">{what} · to {who}</span></li>)}
           </ul>

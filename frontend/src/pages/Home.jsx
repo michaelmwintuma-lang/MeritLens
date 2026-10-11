@@ -81,7 +81,7 @@ function EmployeeOverview({ me, requests = [] }) {
         <Link className="btn btn-primary" to="/my-readiness">See why, try changes and get tips <ArrowRight size={16} /></Link>
       </Card>
       <Card title="Respond to your explanation"
-        subtitle="Rate whether it was clear and useful, ask HR to correct a value in your record, or report an unfair assessment anonymously. None of this changes your score.">
+        subtitle="Rate whether it was clear and useful, or ask HR to correct a value in your record. Neither changes your score.">
         <p className="muted small">{requests.length
           ? `Your correction requests: ${requests.length}, of which ${waiting} waiting for HR.`
           : "You haven't asked for a correction."}</p>
@@ -125,7 +125,7 @@ function AuditorOverview({ data }) {
         <StatCard label="Model" value={model.trained ? `ROC-AUC ${model.roc_auc.toFixed(2)}` : "–"}
           note={model.trained ? `${model.model}, tested on ${model.test_size.toLocaleString()} unseen records` : "No model trained yet"} />
       </div>
-      <Card title="Oversight" subtitle="Read-only. You see decisions and the model, never anonymous reports.">
+      <Card title="Oversight" subtitle="Read-only. You see decisions, the model and feedback totals, never one person's feedback.">
         <div className="row">
           <Link className="btn btn-primary" to="/decisions">Open the decision log <ArrowRight size={16} /></Link>
           <Link className="btn btn-plain" to="/feedback">Feedback dashboard</Link>
