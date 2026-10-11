@@ -1,5 +1,10 @@
 # Evaluating the reporting part
 
+> **Removed feature.** This document describes anonymous reporting, which was removed from this version to keep
+> the scope focused on predicting, explaining and responding through the employee feedback channel. It is kept
+> for future work. The last version with the feature is the git tag `with-anonymous-reporting`
+> (`git checkout with-anonymous-reporting`).
+
 The promotion model is evaluated in `results/metrics.json` and `results/fairness.json`. This document covers the
 other half: **how well the anonymiser and triage work**. Run it from the `backend` folder:
 

@@ -1,5 +1,10 @@
 # Threat model
 
+> **Removed feature.** This document describes anonymous reporting, which was removed from this version to keep
+> the scope focused on predicting, explaining and responding through the employee feedback channel. It is kept
+> for future work. The last version with the feature is the git tag `with-anonymous-reporting`
+> (`git checkout with-anonymous-reporting`).
+
 Who might try to misuse the system, what they would try, what stops them, and the automated test that shows it.
 Then what isn't stopped: the residual risks.
 

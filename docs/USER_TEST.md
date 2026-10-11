@@ -5,8 +5,8 @@ understanding and trust. Plan about 30 minutes per person, with 5 to 8 people (5
 problems; more gives steadier numbers).
 
 > **Ethics first.** Most universities require approval before any study with people, even a small, anonymous one.
-> Check with your supervisor before you start. Participants must never report real misconduct: they use the
-> made-up scenarios below.
+> Check with your supervisor before you start. Participants never use real data: they use the demo accounts and
+> the made-up scenarios below.
 
 ## Before each session
 
@@ -31,20 +31,21 @@ hint) or **no**, and the time in seconds.
 |---|---|---|
 | T1 | employee | "Find your readiness score and say, in your own words, the main thing holding it back." |
 | T2 | employee | "Find out what would happen to your score if your training hours went up." |
-| T3 | employee | "You saw a colleague being shouted at. Report it anonymously, and keep what you need to check for a reply later." *(Give them this scenario card: "In the meeting on 3rd of May, Nadia Varga shouted at a new team member and called them useless.")* |
-| T4 | hr | "Find the report that was just sent and reply to the reporter asking for more detail." |
-| T5 | employee | "Check whether HR has replied to your report." |
+| T3 | employee | "Find your path to promotion and say which step you would start with." |
+| T4 | employee | "Tell the system whether the explanation of your score was clear and useful, and mark any factor that seems unfair to you." |
+| T5 | employee | "Your record says you completed fewer projects than you did. Ask HR to correct it." *(Scenario card: "Your signed review form from March lists 3 more completed projects than the record shows.")* |
 | T6 | manager | "Nominate the team member with the highest readiness for promotion, with a reason." |
-| T7 | hr | "Decide on that nomination. Suppose you disagree with the model: record your decision." |
-| T8 | employee | "Tell the system whether the explanation of your score was clear and useful, and mark any factor that seems unfair to you." |
-| T9 | employee | "Your record says you completed fewer projects than you did. Ask HR to correct it." *(Scenario card: "Your signed review form from March lists 3 more completed projects than the record shows.")* |
-| T10 | employee | "You believe your last appraisal was biased. Raise this anonymously." *(Scenario card: "Your manager rated you lower than colleagues who did less, and said it was because you 'don't fit in'.")* |
-| T11 | hr | "An employee has asked for a record correction. Check it and decide." |
+| T7 | manager | "Open a team member's explanation and say what most lowered their score." |
+| T8 | hr | "Decide on that nomination. Suppose you disagree with the model: record your decision." |
+| T9 | hr | "An employee has asked for a record correction. Check it and decide." |
+| T10 | hr | "On the feedback dashboard, find which factor employees contest most." |
+| T11 | employee | "Check whether HR has decided on your correction request." |
 
-T8 to T11 cover the employee feedback channel: the three ways to respond to an explanation (rate it, ask for a
-correction, report anonymously), and HR acting on a correction.
+T3 to T5, T9 and T11 cover the feedback channel: reading the explanation and its tips, the two ways to respond to
+it (rate it, ask for a correction), HR acting on a correction, and the employee seeing the outcome. Keep this order:
+T9 needs T5's request, and T11 needs T9's decision.
 
-Afterwards, tidy up what the test created: as HR, close the made-up cases. To start every session from the same
+To start every session from the same
 state, copy `backend/instance/app.db` somewhere safe before the first session and copy it back after each one
 (with the app stopped). Deleting `app.db` also works, but it recreates only the demo data: accounts, employees
 and passwords you've changed or added yourself would be lost.
@@ -70,7 +71,7 @@ Answer each statement from 1 (strongly disagree) to 5 (strongly agree).
 
 - e1. The explanations helped me understand why a readiness score was what it was.
 - e2. I would trust a promotion decision made with this system's advice.
-- e3. When reporting, I felt my identity was protected.
+- e3. I understood what I could do if I disagreed with my score.
 - e4. I could find what I needed without help.
 
 **Perceived fairness** (adapted from Colquitt, 2001; scored separately, not part of SUS). Ask these after the

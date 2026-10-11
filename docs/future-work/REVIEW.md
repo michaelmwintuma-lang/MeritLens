@@ -1,5 +1,13 @@
 # Review before the upgrade (Phase 1)
 
+> **Removed feature.** This document describes anonymous reporting, which was removed from this version to keep
+> the scope focused on predicting, explaining and responding through the employee feedback channel. It is kept
+> for future work. The last version with the feature is the git tag `with-anonymous-reporting`
+> (`git checkout with-anonymous-reporting`).
+
+> The review also covers parts of the system that remain; its findings on them were fixed (see
+> `docs/CHANGELOG_UPGRADE.md`).
+
 Reviewed on 2026-10-08: every backend module, the main frontend pages, the tests, the docs, and the running app
 (`python run.py`: API on :8000, web on http://127.0.0.1:5173).
 

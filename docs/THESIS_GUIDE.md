@@ -22,8 +22,8 @@ explains the reasons behind each prediction, and lets employees respond to those
    education).
 2. **Explain.** Explain every prediction in simple language: which factors raised or lowered the score, and the
    smallest realistic improvements that would reach the threshold.
-3. **Respond.** Let employees respond to their explanation, by rating it, asking HR to correct a wrong record, or
-   reporting an unfair assessment anonymously, while people, not the system, make every final decision.
+3. **Respond.** Let employees respond to their explanation, by rating it and by asking HR to correct a wrong
+   record, while people, not the system, make every final decision.
 
 **Research questions** (suggested):
 
@@ -46,13 +46,14 @@ explains the reasons behind each prediction, and lets employees respond to those
    - algorithmic fairness, including the four-fifths rule;
    - actionable recourse;
    - organisational justice (Colquitt's informational and procedural justice);
-   - voice and anonymous reporting.
+   - employee voice: how being heard, and being able to correct the record, affects perceived fairness.
 3. **Methodology:** sections 3 and 4 below, with the dataset, the definition of readiness and the fairness method
    justified in section 9.
 4. **Results:** section 5 below.
 5. **Discussion:** section 6 below.
-6. **Conclusion and future work:** limitations from `docs/LIMITATIONS.md` and the residual risks in
-   `docs/THREAT_MODEL.md`.
+6. **Conclusion and future work:** the limitations and future work in `docs/LIMITATIONS.md`. A confidential route
+   for reporting unfair assessments is future work (built, then removed to keep the scope focused; see
+   `docs/future-work/`).
 
 ## 3. Methodology: predict and explain
 
@@ -91,19 +92,16 @@ considered, its limitations and suggested wording. Use them in the methodology c
 
 ## 4. Methodology: respond, and keeping it apart from the model
 
-- **Three routes** on the employee's own page:
+- **Two routes** on the employee's own page:
   1. rate the explanation (clear? useful? 1–5; factors that seem wrong or unfair);
-  2. ask HR to correct a value in the record, with evidence;
-  3. report an unfair assessment anonymously.
+  2. ask HR to correct a value in the record, with evidence.
 - **HR's correction queue:**
   - confirm with the verified value: the record is corrected, the employee re-scored, and everything is logged;
   - or reject with a reason the employee receives.
 - **The committee note,** with an option to hold a decision until a correction is resolved. A hold is not a decision
   and never counts as an override.
-- **Re-appraisal** after a report is closed as "rating found unfair". It creates a normal correction with no link to
-  the report.
 - **Isolation by design:**
-  - feedback and reporting live in their own modules and tables;
+  - feedback lives in its own module and tables;
   - the promotion code never imports or names them, which a static check enforces;
   - at run time the prediction endpoints run no SQL on those tables;
   - an end-to-end test shows predictions are byte-for-byte identical after every kind of feedback, and change only
@@ -127,7 +125,6 @@ considered, its limitations and suggested wording. Use them in the methodology c
 | Fairness (four-fifths rule) | `results/fairness.json` | same |
 | Proxy analysis and equal opportunity | `results/proxy_analysis.json` | `python -m evaluation.proxy_analysis` |
 | Explanations: exactness, common sense, LIME fit and agreement, tips | `results/explanation_evaluation.json` | `python -m evaluation.evaluate_explanations` |
-| Reporting: anonymiser and triage | `results/reporting_evaluation.md` | `python -m evaluation.evaluate_reporting` |
 | Feedback channel in use: clarity, contest share, corrections | `results/feedback_measures.json` | `python -m evaluation.export_feedback_measures` (after the study) |
 | Usability and perceived fairness | `results/user_test.md` | `python -m evaluation.user_test` (after the study) |
 | Tests, browser checks, accessibility, performance | `docs/EVALUATION_RESULTS.md`, section 5 | `python -m pytest`; `python scripts/browser_test.py` |
@@ -151,10 +148,10 @@ All commands run from `backend/`, except `scripts/…`, which run from the proje
   counted, and why department isn't a protected characteristic yet still matters for fairness.
 - **Isolation as a design property.** It is shown by tests rather than claimed, and it limits what the feedback
   channel can do: voice without the power to change scores, except through verified corrections.
-- **Anonymity versus redress.** An anonymous report protects the reporter, but HR can't know whose rating it means:
-  a re-appraisal follows only from HR's own investigation. Someone who wants their own rating fixed must give up
-  anonymity and use "Correct my record". Discuss this trade-off (the page states it to employees), and whether an
-  opt-in "reveal myself to HR" would be worth weakening the anonymity promise.
+- **Voice without anonymity.** Both routes are made under the employee's own name. That makes a correction
+  possible (HR knows whose record to check) but may deter someone who fears consequences. A confidential route was
+  built and then removed to keep the scope focused; discuss it as future work, including the trade-off it raises:
+  an anonymous report can't tell HR whose rating to fix.
 - **Small-group protection** trades detail for privacy.
 - **Drift and chance.** With 20 inputs checked at the 95% level, about one flag is expected by chance.
 - **Synthetic data.** All results describe this dataset. Real use would need retraining, and the fairness gate
@@ -168,7 +165,7 @@ All commands run from `backend/`, except `scripts/…`, which run from the proje
 - HR's correction queue, and the committee note on a nomination (from `docs/screenshots/phase7-after/`, or capture
   new ones).
 - The feedback dashboard (`docs/screenshots/phase7-after/hr-feedback-dashboard-desktop.webp`).
-- Architecture: React → FastAPI (promotion | feedback | reporting) → SQLite, with the isolation boundary marked.
+- Architecture: React → FastAPI (promotion | feedback) → SQLite, with the isolation boundary marked.
 
 ## 8. References
 

@@ -5,23 +5,25 @@ employee promotion, with an employee feedback channel": **predict → explain �
 
 ## Summary
 
+The system as it stands. The phases below are the history, as it happened: Phases 2–9 also built anonymous
+reporting, which was removed afterwards (see "Removal of anonymous reporting" at the end).
+
 - **Predict:** department removed from the model; a monotonic Explainable Boosting Machine chosen by a
   common-sense rule (improving an input never lowers a score), with the four-fifths fairness gate. Test PR-AUC
   0.474 and ROC-AUC 0.883; every group's ratio is at least 0.887.
 - **Explain:** exact additive contributions in plain words first, with "Show technical details" for the numbers
   and LIME; tips toward the threshold; "under 1%" instead of "0%".
-- **Respond:** rate the explanation, request a record correction with evidence, or report anonymously (five
-  promotion-focused categories); HR's correction queue; the committee note and hold; re-appraisal with no link to
-  the report.
+- **Respond:** rate the explanation, or request a record correction with evidence; HR's correction queue; the
+  committee note and hold.
 - **Isolation, proven:** byte-for-byte identical predictions after every kind of feedback; static and run-time
   checks.
 - **Oversight:** a read-only compliance auditor; the feedback dashboard with small-group protection; the admin
   dashboard with system health and drift.
-- **Security fixes:** sign-in lock-out; withdrawn tokens; no report keys in the browser.
+- **Security fixes:** sign-in lock-out; withdrawn tokens.
 - **Site:** a public landing page; one loading and error pattern; no accessibility findings (axe, light and dark);
   pages load on first use; batch scoring.
-- **Tests and docs:** 372 tests in about 2 minutes; 7 browser checks; CI; the evaluation results, thesis guide,
-  threat model and data model; a usability study kit with perceived-fairness items.
+- **Tests and docs:** 281 tests in about 3 minutes; 6 browser checks; CI; the evaluation results, thesis guide
+  and data model; a usability study kit with perceived-fairness items.
 
 ## Model (before Phase 1, approved separately)
 
@@ -203,6 +205,44 @@ Measured on the running app with 120 demo employees, before and after:
   tab now says so, and points people who want their own record fixed (and are comfortable being known) to
   "Correct my record", with a button that switches to it. Recorded as a limitation and a discussion point.
 
+## Removal of anonymous reporting (2026-10-11)
+
+The thesis now covers only the employee feedback channel (rate the explanation, correct my record); anonymous
+reporting is future work. So the feature was removed, and the system matches the thesis.
+
+- **Kept for later:** the last version with the feature is the git tag `with-anonymous-reporting` (commit
+  `cee322a`); the work was done on the branch `remove-anonymous-reporting`. The threat model, the reporting
+  evaluation and the original review moved to `docs/future-work/`, each with a note.
+- **Backend:** `app/reporting` deleted (anonymiser, case keys, the triage model and its 280 examples, evidence
+  cleaning, the conversation, HR's inbox), with its router, report emails, activity actions, `REPORTER_ROLES`,
+  `EVIDENCE_DIR` and the landing page's reporting facts. From the feedback channel: the re-appraisal from a report,
+  and "reports per category" on the dashboard and in its CSV. Ratings, corrections with their PDF/JPEG/PNG
+  evidence, the committee note and the hold are unchanged.
+- **Database:** at start-up, a database made by the old version loses its three report tables, their
+  activity-log entries and its evidence folder (`drop_removed_reporting`); accounts and everything else stay. A test
+  covers it.
+- **Dependencies:** Pillow and imageio-ffmpeg removed from `requirements.txt` (only reporting used them; matplotlib
+  still brings Pillow).
+- **Evaluation:** `evaluate_reporting.py`, `choose_priority_model.py`, the two labelled report sets and
+  `results/reporting_evaluation.*` deleted.
+- **Frontend:** the report pages, their components, the key store and the public "Reporting" page deleted; the
+  menus, phone tab bars, notification bell, home pages and landing page updated. "Respond to this explanation"
+  offers two routes. The landing page's hero offers "Sign in" and "How it works", and its results show PR-AUC and
+  the number of inputs instead of the reporting figures.
+- **Tests:** 281 (372 before). `test_isolation.py` now covers feedback only: a harsh rating, a pending and a
+  rejected correction and a held decision leave every prediction byte-for-byte identical; a confirmed correction
+  changes it and is logged; the static check covers `app.feedback`. The browser checks also confirm that no page
+  for any of the six roles mentions reporting, and that its old addresses lead back to the overview.
+- **Usability study:** the four reporting tasks were replaced (path to promotion, a team member's explanation, the
+  feedback dashboard, checking HR's decision), keeping 11 tasks; question e3 now asks whether people understood
+  what they could do if they disagreed with their score.
+- **Unchanged, checked:** retraining on a copy reproduced `metrics.json`, `fairness.json` and
+  `model_comparison.json` byte for byte; the proxy analysis and the explanation evaluation differed only in the
+  model's version label.
+- **Also fixed on the way:** the browser checks start their throwaway backend in WSL when Windows blocks Python (as
+  `run.py` already did); the landing-page check now waits for the page and fetches each screenshot (it passed
+  before only because it read the page before any image was drawn).
+
 ## Left to do (by the project owner)
 
 - **Run the usability study** (`docs/USER_TEST.md`, with ethics approval first). Then run
@@ -212,5 +252,4 @@ Measured on the running app with 120 demo employees, before and after:
   footer.
 - **Push to GitHub** so CI runs.
 - **Change `SMTP_SENDER_NAME`** in your private `backend/.env` to MeritLens if emails should carry the new name.
-- **Collect the external report set** (`backend/evaluation/reports_external.json`) for a fairer reporting
-  evaluation.
+- **Merge the branch** `remove-anonymous-reporting` into `main` once you've checked it.

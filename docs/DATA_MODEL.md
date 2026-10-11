@@ -6,15 +6,15 @@ Browsers never touch the database: every read and write goes through an API rout
 
 **Roles:** employee, manager, HR, admin, finance, auditor (compliance auditor, read-only).
 
-**Never stored anywhere:** gender, age, education, marital status, salaries, who sent a report, the time a report or
-message was sent (only the day), IP addresses, and report keys (only their hash).
+**Never stored anywhere:** gender, age, education, marital status, salaries, the time of an action (the activity
+log keeps only the day), and IP addresses.
 
 ## Accounts and the audit trail (`app/accounts`, `app/core`)
 
 | Table | Holds | Read by | Changed by |
 |---|---|---|---|
 | `users` | One row per login: username, name, email, password hash (PBKDF2), role, active, must-change-password, linked employee record, profile details, the admin's "can view employee data" permission, wrong-password count and lock time, token version (raised on password change, reset and sign-out) | Each user sees themselves; the admin sees all | The user (own profile and password); the admin (accounts, resets, permissions); sign-in (wrong-password count and lock) |
-| `activity_log` | Important actions: day (never the time), who, what, details. Nothing a reporter does is recorded. | Admin | Written by the routes as actions happen. Entries are never edited, except that deleting an account removes the link to it (the name stays). |
+| `activity_log` | Important actions: day (never the time), who, what, details. | Admin | Written by the routes as actions happen. Entries are never edited, except that deleting an account removes the link to it (the name stays). |
 | `demo_requests` | "Book a demo" requests from the website | Admin | Anyone can send one (rate-limited); the admin ticks them off |
 
 ## Predict and decide (`app/promotion`)
@@ -36,19 +36,15 @@ message was sent (only the day), IP addresses, and report keys (only their hash)
 | Table | Holds | Read by | Changed by |
 |---|---|---|---|
 | `explanation_ratings` | An employee's rating of their explanation: clarity and usefulness (1–5), factors marked "seems wrong" or "seems unfair", an optional comment, the model version, and the score it explained (worked out on the server). One per employee per model version. | The employee (their own); HR and the auditor **in aggregate only** (rates withheld below 5 ratings); never managers | The employee (create or replace) |
-| `correction_requests` | A request to correct one value in a work record: the value, what the record said, what was asked, the evidence (a note, and optionally a file stored under a random name), and HR's decision: status, verified value, reason, readiness before and after, a link to the `record_changes` row. Re-appraisals (`source = reappraisal`) **hold no link to the report** they came from. | The employee (their own; never HR's note on a re-appraisal); HR all; never managers | Employees (create, attach a file); HR (confirm or reject, open a re-appraisal) |
+| `correction_requests` | A request to correct one value in a work record: the value, what the record said, what was asked, the evidence (a note, and optionally a file stored under a random name), and HR's decision: status, verified value, reason, readiness before and after, a link to the `record_changes` row. (`source` is always `employee`; an earlier version also had HR-opened re-appraisals.) | The employee (their own; never HR's note on a re-appraisal); HR all; never managers | Employees (create, attach a file); HR (confirm or reject, open a re-appraisal) |
 | `nomination_deferrals` | A promotion decision put on hold while a correction is pending: when, by whom, and when and why it was lifted | HR | HR (hold, resume); lifted by itself when the correction is decided |
 
-## Anonymous reporting (`app/reporting`)
+## Removed: anonymous reporting
 
-The promotion code never reads these tables. They hold no user, account or employee column, no times (only
-days), and no hidden row order: SQLite's `WITHOUT ROWID`, so the order reports arrived in can't be recovered.
-
-| Table | Holds | Read by | Changed by |
-|---|---|---|---|
-| `reports` | Case ID (random), category, the anonymised text the reporter approved, the day, the key's hash, suggested and set priority, status, outcome, wrong-key count and lock time | HR; the reporter with the case ID and key | The reporter (create); HR (priority, status, outcome) |
-| `report_messages` | The conversation: "reporter" or "investigator", text, day, a running number | HR; the reporter with the key | Both sides (append only) |
-| `report_evidence` | Photos and videos, with location, device, owner and time removed; random file names; the day | HR; the reporter with the key | The reporter (add, remove while the case is open) |
+An earlier version had three more tables (`reports`, `report_messages`, `report_evidence`) for anonymous
+reporting. That feature was removed; when the app starts on a database made by the earlier version, it drops
+those tables, their activity-log entries and their evidence folder (`drop_removed_reporting` in
+`backend/app/core/database.py`).
 
 ## Files outside the database
 
@@ -56,7 +52,7 @@ days), and no hidden row order: SQLite's `WITHOUT ROWID`, so the order reports a
 |---|---|
 | `backend/models/` | The live model, its information (threshold, inputs, version, training statistics, the list of departments) and the 2,000-employee training sample used for LIME, importance and drift |
 | `results/` | The results the training and evaluation scripts wrote (`docs/EVALUATION_RESULTS.md`) |
-| `backend/instance/evidence/`, `backend/instance/correction_evidence/` | Report evidence and correction evidence, served only through the API, never cached |
+| `backend/instance/correction_evidence/` | Documents attached to correction requests, served only through the API, never cached |
 | `backend/instance/outbox/` | Emails saved instead of sent when no mail server is set up |
 | `backend/instance/secret.key` | The key that signs login tokens (or `APP_SECRET_KEY`) |
 

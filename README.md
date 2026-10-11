@@ -13,10 +13,9 @@ Employee Promotion Prediction with an Employee Feedback Channel.* It follows one
    independent second opinion (LIME) are under "Show technical details".
 3. **Respond.** Employees can answer back:
    - rate the explanation, and mark factors that seem wrong or unfair;
-   - ask HR to correct a wrong record, with evidence;
-   - report an unfair assessment anonymously.
+   - ask HR to correct a wrong record, with evidence.
 
-**People make every decision, and a complaint never changes a score.** Ratings and reports never reach the model:
+**People make every decision, and a complaint never changes a score.** Ratings never reach the model:
 a static check, a run-time check and an end-to-end isolation test prove it. Only a record correction that HR
 confirms against evidence changes a record; the employee is then re-scored and the change is logged. A manager
 recommends, HR decides (going against the model needs a written reason), and Finance signs off the pay rise.
@@ -32,7 +31,7 @@ recommends, HR decides (going against the model needs a written reason), and Fin
 1. [What the system does](#1-what-the-system-does)
 2. [Architecture and technologies](#2-architecture-and-technologies)
 3. [Predict and explain](#3-predict-and-explain)
-4. [Respond: the employee feedback channel](#4-respond-the-employee-feedback-channel), including anonymous reporting
+4. [Respond: the employee feedback channel](#4-respond-the-employee-feedback-channel)
 5. [Privacy, security and ethics by design](#5-privacy-security-and-ethics-by-design)
 6. [Evaluation and testing](#6-evaluation-and-testing)
 7. [Getting started](#7-getting-started)
@@ -49,12 +48,12 @@ recommends, HR decides (going against the model needs a written reason), and Fin
 
 | Role | What they can do |
 |---|---|
-| **Employee** | On "My growth": see their readiness score, why, and their path to promotion; try "what-if" changes; rate the explanation, ask HR to correct their record, or report an unfair assessment anonymously and follow it up; see an approved promotion |
+| **Employee** | On "My growth": see their readiness score, why, and their path to promotion; try "what-if" changes; rate the explanation, or ask HR to correct their record; see an approved promotion |
 | **Manager** | Everything an employee can do for themselves, plus see their team's readiness and recommend team members for promotion with structured reasons and a proposed pay rise |
-| **HR** | See all employees; review recommendations alongside the model's view (with a committee note, and a hold, while a correction is pending) and decide; confirm or reject record corrections; see the feedback dashboard; set the pay-rise policy; keep the decision log; add or import employees; handle anonymous reports and open re-appraisals |
+| **HR** | See all employees; review recommendations alongside the model's view (with a committee note, and a hold, while a correction is pending) and decide; confirm or reject record corrections; see the feedback dashboard; set the pay-rise policy; keep the decision log; add or import employees |
 | **Finance** | Sign off the pay rise of each approved promotion, or send it back to HR with a reason; see pay rises signed off this year by department |
 | **Admin** | Create, edit, deactivate and delete accounts; assign managers' teams; grant admins read-only access to employee data; see system health (model, fairness gate, drift, email) and the activity log, email outbox and demo requests |
-| **Compliance auditor** | Read-only: the decision log, the model and its fairness, record histories and the feedback dashboard (totals only); never reports or individual records |
+| **Compliance auditor** | Read-only: the decision log, the model and its fairness, record histories and the feedback dashboard (totals only); never individual records or feedback |
 
 Administration accounts (admin, HR, finance, auditor) and employee accounts (employee, manager) are managed
 separately. Every role
@@ -65,9 +64,9 @@ check is enforced by the backend, not just hidden in the interface.
 - **Readiness score with explanations**: a plain-language summary, what raised and lowered the score, the path to
   promotion (realistic tips), "what-if" exploration, and, under "Show technical details", the exact contributions
   and a second opinion (LIME).
-- **Employee feedback channel**: rate the explanation, request a record correction with evidence, or report an
-  unfair assessment anonymously; HR's correction queue; a committee note on nominations; re-appraisal after a
-  report found a rating unfair; a feedback dashboard with small-group protection.
+- **Employee feedback channel**: rate the explanation, or request a record correction with evidence; HR's
+  correction queue; a committee note on nominations, with a hold while a correction is pending; a feedback
+  dashboard with small-group protection.
 - **Human-in-the-loop decisions**: structured manager recommendations (four criteria rated 1–5 with real
   examples, a proposed title, start date and pay rise), a written reason required when a manager disagrees with
   the model, and HR's final decision recorded with the model's view at that moment.
@@ -75,16 +74,8 @@ check is enforced by the backend, not just hidden in the interface.
   outside it requires a written reason. Salaries are never stored.
 - **Finance sign-off**: an approved promotion's pay rise waits for Finance, who signs it off or sends it back
   to HR with a reason. Nobody is told about the promotion until it is signed off, and every step is kept.
-- **Anonymous reports**: five promotion-focused categories (biased rating or appraisal, favouritism,
-  discrimination, wrong or missing record, other workplace concern); automatic removal of names, emails, phone
-  numbers and dates, which the reporter reviews before sending; warnings about phrases that could identify them; a
-  case ID and secret key for follow-up, never kept by the website.
-- **Language-model triage**: a text classifier suggests high, moderate or low priority, with safety rules that can
-  raise but never lower it, and shows HR why.
-- **Photo and video evidence**: hidden details (location, device, owner, time) are removed before anything is
-  saved.
-- **Notifications and email**: welcome, security, nomination, decision and team emails, and report alerts that
-  reveal only the case ID, category and priority. Reporters are never emailed.
+- **Notifications and email**: welcome, security, nomination, decision, correction and team emails, and a
+  notification bell for what needs attention.
 - **Accounts and oversight**: profiles with photos, permissions, sign-in lock-out after 5 wrong passwords, an
   activity log (dates only), an admin dashboard with system health and drift, and a public landing page.
 
@@ -99,25 +90,24 @@ check is enforced by the backend, not just hidden in the interface.
  FastAPI backend ──────────────────────────────────────────────┐
    ├─ accounts/   sign-in, roles, profiles, admin              │
    ├─ promotion/  model, explanations, recommendations, pay    │  SQLite database
-   │      ▲ never imports feedback/ or reporting/ (checked)     │
-   ├─ feedback/   ratings, corrections, dashboard ─────────────┤  (feedback and report tables are
-   ├─ reporting/  anonymiser, keys, triage model, evidence ────┤   never read by promotion code)
+   │      ▲ never imports feedback/ (checked)                  │
+   ├─ feedback/   ratings, corrections, dashboard ─────────────┤  (feedback tables are never read
+   │                                                           │   by promotion code)
    ├─ public/     landing-page facts from results/             │
    ├─ demo/       public "Book a demo" requests                │
    └─ core/       settings, security, email, activity log      │
         │                                                      │
         ├─ models/model.joblib  (trained promotion model)      │
-        ├─ instance/evidence/   (cleaned photos and videos) ───┘
+        ├─ instance/correction_evidence/  (documents for corrections) ┘
         └─ Gmail SMTP, or an outbox folder when no mail server is set
 ```
 
 | Layer | Technologies |
 |---|---|
 | Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite, PyJWT |
-| Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest, TF-IDF text classifier), XGBoost, LIME, pandas, NumPy, Matplotlib |
-| Evidence cleaning | Pillow (photos), ffmpeg via imageio-ffmpeg (videos) |
+| Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Frontend | React 19, React Router 7, Vite 7, lucide-react icons |
-| Testing | pytest (372 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
+| Testing | pytest (281 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
 
 ---
 
@@ -224,110 +214,33 @@ and the numbers above are what it costs.
 
 ## 4. Respond: the employee feedback channel
 
-On their own "My growth" page, below the explanation, an employee finds **Respond to this explanation** with three
-routes. None of them changes a score.
+On their own "My growth" page, below the explanation, an employee finds **Respond to this explanation** with two
+routes. Neither changes a score.
 
 | Route | What happens |
 |---|---|
 | **Rate this explanation** | "This explanation was clear" and "This explanation was useful" (1–5), optional "seems wrong" / "seems unfair" marks per factor, and a comment. Stored with the model version and the score explained. HR and the auditor see only totals (rates from 5 ratings up); managers never see them. |
 | **Correct my record** | Pick a value from your own record, the value you believe is right, and evidence (a note, and optionally a PDF, JPEG or PNG). HR confirms with the verified value, or rejects with a reason you receive. Confirming corrects only that value, re-scores you, and logs who, old and new value, reason, readiness before and after, and the model version. You are told by email and in the notification bell. |
-| **Report anonymously** | Opens the report form (below) with "Biased rating or appraisal" chosen. |
 
 - **Committee note:** while a correction is pending for a nominee, HR's review says so and HR can hold the decision
   until it's resolved. A hold is not a decision and never counts as an override.
-- **Re-appraisal:** when HR closes a report as "Rating found unfair", HR can open a correction of the affected value.
-  It is never linked to the report.
 - **Feedback dashboard** (HR and auditor):
   - clarity and usefulness rates;
   - contest share per factor;
   - correction requests (received, confirmed, rejected, pending; confirmation rate; time to decide);
-  - reports per category;
   - the committee's override rate, with reasons.
 
   It has filters for dates, department (groups of 5 or more) and model version, and a CSV export. Small counts show
   as "<3".
 - **Isolation, proven:**
-  - `tests/test_isolation.py` records every prediction answer, adds ratings, corrections, a held decision and four
-    reports with conversations and outcomes, and checks every answer is byte-for-byte identical;
+  - `tests/test_isolation.py` records every prediction answer, adds ratings, corrections and a held decision, and
+    checks every answer is byte-for-byte identical;
   - then a confirmed correction must change the prediction and be logged;
-  - a static check forbids the promotion code from importing or naming the feedback and reporting code;
+  - a static check forbids the promotion code from importing or naming the feedback code;
   - a run-time check records the SQL the prediction endpoints run.
 
-### Anonymous reporting: what "anonymous" means here
-
-Reporters must be signed in, so only members of the organisation can report. But the account is used for
-nothing else: a report has **no user column**. The table below shows what is stored and what is deliberately
-left out.
-
-| Stored | Never stored |
-|---|---|
-| The anonymised text the reporter approved | The reporter's account, name or employee record |
-| Category, day received, priority, status, outcome | The original text, exact times, IP address, browser details |
-| A hash of the secret key | The key itself |
-| Cleaned evidence files under random names | Original file names and photo/video metadata |
-
-Report tables are stored without SQLite's hidden row numbers, so the order of insertion can't be matched against
-who was signed in.
-
-### Reporting step by step
-
-1. **Write.** Choose a category and describe what happened, optionally attaching photos and videos.
-2. **Check.** The anonymiser replaces names (from the directory), emails, phone numbers and dates with tags such
-   as `[PERSON 1]`. It flags phrases that could identify the reporter ("I'm the only woman in my team"). The
-   reporter reviews and may edit the text. Edited text is checked again on the server.
-3. **Keep the key.** A case ID and secret key are shown **once**. They can be downloaded as a receipt, kept in a
-   password manager, or copied. The website never keeps them, because a list of keys in the browser would link an
-   account to its cases. Five wrong keys lock a case for 15 minutes.
-4. **Follow up.** A two-way conversation in which the reporter appears only as "Reporter" and HR as
-   "Investigator". Replies are anonymised the same way.
-
-### Language-model triage
-
-- **The model.** A TF-IDF (words, word pairs and word pieces) + logistic-regression classifier, trained on about
-  280 labelled example reports that are separate from the evaluation sets. It suggests **high**, **moderate**
-  or **low**. Its settings were chosen by 5-fold cross-validation on the training examples only.
-- **Safety rules** can raise its suggestion, never lower it:
-  - words that clearly suggest danger or self-harm mean at least high;
-  - category minimums apply: a discrimination report is at least medium (reports saved in the earlier categories
-    keep theirs, such as safety and violence, always high).
-- **Explanation for HR:**
-  - the model's chance for each priority;
-  - the words that drove it (found by removing each word in turn);
-  - any rule that raised it.
-
-  HR always sets the final priority.
-
-### Evidence: photos and videos
-
-| Type | How it is cleaned |
-|---|---|
-| **Photos** (JPEG, PNG, WebP, up to 15 MB) | Rebuilt from their pixels alone, so no EXIF, GPS, XMP or comments can survive. Orientation is preserved. |
-| **Videos** (MP4, MOV, WebM, up to 100 MB) | Re-packed by ffmpeg keeping only the picture and sound. All metadata and extra tracks (such as camera GPS tracks) are dropped. The reporter can also remove the sound. |
-
-- **Checks on upload:** files are identified by their contents, not their names, and each case can hold up to 6
-  files.
-- **Who can see them:** only the reporter (with the key) and HR, never from a public folder.
-- **Removing them:** the reporter can remove their own files; HR cannot delete evidence.
-- **What isn't removed:** what is visible or audible (faces, reflections, voices). The reporter is warned about
-  this before uploading.
-
-### Results (developer evaluation set, 50 hand-labelled reports)
-
-| Measure | Result |
-|---|---|
-| Anonymiser: identifying details removed (recall) | 87% (41 of 47) |
-| Anonymiser: replacements that were identifying (precision) | 87% |
-| Identifying-phrase warnings (recall / precision) | 91% / 91% |
-| Triage accuracy (language model + safety rules) | 66% |
-| Urgent reports placed too low | **5** (keyword-only method: 12) |
-| High-priority reports caught | 14 of 14 |
-| False alarms (placed too high) | 12 (keyword-only method: 1) |
-
-**What this shows:**
-- The language model **halves the costly mistake**: urgent reports placed too low fell from 12 to 5.
-- The trade-off is more false alarms, because the model was trained on few examples. HR's review absorbs these.
-- The developer wrote both the system and this test set, so the results are likely flattered. An external set
-  written by others is prepared for a fairer test. Full method and discussion: `docs/EVALUATION.md`.
+A confidential route for reporting an unfair assessment was built in an earlier version and removed to keep the
+scope focused. It is future work: see `docs/future-work/` and the git tag `with-anonymous-reporting`.
 
 ---
 
@@ -338,27 +251,22 @@ who was signed in.
 - **Data minimisation:**
   - protected characteristics are not model inputs;
   - pay is recorded only as percentages;
-  - reports store no identity;
   - logs record dates, not times.
-- **Separation:** promotion code never reads feedback or report tables. Static, run-time and end-to-end tests
-  check this (`docs/THREAT_MODEL.md`).
+- **Separation:** promotion code never reads feedback tables. Static, run-time and end-to-end tests check this
+  (`backend/tests/test_isolation.py`).
 - **Separation of duties:** HR decides on a promotion and Finance confirms its cost; neither can do the other's
   part, and Finance sees no model scores or performance ratings.
-- **No leaks through side channels:**
-  - HR alerts contain no report text;
-  - reporters are never emailed;
-  - identical error messages and timing hide whether a case ID exists;
-  - evidence metadata and file names are removed.
+- **Privacy of feedback:** ratings are seen only as totals, from 5 ratings up, and never by managers; correction
+  evidence is stored under random names and shown only to the employee and HR.
 - **Security:**
   - salted PBKDF2-SHA256 password hashing (200,000 rounds), and signed, expiring login tokens that stop working
     on a password change, a reset or signing out;
   - lock-out after 5 wrong passwords;
   - role checks on every request;
-  - lock-out after wrong keys;
   - rate limits and a honeypot on the public form;
   - secrets kept in an uncommitted `.env` file.
-- **Honesty about limits:** the interface explains what is and isn't removed, LIME's fit is shown, and triage is
-  presented as a suggestion with its reasons.
+- **Honesty about limits:** LIME's fit is shown, the score is described as a ranking rather than a probability, and
+  every number on the website is measured.
 
 ---
 
@@ -368,13 +276,12 @@ who was signed in.
 |---|---|---|
 | Promotion model: test-set metrics, curves, model comparison | `results/metrics.json`, `results/*.png`, `results/model_comparison.json` | Done |
 | Fairness (four-fifths rule) | `results/fairness.json` | Done, passes |
-| Anonymiser, warnings and triage on labelled reports | `results/reporting_evaluation.md`, `docs/EVALUATION.md` | Developer set done; external set ready to collect |
-| Triage model selection (cross-validation on training data only) | `python -m evaluation.choose_priority_model` | Done |
+| Proxies for gender, age, education and department; equal opportunity | `results/proxy_analysis.json` | Done |
 | Explanations: exactness, common sense, LIME fit and agreement, tips | `results/explanation_evaluation.json` | Done |
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
-| Automated tests | `backend/tests/`, 372 tests | All passing |
-| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 7 checks passing; 0 accessibility findings on 17 pages |
+| Automated tests | `backend/tests/`, 281 tests | All passing |
+| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 6 checks passing; 0 accessibility findings on 15 pages |
 | Continuous integration | `.github/workflows/ci.yml` | Tests, build and browser checks on every push |
 
 Every number, with its source: **`docs/EVALUATION_RESULTS.md`**.
@@ -384,11 +291,8 @@ The automated tests cover:
 - the exactness of explanations;
 - recommendations, decisions and the pay policy;
 - Finance sign-off: nobody is told before it, sending back and resubmitting, the audit trail, and what Finance may see;
-- anonymisation, keys and lock-out;
-- the feedback channel, and the separation of feedback and reports from promotion;
+- the feedback channel, and the separation of feedback from promotion;
 - dashboards with small-group protection, and system health with drift;
-- triage, including the model's separation from the evaluation sets;
-- evidence cleaning, checked byte by byte for GPS, owner and device data;
 - emails, accounts, profiles and the activity log.
 
 `docs/HOW_IT_WORKS.md` lists what each test file proves.
@@ -476,13 +380,11 @@ All commands run from the `backend` folder (on Windows, use `.venv\Scripts\pytho
 
 ```bash
 python train.py                                  # trains, compares, tests once, fairness-checks; writes results/
-python -m evaluation.choose_priority_model       # cross-validates the triage model's settings (training data only)
-python -m evaluation.evaluate_reporting          # anonymiser, warnings and triage → results/reporting_evaluation.md
 python -m evaluation.proxy_analysis              # proxies for gender, age, education, department; equal opportunity
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 372 automated tests, in about 2 minutes
+python -m pytest                                 # the 281 automated tests, in about 3 minutes
 ```
 
 In WSL: `wsl --cd backend -- ~/venvs/hr-simple/bin/python -m pytest`.
@@ -494,7 +396,7 @@ From the project folder, the browser checks and screenshots run against a throwa
 database:
 
 ```bash
-python scripts/browser_test.py                                        # 7 checks in headless Chrome
+python scripts/browser_test.py                                        # 6 checks in headless Chrome
 python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/latest   # screenshots + accessibility audit
 python scripts/browser_test.py scripts/capture_landing.js             # the website's screenshots
 ```
@@ -510,22 +412,21 @@ backend/
     core/                settings, database, security, roles, emails, activity log
     accounts/            users, sign-in, profiles, permissions, admin
     promotion/           features, training helpers, fairness, explanations, drift, recommendations, pay, records
-    feedback/            ratings, record corrections, committee note, re-appraisal, feedback dashboard
+    feedback/            ratings, record corrections, committee note, feedback dashboard
     public/              facts for the landing page, read from results/
-    reporting/           anonymiser, keys, triage model and its training examples, evidence, conversation
     demo/                public "Book a demo" requests
   train.py               trains, tests and fairness-checks the promotion model
-  evaluation/            explanation and reporting evaluation, feedback export, triage model selection, user test
+  evaluation/            explanation evaluation, proxy analysis, feedback export, user test
   data/                  the synthetic employee dataset (100,000 rows)
   models/                the live promotion model (created by train.py)
-  tests/                 372 automated tests
-  instance/              database, secret key, outbox, evidence (created automatically, never committed)
+  tests/                 281 automated tests
+  instance/              database, secret key, outbox, correction evidence (created automatically, never committed)
 frontend/src/
-  pages/                 one file per page (promotion/, feedback/, reporting/, admin/, public/)
-  components/            shared parts: layout, explanation widgets, feedback panels, dashboards, evidence
+  pages/                 one file per page (promotion/, feedback/, admin/, finance/, public/)
+  components/            shared parts: layout, explanation widgets, feedback panels, dashboards
   styles.css             the design system (navy and teal, light and dark)
-results/                 metrics, fairness, curves and reporting evaluation for the thesis
-docs/                    how it works, evaluation results, thesis guide, threat model, data model, user test
+results/                 metrics, fairness, curves, proxy analysis and explanation evaluation for the thesis
+docs/                    how it works, evaluation results, thesis guide, data model, user test; future-work/
 scripts/                 browser checks, screenshots and accessibility audits (headless Chrome, no npm packages)
 .github/workflows/       continuous integration
 run.py                   starts everything
@@ -538,14 +439,6 @@ run.py                   starts everything
 Main limitations (full list: `docs/LIMITATIONS.md`):
 
 - **Synthetic data.** Real use would need retraining on an organisation's own promotion history, with consent.
-- **Developer-written test sets.** The reporting evaluation is likely flattered. An external set written by
-  others is prepared but not yet collected.
-- **Triage trades false alarms for safety.** It was trained on about 280 examples by one author.
-- **Rule-based anonymiser.** It misses nicknames, people outside the directory and names written in lower case.
-  The reporter's review is the main safeguard.
-- **Evidence cleaning can't remove what is seen or heard.** Faces are not blurred automatically.
-- **Signing in is required to report**, a deliberate change from the original brief. Trust in anonymity also
-  depends on who runs the server.
 - **Prototype infrastructure.** It uses SQLite on a single server, with no HTTPS set-up and no backups.
 
 - **No real use yet.** The feedback channel's measures, usability and perceived fairness still have to be
@@ -554,12 +447,11 @@ Main limitations (full list: `docs/LIMITATIONS.md`):
   not scoring people by where they work.
 
 Future work:
-1. Collect the external evaluation set.
-2. Run the user test, with the feedback-channel tasks and fairness questions.
-3. Train triage on more varied examples.
-4. Add named-entity recognition for names.
-5. Blur faces automatically.
-6. Extend fairness checks to combinations of characteristics, and report selection rates by department.
+1. Run the user test, with the feedback-channel tasks and fairness questions.
+2. A confidential route for reporting unfair assessments (removed from this version to keep the scope focused;
+   see git tag `with-anonymous-reporting` and `docs/future-work/`).
+3. Compare tasks and projects completed within each department, so department doesn't come back through them.
+4. Extend fairness checks to combinations of characteristics.
 
 ---
 
@@ -569,13 +461,10 @@ Future work:
 |---|---|
 | [`docs/THESIS_GUIDE.md`](docs/THESIS_GUIDE.md) | **Start here for the thesis:** aim, objectives, methods, where each result comes from, discussion, figures, references |
 | [`docs/EVALUATION_RESULTS.md`](docs/EVALUATION_RESULTS.md) | Every result, with its source file and command |
-| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Attacks, defences with the tests that prove them, and residual risks |
 | [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Every table, what it holds, and who can read and change it |
 | [`docs/CHANGELOG_UPGRADE.md`](docs/CHANGELOG_UPGRADE.md) | Every change made in the upgrade, phase by phase |
-| [`docs/REVIEW.md`](docs/REVIEW.md) | The review that started the upgrade |
 | [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) | Plain-English explanation of every part, step by step, with design decisions and API endpoints |
-| [`docs/EVALUATION.md`](docs/EVALUATION.md) | How the reporting evaluation works, labelling rules, results and discussion |
-| [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | Limitations of the model, reporting, system and evaluation; future work |
+| [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | Limitations of the data, model, feedback channel, system and evaluation; future work |
 | [`docs/USER_TEST.md`](docs/USER_TEST.md) | Usability and perceived-fairness study kit: consent note, 11 tasks, SUS, Colquitt-based items, scoring |
-| [`docs/screenshots/PHASE7.md`](docs/screenshots/PHASE7.md) | Before and after screenshots of 17 pages, with accessibility audits |
-| [`results/reporting_evaluation.md`](results/reporting_evaluation.md) | Generated reporting results, including every mistake |
+| [`docs/screenshots/PHASE7.md`](docs/screenshots/PHASE7.md) | Before and after screenshots of 15 pages, with accessibility audits |
+| [`docs/future-work/`](docs/future-work/README.md) | Anonymous reporting, removed from this version: its threat model, evaluation and the original review |

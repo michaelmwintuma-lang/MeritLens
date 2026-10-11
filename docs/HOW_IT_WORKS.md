@@ -7,14 +7,15 @@ build step.
 
 ### What it does
 
-Every person who uses the platform (except anonymous reporters) has an account with a username, a password and
-exactly one **role**: Employee, Manager, HR or Admin. The role decides what they can see and do.
+Every person who uses the platform has an account with a username, a password and exactly one **role**. Step 1
+built four (Employee, Manager, HR, Admin); Finance and the compliance auditor came later. The role decides what
+they can see and do.
 
 | Role | Can do |
 |---|---|
-| Employee | See their own readiness score, explanation and tips; submit an anonymous report |
+| Employee | See their own readiness score, explanation and tips |
 | Manager | See their team's scores; nominate team members |
-| HR | See all employees; decide on nominations; handle anonymous reports |
+| HR | See all employees; decide on nominations |
 | Admin | Create accounts; view the activity log |
 
 Only an **admin** can create accounts, for any of the six roles. Nobody can sign themselves up. A new account
@@ -78,11 +79,11 @@ database server to install. **SQLAlchemy** maps each table to a Python class; st
 backend/app/core/       basics every part needs (database, security, roles)
 backend/app/accounts/   accounts and signing in
 backend/app/promotion/  (step 2 onwards) the promotion model and its explanations
-backend/app/reporting/  (step 6 onwards) anonymous reports
+backend/app/feedback/   (step 9) the employee feedback channel
 ```
 
-Promotion and reporting will be **separate packages with separate tables**. The promotion code will never
-import anything from the reporting package, and a test will prove that report data can't reach the model.
+Promotion and feedback are **separate packages with separate tables**. The promotion code never imports anything
+from the feedback package, and a test proves that feedback can't reach the model (step 9).
 
 ### How it was tested
 
@@ -531,130 +532,11 @@ A browser walkthrough confirmed the whole flow: the manager nominated a team mem
 "approve" against the model, the save button stayed disabled until the reason reached 20 characters, and the
 decision appeared in the log as "Differs from the model" with the model's score at the time.
 
-## Step 6: Anonymous reporting
+## Steps 6 and 7: removed
 
-Code: `backend/app/reporting/` (its own package and table, separate from the promotion part), and the pages
-`frontend/src/pages/reporting/Report.jsx` and `CheckReport.jsx`.
-
-### Who can report, and what "anonymous" means here
-
-Reports come from **members of the organisation**: a person must be signed in, which keeps outsiders and spam
-out. Every account can report (employees, managers, HR and admins are all staff).
-
-But **the report is never linked to the account**. The reporting endpoints check that someone is signed in and
-then use nothing else about them: the account is not passed on, not saved, and not logged. The only link between
-a report and its author is the **secret key**, which only the reporter has.
-
-### Reporting, step by step
-
-1. **Write.** Choose a category (harassment, discrimination, bullying, health and safety, ethics or fraud,
-   something else) and describe what happened.
-2. **Check what will be sent.** The text goes to the anonymiser and comes back cleaned. Nothing is saved at
-   this point. The reporter sees:
-   - the cleaned text, with every replacement highlighted (`[PERSON 1]`, `[DATE 1]`, ...);
-   - a list of what was removed ("Ben Quinn" → [PERSON 1]), shown only to them and never sent or saved;
-   - warnings about phrases that could identify them, with the reason;
-   - an editable copy of the cleaned text. After an edit, it must be checked again before sending.
-
-   The reporter ticks "I've read this and it doesn't contain anything that identifies me", then sends.
-3. **Save your key.** The reporter gets a **case ID** (e.g. `R-6YS9-WDFP`) and a **secret key** (four groups of
-   four characters). The page says clearly that the key is shown once and can't be recovered, even by an
-   administrator, because it isn't linked to any account.
-
-Later, **Check my report** opens the case with the case ID and key.
-
-### The anonymiser
-
-`app/reporting/anonymiser.py` uses simple, readable rules:
-
-| What | Becomes | How it's found |
-|---|---|---|
-| Names of people in the organisation | `[PERSON 1]`, `[PERSON 2]`, ... | The full names of everyone in the employee directory and every account holder |
-| A first or last name on its own | The same person's tag if they were named in full; otherwise a new tag | Only when capitalised, because many surnames are also ordinary words ("Brooks", "Manager") |
-| Email addresses | `[EMAIL 1]` | Pattern `something@domain.tld` |
-| Phone numbers | `[PHONE 1]` | 7 or more digits, with spaces, dashes or a leading + |
-| Dates | `[DATE 1]` | "12/03/2025", "2025-03-12", "12 March", "March 12th 2025" |
-
-The same person keeps the same tag throughout a report, and tags are numbered in the order they appear.
-Ordinary text such as "we hit our targets" is left alone.
-
-**Identifying phrases** are flagged but not removed, because the reporter may need them to explain what
-happened: "I'm the only woman in the team", "I've worked here for 12 years", "since I joined", "I'm the new
-intern", "my desk", personal circumstances. The reporter decides whether to reword them.
-
-**When sending**, the backend runs the anonymiser again on the final text. If a name, email, phone number or
-date has crept back in through editing, the report is refused with a request to check again. The original text
-is never saved.
-
-### What is stored, and what is deliberately not
-
-| Stored | Not stored |
-|---|---|
-| A random case ID | Who sent it: no user, account or employee column at all |
-| The category | The original, un-anonymised text |
-| The approved, anonymised text | The time: only the **date** is kept |
-| The date | IP addresses or browser details |
-| A **hash** of the key (like passwords: PBKDF2 with a salt) | The key itself |
-| Status (open), and wrong-attempt counters | Any request log (the server's request log is switched off in `run.py`) |
-
-Two less obvious protections:
-
-- **Case IDs are random**, not numbered in order, so a case ID says nothing about when the report was made.
-- **The table keeps no hidden row order.** SQLite normally numbers rows in the order they are added; the
-  reports table is created `WITHOUT ROWID`, so the order of reports can't be lined up against who was signed
-  in at the time.
-
-### Opening a case: protection against guessing
-
-- **The same answer for every failure.** A wrong case ID, a wrong key and a locked case all get exactly the same
-  message, so nobody can find out which case IDs exist. An unknown case ID even takes the same time to check as
-  a real one.
-- **Lockout.** After **five wrong keys**, the case is locked for **15 minutes**; during that time even the
-  right key is refused.
-
-### Report data never reaches the promotion model
-
-The reporting code lives in its own package with its own table. The promotion code (and `train.py`) never
-imports anything from it; a test reads every promotion file to prove it. A second test scores all employees,
-adds reports, and scores them again: the predictions are identical.
-
-### What remains (to discuss honestly in the thesis)
-
-- **At the moment of sending, the server knows who is signed in.** That is the price of keeping reporting to
-  members of the organisation (the design choice made for this project). The code never stores or logs it,
-  but someone able to change the server's code could capture it. A version that needs no sign-in would avoid
-  this, at the cost of letting anyone with the page link report.
-- **Request logs elsewhere.** This app's request log is off. In a real deployment, any proxy or hosting service
-  in front of it must not log requests either.
-- **The anonymiser only knows what its rules describe.** Nicknames, misspelled names, people outside the
-  directory, or a distinctive writing style can still identify someone. That is why the reporter always
-  reviews and approves the text.
-- **Dates and the activity log.** Reports keep the date. If the activity log (step 8) recorded exact sign-in
-  times and very few people signed in on a given day, the date alone could narrow down the reporter. Step 8
-  must take this into account.
-
-### How it was tested
-
-`backend/tests/test_reporting.py` (20 tests) checks that:
-
-- the anonymiser replaces directory names (full, and first names alone, with one tag per person), emails,
-  phone numbers and dates; leaves ordinary text alone; only replaces a lone surname when it's capitalised; and
-  flags identifying phrases once each;
-- reporting needs a signed-in account; the preview stores nothing;
-- a report gets a random case ID and key; only a salted hash of the key is stored; the date is stored without a
-  time;
-- the reports table has no column that could hold the reporter's identity, and the stored report contains none
-  of the reporter's details; the table has no hidden row order;
-- text that still contains a name or phone number, or an unknown category, is refused;
-- every role can report;
-- the key opens the case; a wrong case ID and a wrong key get exactly the same answer; five wrong keys lock the
-  case, even against the right key, until 15 minutes have passed;
-- the promotion code never imports the reporting code, and predictions are identical before and after reports
-  are added.
-
-A browser walkthrough confirmed the whole flow as an employee: names, date and phone were replaced, "I'm the
-only woman in the team" was flagged, the report was sent, a wrong key was refused with the standard message,
-and the right key opened the case.
+Steps 6 and 7 built anonymous reporting (the anonymiser, case keys, triage, the conversation and
+HR's report inbox). It was removed from this version to keep the scope focused; see `docs/future-work/` and the
+git tag `with-anonymous-reporting`.
 
 ## The interface design
 
@@ -671,142 +553,15 @@ The website follows one consistent, calm style (`frontend/src/styles.css`, `fron
   icons are decorative, the text next to them carries the meaning.
 - Icons come from the open-source **Lucide** icon set; the font is **Plus Jakarta Sans**.
 
-## Step 7: The conversation, triage and HR's report inbox
-
-Code: `backend/app/reporting/triage.py`, `routes.py` (reporter side), `routes_hr.py` (HR side), the
-`report_messages` table in `models.py`, and the pages `ReportInbox.jsx`, `ReportCase.jsx` and `CheckReport.jsx`.
-
-### Triage: how urgent is a report?
-
-A **language model** (`priority_model.py`) reads each report and suggests **high**, **moderate** or **low**
-(moderate is stored as `medium`):
-
-1. **How it reads.** The text becomes numbers with TF-IDF (which words, word pairs and pieces of words it uses,
-   with rare, telling words counting more), and logistic regression turns those into a chance for each priority.
-   It was trained on about 280 labelled example reports (`priority_examples.json`), separate from the
-   evaluation sets. It runs on the server and trains itself in under a second the first time it's needed, so
-   report text is never sent anywhere.
-2. **Safety rules can raise it, never lower it.** Words that clearly suggest danger ("knife", "assaulted") or
-   self-harm ("end my life", "no point in going on") mean at least high, ignoring harmless phrases like "hit our
-   targets". Category minimums still apply: safety, sexual harassment or assault, violence and risk of self-harm
-   are always high; harassment, discrimination, retaliation and drug or alcohol misuse at least moderate.
-3. **HR sees why.** The case page shows the model's chance for each priority, the words that drove it most
-   (found by removing each word and seeing how much the chance drops), and any rule that raised it. Those words
-   are marked in the report. HR can change the priority at any time; the original suggestion is kept.
-
-The model catches meaning a keyword list misses ("he said I'd regret it and he knows where I live" reads as
-high), but it also raises more false alarms: see `docs/EVALUATION.md`. That's why it suggests, and HR decides.
-
-### The conversation
-
-Reporter and HR can write to each other inside the case:
-
-- The reporter opens the case with the **case ID and key** ("Check my report"), reads the replies, and writes
-  back. Every request needs the key again; nothing links the reporter's account to the case.
-- **Nobody is named.** The reporter sees HR only as **Investigator**; HR sees the reporter only as **Reporter**.
-  The messages table stores the sender as just "reporter" or "investigator", with the **date only**; the order
-  comes from a running number within the case. HR is reminded not to sign with their name or ask who the
-  reporter is.
-- **The reporter's messages go through the same anonymiser** as the report: the page shows exactly what the
-  investigator will see (names, emails, phone numbers and dates replaced, identifying phrases flagged) before
-  sending, and the backend refuses a message that still contains any of them.
-- HR's first reply moves the case from "open" to "investigating".
-- The reporter sees the case's status, and its outcome once closed, but not its priority or HR's internal view.
-
-### HR's report inbox and case page
-
-- **Inbox:** stat cards (open cases, high priority, awaiting a reply, closed), then every report with its
-  category, priority, status, date and whether the reporter is waiting for a reply. Open, high-priority cases
-  come first. A switch filters Open | Investigating | Closed | All.
-- **Case page:** the report with its warning words marked; "Why this priority"; the conversation with a reply
-  box; and "Manage the case" to set the priority, status and outcome.
-- **Closing a case needs an outcome**: concern upheld, concern not upheld, not enough evidence either way, or
-  resolved informally. The outcome stays in the reporting part: it is never used by the promotion model.
-
-### API endpoints
-
-| Method and path | Who | Does |
-|---|---|---|
-| `POST /api/reports/access` | Anyone signed in, with the case ID and key | The case, its status and outcome, and the conversation |
-| `POST /api/reports/messages` | Same | The reporter replies (must already be anonymised) |
-| `GET /api/hr/reports` | HR | The inbox |
-| `GET /api/hr/reports/{case}` | HR | One case: text, triage, conversation, options |
-| `POST /api/hr/reports/{case}/messages` | HR | Reply as the investigator |
-| `PATCH /api/hr/reports/{case}` | HR | Change priority, status or outcome |
-
-### How it was tested
-
-`backend/tests/test_conversation.py` (19 tests) checks that:
-
-- threatening and danger words give high priority, mistreatment words medium, others low; harmless phrases are
-  ignored; the category minimums apply; the trigger words and reasons are returned; a new report starts at the
-  suggested priority;
-- investigator and reporter can talk; both see only "investigator" and "reporter", and no name or username
-  appears anywhere in the conversation;
-- a reporter message that still contains a name or phone number is refused; replying needs the right key;
-- the reporter never sees the priority; HR's first reply marks the case "investigating";
-- HR can change the priority; closing needs an outcome; impossible values are refused;
-- the reporter sees the outcome and can't write to a closed case;
-- the inbox lists open, high-priority cases first and shows when the reporter wrote last;
-- only HR can see the inbox, open a case or reply as the investigator.
-
-The tests from step 6 were extended: the messages table may only have the columns case, number, sender, text
-and date.
-
-A browser walkthrough confirmed the whole conversation: a report about being threatened arrived as high
-priority with "threatened" and "unsafe" marked; HR replied; the reporter, who saw only "Investigator", replied
-naming a colleague and a date, which arrived at HR as "[PERSON 1] ... [DATE 1]"; HR closed the case as
-"concern upheld", and the reporter saw that outcome.
-
-### Keeping the case ID and key
-
-The key is the only link between a report and its author, so losing it means losing the conversation. But it
-must **never be stored on the server** (for example "remember my keys" in the user's account, or emailing it to
-them): that would link the report to the reporter's account, which is exactly what anonymity rules out. So
-every way of keeping the key happens on the reporter's side, and the server never learns about it
-(`frontend/src/keyStore.js`):
-
-| Option | Where the key goes | Good for |
-|---|---|---|
-| Download a receipt | A small text file | Keeping it with other private files |
-| Password manager | The browser's password manager (Chrome, Edge) | The safest choice: encrypted and synced to the person's own devices |
-| Copy | The clipboard | Pasting into a notes app |
-
-The website itself **never keeps the key**. An earlier version offered "Save on this device" and a "My report
-keys" page, but the saved list was labelled with the account's id, so anyone with access to the browser could
-see which account held which case. It was removed in the upgrade (`docs/REVIEW.md`, S1). Keys an earlier version
-saved are listed on "Check my report", with a download button, until the reporter removes them; they are never
-deleted unseen, because a lost key can't be recovered.
-
-"Check my report" marks its two fields as a username and password, so password managers recognise them and can
-fill them in.
-
-**The trade-off to discuss:** convenience against risk on shared devices. Keeping the key is now entirely the
-reporter's job (receipt, password manager or copy); a lost key still can't be recovered, by design. The reporter
-can always make a new report.
-
 ## Updates after step 7
-
-### Reporting is for employees and managers
-
-Anonymous reporting (making a report and checking it) is for **employees and managers**: the people
-likely to need it. **HR** handles reports in the report inbox instead, and **admins** manage accounts, so neither
-sees the reporting pages. This is enforced by the backend (`REPORTER_ROLES` in `app/core/roles.py`), not just
-hidden in the menu; a test checks that HR and admins get "403" from every reporting endpoint.
 
 ### Notifications
 
 A bell at the top right shows what needs attention.
 
-- **HR** is told about new reports nobody has answered yet and reporters waiting for a reply
-  (`GET /api/hr/reports/notifications`). These are worked out from the cases themselves, so nothing extra is
-  stored, in particular no time at which the reporter wrote.
-- **Reporters get no notifications.** A record saying "this account follows that case" would link the report
-  to the reporter. An earlier version had the reporter's browser check the cases saved on the device every
-  minute, sending each case ID and key with the login token; it was removed with the saved keys. Reporters open
-  their case with its ID and key when they want to check it.
-- **Employees** are told when HR decides on their record (a correction they asked for, or a re-appraisal), and
-  **HR** when corrections are waiting (step 9).
+- **HR** is told about record corrections waiting and pay rises Finance sent back.
+- **Finance** is told about pay rises waiting for sign-off.
+- **Employees** are told when HR decides on a correction they asked for (step 9).
 
 ### Welcome emails and account changes
 
@@ -840,24 +595,18 @@ Code: `app/core/mailer.py` (sending), `app/core/email_templates.py` (what each e
 | Security alert | Password or username changed (by the person or the admin) | The person; it never contains the password |
 | Nomination received | A manager nominates someone | All active HR accounts |
 | Decision | HR decides | The manager (with HR's reason), and the employee if approved; rejections aren't emailed to the employee |
-| New report alert | A report is submitted | All active HR accounts |
+| Correction waiting | An employee asks for a record correction | All active HR accounts |
+| Correction decided | HR confirms or rejects it | The employee, with HR's reason |
 
-- **Report alerts reveal nothing.** They contain only the case ID, the category and the triage priority. They
-  never include the report text or anything about the reporter, and **reporters are never emailed**, because an
-  email would link their account to the report. Tests check both.
-- **Background sending.** Alerts are sent after the response has gone back, so a slow mail server never delays
+- **Background sending.** Emails are sent after the response has gone back, so a slow mail server never delays
   the page. Welcome and reset emails are the exception: they are sent straight away, so the admin sees whether
   delivery worked.
 - **Without a mail server**, every email is saved as an `.eml` file in `backend/instance/outbox/`, and the admin
   can read these on the Email page. The tests use this to check each email's content.
-- **Limitation to discuss.** A report alert reaches HR moments after the report is sent. Someone who watches
-  their inbox and also knows who was at a computer at that moment could narrow down the reporter. The alert
-  carries no time beyond the email's own, but the email itself is a timestamp. Future work could send alerts in
-  a daily digest instead.
 
 ### A tidier menu
 
-The sidebar groups pages under headings (Promotion, Reporting, Administration, Account) that open and close when
+The sidebar groups pages under headings (Promotion, Feedback, Administration, Account) that open and close when
 clicked; the group holding the current page opens by itself.
 
 ### The public website
@@ -868,10 +617,9 @@ first opened.
 
 | Page | Address | What it shows |
 |---|---|---|
-| Home | `/` | The promise ("Fair, explainable promotion decisions, with a voice for every employee"), **Sign in** and **Report a concern anonymously** (which goes through sign-in straight to the report form), **How it works** (Predict → Explain → Respond), six features, three promises (a complaint never changes a score; no one can unmask a reporter; people make every decision), and the tested results, read live from `results/` through `GET /api/public/summary` |
+| Home | `/` | The promise ("Fair, explainable promotion decisions, with a voice for every employee"), **Sign in** and **How it works**, **How it works** (Predict → Explain → Respond), six features, three promises (a complaint never changes a score; a wrong record can be put right; people make every decision), and the tested results, read live from `results/` through `GET /api/public/summary` |
 | Who uses it | `/approach` | The six roles: what each sees and does |
 | Promotions | `/promotion` | How a decision is made, from the model's score to Finance's sign-off (with the live threshold) |
-| Reporting | `/reporting` | Reporting as part of the feedback channel: categories, keys, evidence, triage, re-appraisal |
 | Privacy | `/privacy` | What is stored and what isn't, including that feedback never changes a score |
 | Book a demo | `/demo` | A short form (see below) |
 
@@ -900,27 +648,24 @@ Important actions are recorded with **who** did them, **what**, and **on which d
 | Administration | Account created, edited, deactivated or reactivated; password reset; a manager's team set; an admin allowed or no longer allowed to view employee data |
 | Employee records | An employee added or edited by HR; employees imported from a file (how many) |
 | Promotions | A nomination (by the manager), a decision (by HR, and whether it differed from the model) |
-| Reports | HR's replies and HR's changes to priority, status and outcome (with the case ID) |
+| Feedback | A correction requested, confirmed or rejected; a decision held or resumed |
 
 Only the **admin** can read the log, with a filter by action and a search box.
 
 **What is deliberately not recorded:**
 
-- **Anything a reporter does**: sending a report, checking text, opening a case with the key, replying, or
-  checking for news. A test performs all of these and checks that the log doesn't grow by a single entry.
-- **Times.** Like reports, entries keep only the **date**. A sign-in time could otherwise be lined up with a
-  report to narrow down who wrote it.
+- **Times.** Entries keep only the **date**: an audit needs to know what happened and when, not people's
+  working habits.
 - **Passwords**, temporary or not (a test checks this too), and sign-in attempts on usernames that don't exist.
 
 **The trade-off to discuss.** Logging every sign-in, even by date only, still shows who was active on a given day.
-If a report arrived on a day when only one person signed in, the date alone could point at them. Two ways to
-reduce this further: log sign-ins only for the privileged roles (HR and admin), whose access matters most for
-security, or keep sign-in records only as daily counts. This project follows the brief (log sign-ins) and keeps
-dates only; the alternatives are worth discussing as future work.
+Two ways to reduce this further: log sign-ins only for the privileged roles (HR and admin), whose access matters
+most for security, or keep sign-in records only as daily counts. This project follows the brief (log sign-ins) and
+keeps dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **372 tests**, all passing, in about two
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **281 tests**, all passing, in about three
 minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |
@@ -929,24 +674,20 @@ minutes (the tests hash passwords with fewer rounds than the app; a test checks 
 | `test_training.py` | 17 | Protected characteristics, pay and department are never model inputs; the 70/10/20 split; the model-choice rule with the common-sense check; the threshold; the four-fifths fairness check; the saved threshold and metrics load |
 | `test_explanations.py` | 26 | The contributions add up exactly to the model's output; department never changes a score; improving any input never lowers it; LIME and its fit; the summary ("under 1%" for tiny scores); what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; batch scoring gives identical scores; who may see whom |
 | `test_decisions.py` | 18 | Managers nominate only their team; HR decides; disagreeing with the model needs 20 characters; every decision is logged with the model's view; managers' teams |
-| `test_reporting.py` | 20 | The anonymiser removes names, emails, phones and dates; the key is hashed; dates without times; nothing about the reporter is stored; wrong attempts lock the case; **isolation**: the prediction code never touches report data, and predictions are identical before and after reports |
-| `test_feedback.py` | 31 | Rating explanations (stored with the model version and score; never changes a score; aggregates only, never managers); record corrections (only record values; evidence; HR confirms with a re-score and a log entry, or rejects with a reason; notifications); employees can't edit records; the committee note and hold; re-appraisal with no link to the report |
-| `test_isolation.py` | 4 | **Isolation**: every prediction answer byte-for-byte identical after ratings, corrections, a hold and reports; a confirmed correction changes it and is logged; the static check; no SQL on feedback or report tables at run time |
-| `test_dashboards.py` | 25 | The feedback dashboard's measures, filters, small-group protection, CSV and export script; only HR and the auditor see it; drift and its chance level; the admin's system health |
-| `test_auditor.py` | 13 | The compliance auditor reads decisions and the model; never reports, records or changes; demo-account rules |
+| `test_feedback.py` | 28 | Rating explanations (stored with the model version and score; never changes a score; aggregates only, never managers); record corrections (only record values; evidence; HR confirms with a re-score and a log entry, or rejects with a reason; notifications); employees can't edit records; the committee note and hold |
+| `test_isolation.py` | 4 | **Isolation**: every prediction answer byte-for-byte identical after ratings, corrections and a held decision; a confirmed correction changes it and is logged; the static check; no SQL on feedback tables at run time |
+| `test_dashboards.py` | 24 | The feedback dashboard's measures, filters, small-group protection, CSV and export script; only HR and the auditor see it; drift and its chance level; the admin's system health |
+| `test_auditor.py` | 12 | The compliance auditor reads decisions and the model; never individual feedback, records or changes; demo-account rules |
 | `test_finance.py` | 20 | An approval waits for Finance and nobody is told; a rejection never goes to Finance; Finance sees only what a pay decision needs; sign-off makes the promotion final and emails the manager and employee; sending back needs a reason and tells only HR; HR revises and resubmits; every step is kept; only Finance signs off and only HR resubmits; managers see "being finalised" until sign-off |
-| `test_evidence.py` | 18 | Photos and videos lose their location, device, owner and time (checked byte by byte); file names aren't kept; only real photos and videos are accepted; size and number limits; only the reporter (with the key) and HR can see them; the reporter can remove a file; nothing is added to a closed case; a video's sound can be removed |
-| `test_priority_model.py` | 7 | The language model's training examples are separate from the evaluation sets; it gives a chance for each priority and the words behind it; it reads threats and self-harm without alarm words; the safety rules raise but never lower |
-| `test_conversation.py` | 19 | Triage; the conversation shows no names; reporter messages are anonymised; HR's inbox and case updates |
-| `test_accounts_and_notifications.py` | 15 | Welcome emails; editing accounts; changing your username; notifications for HR and reporters; the public summary reveals no one |
-| `test_emails.py` | 14 | Security alerts; nomination and decision emails go to the right people; report alerts hold no text and nothing about the reporter; reporters get no email; only the admin uses the Email page; every email has plain and HTML versions |
+| `test_accounts_and_notifications.py` | 9 | Welcome emails; editing accounts; changing your username; the public summary reveals no one and shows only measured numbers |
+| `test_emails.py` | 12 | Security alerts; nomination and decision emails go to the right people; only the admin uses the Email page; every email has plain and HTML versions |
 | `test_employee_records.py` | 23 | HR adds an employee who can be scored at once; values are stored as the model expects; impossible values are refused and unusual ones flagged; no one is added twice; one bad CSV row means nobody is imported; no protected characteristics are accepted; only HR manages records |
 | `test_demo_requests.py` | 10 | Anyone can book a demo; it's emailed with Reply-To set to the visitor; the admin lists and ticks off requests; robots and repeats are kept out; visitors' text can't inject HTML; only the admin sees requests |
-| `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never reports; managers are emailed about new team members, and only about new ones |
-| `test_evaluation_data.py` | 5 | The labelled evaluation reports are well formed (every label copied exactly from its report); the evaluation counts every report; the usability questionnaire and the perceived-fairness scales (with Cronbach's alpha) are scored correctly |
+| `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never feedback; managers are emailed about new team members, and only about new ones |
+| `test_evaluation_data.py` | 2 | The usability questionnaire and the perceived-fairness scales (with Cronbach's alpha) are scored correctly |
 | `test_recommendations_and_pay.py` | 16 | Managers' recommendations need a rating and example for all four areas, a start date within a year, a rise within HR's policy, and a reason when the model disagrees; HR must set the rise on approval and explain one outside the policy; only HR sets the policy; employees see only their approved promotion; pay is not a model input and changes no prediction |
-| `test_accounts_categories.py` | 20 | The admin deletes accounts (never their own, never one in the decision log), a deleted account can't sign in, a deleted manager's team stays in the directory; job titles on new accounts and in the welcome email; every report category is offered, the original ones still work, and the serious ones have a minimum priority |
-| `test_activity.py` | 10 | Sign-ins and actions are logged by date; nothing a reporter does is logged; passwords never are; only the admin reads the log |
+| `test_accounts_categories.py` | 10 | The admin deletes accounts (never their own, never one in the decision log), a deleted account can't sign in, a deleted manager's team stays in the directory; job titles on new accounts and in the welcome email |
+| `test_activity.py` | 9 | Sign-ins and actions are logged by date; passwords never are; only the admin reads the log; a database from the version with reporting is cleaned up |
 
 How each requirement in the brief is tested:
 
@@ -955,11 +696,10 @@ How each requirement in the brief is tested:
 | Roles: each role can only access what it should | `test_auth_and_roles`, plus a "who may see this" test in every other file |
 | Model: threshold and metrics load; the fairness check runs | `test_training` |
 | Explanations: contributions add up; tips never make a feature worse | `test_explanations` |
-| Reporting: anonymiser, hashed key, lockout, dates without times | `test_reporting` |
-| Isolation: prediction code never reads feedback or report tables; predictions unchanged by feedback and reports | `test_isolation`, `test_reporting` |
-| Feedback channel: ratings, corrections, committee note, re-appraisal | `test_feedback` |
+| Isolation: prediction code never reads feedback tables; predictions unchanged by feedback | `test_isolation` |
+| Feedback channel: ratings, corrections, committee note and hold | `test_feedback` |
 
-Besides the automated tests, `python scripts/browser_test.py` runs 7 checks in headless Chrome against a throwaway
+Besides the automated tests, `python scripts/browser_test.py` runs 6 checks in headless Chrome against a throwaway
 copy of the app (including every menu page for all six roles and the feedback channel end to end), and CI runs
 everything on every push (`.github/workflows/ci.yml`).
 
@@ -981,8 +721,8 @@ and that the steps follow the same access rules. (Lists and the overview still s
 summary; the full prediction and its explanation are run from the readiness page.)
 
 **Buttons show that the system is working.** Every button lifts slightly when pointed at and presses in when
-clicked. Buttons that wait for the server (signing in, creating accounts, nominating, deciding, sending a report or
-a reply, saving) show a spinning icon and say what is happening ("Signing in…", "Sending securely…") until the
+clicked. Buttons that wait for the server (signing in, creating accounts, nominating, deciding, sending a correction
+request, saving) show a spinning icon and say what is happening ("Signing in…", "Sending…") until the
 answer arrives, and can't be clicked twice meanwhile. People whose computer asks for reduced motion get no
 animation.
 
@@ -1019,8 +759,7 @@ added twice, which also stops the same file being imported twice.
 system doesn't collect them (a test checks they're ignored even if sent).
 
 **A new employee can be scored at once**, because the model only needs their inputs. After saving, HR lands on
-their readiness page and clicks Run prediction; the admin can link them to a login on the Users page; and their
-name joins the directory the report anonymiser uses.
+their readiness page and clicks Run prediction; and the admin can link them to a login on the Users page.
 
 **Scoring a person is not the same as learning from your organisation.** The model learned what "ready for
 promotion" looks like from synthetic employees. For real use, an organisation would export its own history (past
@@ -1040,7 +779,7 @@ The whole product (public website, app and emails) uses one palette, defined onc
 | Orange | `#B14F0C` | `#F4A261` | Factors that lower a score (teal and orange stay distinct for colour-blind readers) |
 | Background | `#F5F8FA` | `#0B1622` | Page background |
 
-Why navy and teal: navy reads as trustworthy and serious, which matters for promotions and misconduct reports;
+Why navy and teal: navy reads as trustworthy and serious, which matters for promotion decisions;
 teal is calm and positive without the alarm of red or the sameness of plain blue. Every text colour was checked
 against the WCAG AA contrast minimum (4.5:1) on the background it's used on. Status is still never shown by
 colour alone: there's always a word or an icon too.
@@ -1078,7 +817,7 @@ By the brief, admins manage accounts and see no employee data. Sometimes an orga
 to look at the data (for example an IT lead supporting HR). An admin can tick **Allow employee data** on a
 specific Admin account. That account then gets an "Employee data" menu with **All employees** and **How the
 model works**, read-only: it can open readiness pages and run the prediction, but it can't nominate, decide, edit
-records, or see anything from the reporting part. The rule is checked on the server (`may_view_all()` in
+records, or see anyone's feedback. The rule is checked on the server (`may_view_all()` in
 `app/promotion/routes.py`), every grant and removal is in the activity log, and HR, managers and employees can't be
 given it (they already see what their role needs).
 
@@ -1101,14 +840,6 @@ A manager is emailed whenever people are registered under them: when the admin a
 the people who are new to it), when HR adds an employee with them as manager or moves someone to them, and when a
 CSV import puts people on their team (one email per manager, listing everyone). The email contains names only, no
 scores or records.
-
-### Report keys: copy and paste without losing anything
-
-- On **Check my report**, pasting text that contains both (from the copy button, or the downloaded receipt)
-  into either box fills **both** boxes.
-- If you paste the case ID, go to your password manager for the key, and come back, the case ID is still there.
-  It's kept in the page's memory only: never written to storage, gone when the tab closes, and never shown to
-  another account signing in on the same tab.
 
 ## Recommendations with reasons, and the pay rise
 
@@ -1155,7 +886,7 @@ Promotions usually come with a pay rise, but pay is sensitive, and the brief kee
 characteristics with employee records, it can't check whether pay rises are fair across groups. An organisation
 would do that check in its HR system, which holds that data, or by extending the fairness checks with consent.
 
-## Deleting accounts, job titles, report categories and outlines
+## Deleting accounts, job titles and outlines
 
 **Deleting accounts.** The admin can delete an account on the Users page (after a confirmation), except:
 
@@ -1165,63 +896,14 @@ would do that check in its HR system, which holds that data, or by extending the
   longer sign in, but the record stays.
 
 When an account is deleted, a manager's team members stay in the directory without a manager, and activity-log
-entries keep the person's name. The deletion itself is logged. Reports are unaffected: they were never linked to
-any account.
+entries keep the person's name. The deletion itself is logged.
 
 **Job titles.** The admin enters a job title when creating an account (optional), can change it when editing, and
 it appears in the user list and the welcome email ("…created an account for you as Payroll Officer"). People can
 also update their own on My profile.
 
-**Report categories.** The form now offers 19 kinds of workplace incident, in four groups:
-
-| Group | Categories |
-|---|---|
-| How people are treated | Harassment; sexual harassment or assault; discrimination; bullying or intimidation; violence or threats of violence; retaliation for speaking up; abuse of power or favouritism |
-| Safety and wellbeing | Health and safety hazard; risk of self-harm or harm to others; drug or alcohol misuse at work; excessive hours, workload or unsafe working conditions |
-| Honesty and the law | Fraud, bribery or corruption; theft or misuse of company property; conflict of interest; data protection or privacy breach; unfair pay, denied leave or employment rights; breaking the law or company policy; environmental harm |
-| Anything else | Something else |
-
-The original six keep their stored keys, so earlier reports still show correctly. As with safety, harassment and
-discrimination in the brief, the serious new categories have a **minimum priority**: sexual harassment or assault,
-violence, and risk of self-harm are always **high**; retaliation and drug or alcohol misuse at least **medium**.
-This partly answers the evaluation's most serious finding (a self-harm report filed under "Something else" was
-triaged low): a reporter who chooses "Risk of self-harm or harm to others" now always gets high priority. The
-evaluation numbers are unchanged, because its labelled reports use the original categories.
-
 **Outlines.** Panels, tab groups and the sidebar have a thick (2 px), dark slate outline (`--frame` in
 `styles.css`), in both themes, so each section stands out clearly.
-
-## Language-model triage and evidence for reports
-
-**Triage by a language model.** Described in Step 7: the model reads each report and suggests high, moderate or
-low, safety rules can only raise that, and HR sees the chance of each priority and the words behind it. To
-choose its settings again after changing the examples: `python -m evaluation.choose_priority_model`, then copy
-the best settings into `SETTINGS` in `priority_model.py` and re-run `python -m evaluation.evaluate_reporting`.
-
-**Photos and videos as evidence.** Code: `backend/app/reporting/evidence.py` (cleaning and storing),
-`routes_evidence.py` (the API), the `report_evidence` table, and `frontend/src/components/reporting/Evidence.jsx`.
-
-- **Adding them.** On the report form the reporter can add up to 6 photos (JPEG, PNG or WebP, up to 15 MB) or
-  videos (MP4, MOV or WebM, up to 100 MB), with previews. They're uploaded right after the report is sent, using
-  the new case ID and key, with a progress bar for each. More can be added later on **Check my report**.
-- **What's removed before saving.** Photos are rebuilt from their pixels alone, so no hidden data (GPS location,
-  phone make and model, owner's name, time taken) can survive. Videos are re-packed with ffmpeg (bundled with the
-  `imageio-ffmpeg` package, nothing to install) keeping only the picture and sound: all metadata and extra tracks
-  (some cameras record GPS as a track) are dropped. The reporter can also remove a video's sound, since a voice
-  can identify someone. The original file name is never sent or kept, and only the day it was added is stored.
-- **What isn't removed.** What can be seen or heard: faces, reflections, the view from a particular desk, a screen
-  showing a name. The reporter is told this before uploading and can remove a file later.
-- **Who can see them.** Files are kept in `backend/instance/evidence/` under random names and are never served
-  from a folder: only through the API, to the reporter with their case ID and key, or to HR. The browser is told
-  not to cache them. HR can view but not delete evidence; the reporter can remove their own files while the case
-  is open. Files are checked by their contents, not their name, so a disguised file is refused.
-
-| Endpoint | Who | What |
-|---|---|---|
-| `POST /api/reports/evidence` | Reporter (case ID + key) | Add a photo or video (form upload) |
-| `POST /api/reports/evidence/{id}/view` | Reporter (case ID + key) | See one of their files |
-| `POST /api/reports/evidence/{id}/remove` | Reporter (case ID + key) | Remove one of their files |
-| `GET /api/hr/reports/{case}/evidence/{id}` | HR | See a file attached to a case |
 
 ## Finance: signing off promotion pay rises
 
@@ -1281,7 +963,7 @@ The platform follows one cycle: **predict → explain → respond**. Steps 2 to 
 this step covers responding. **Nothing here changes a score**, except HR confirming a record correction against
 evidence, which is logged.
 
-### Three routes on "My growth"
+### Two routes on "My growth"
 
 Below the explanation, an employee finds **Respond to this explanation**:
 
@@ -1293,15 +975,9 @@ Below the explanation, an employee finds **Respond to this explanation**:
    protected is even stored), enters the value they believe is right, and gives evidence in words, optionally with
    a PDF, JPEG or PNG (up to 10 MB, recognised by its contents, stored under a random name). One request per value
    at a time. The page lists their requests and HR's decisions. `POST /api/feedback/corrections`.
-3. **Report anonymously.** Opens the report form (step 6) with "Biased rating or appraisal" chosen. New reports
-   use five categories: biased rating or appraisal, favouritism, discrimination, wrong or missing record, other
-   workplace concern.
 
-**Which route?** HR never learns who sent a report, so an anonymous report can't tell HR whose rating it means; HR
-can act only on what its own investigation finds (and can ask questions in the anonymous conversation). The tab
-says this plainly: if it's about your own rating and you're comfortable being known, "Correct my record" gets it
-checked and fixed directly; if you'd rather not be identified, or it affects others too, report anonymously. A
-button switches straight to "Correct my record".
+A confidential route for reporting an unfair assessment was built in an earlier version and removed to keep the
+scope focused; it is future work (`docs/future-work/`).
 
 ### HR's correction queue
 
@@ -1323,13 +999,6 @@ the decision form is hidden meanwhile. A hold is not a decision, so it never app
 counts as agreeing or disagreeing with the model. It lifts by itself when the correction is decided, or HR can
 take it off hold. Managers never see the note.
 
-### Re-appraisal after "rating found unfair"
-
-A report about an unfair assessment can be closed with the outcome **Rating found unfair**. The case page then
-lets HR open a **re-appraisal**: a normal correction of the affected value, which goes through the queue like any
-other. The case ID is checked but stored nowhere with the correction (nor in the activity log), so the two can't
-be linked; the employee sees the outcome but not HR's note; and the report itself never reaches the model.
-
 ### Who sees what
 
 | | Employee | Manager | HR | Auditor |
@@ -1342,13 +1011,13 @@ be linked; the employee sees the outcome but not HR's note; and the report itsel
 ### Keeping feedback away from the model
 
 - The feedback code may call the promotion code (a confirmed correction re-scores the employee), but **the
-  promotion code never imports, names or queries feedback or reports**. A static check reads every file in
+  promotion code never imports, names or queries feedback**. A static check reads every file in
   `app/promotion` and fails if it does.
 - At run time, a test records every SQL statement the prediction endpoints run and checks none touches a feedback
-  or report table.
+  table.
 - End to end, `tests/test_isolation.py` records every prediction answer (as HR, the manager and the employee see
-  it, the tips, a what-if and everyone's scores), then adds ratings, a pending and a rejected correction, a held
-  decision, and four anonymised reports with conversations and outcomes about the employee and their manager.
+  it, the tips, a what-if and everyone's scores), then adds a harsh rating, a pending and a rejected correction,
+  and a decision held for the correction.
   Every answer must be **byte-for-byte identical**. Then HR confirms a correction: the explanation must change,
   with the change in the record history and the activity log.
 - **No automatic retraining.** Nothing in the app trains a model; only `train.py`, run by a person.
@@ -1363,12 +1032,11 @@ be linked; the employee sees the outcome but not HR's note; and the report itsel
   is contested (marked wrong or unfair), as a sorted bar list.
 - **Record corrections:** received, confirmed, rejected, pending; the confirmation rate (of decided requests); the
   mean time from request to decision.
-- **Anonymous reports** per promotion category (by date only: reports hold no department, person or model version).
 - **The committee:** decisions, how many went against the model, and their written reasons.
 
 Filters: date range, department and model version; **Export CSV** gives the same numbers. Small groups are
 protected: rates are withheld below 5 ratings, counts of 1 or 2 show as "<3", and only departments with at least
-5 people can be chosen. It never shows a name, a comment, a report's text or one person's rating.
+5 people can be chosen. It never shows a name, a comment or one person's rating.
 `python -m evaluation.export_feedback_measures` saves the same measures for the thesis.
 
 ### The admin's dashboard

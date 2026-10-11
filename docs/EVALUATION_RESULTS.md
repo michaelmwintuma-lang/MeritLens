@@ -1,9 +1,10 @@
 # Evaluation results
 
 Every result of the system, with the file it comes from and the command that reproduces it. No number here was
-typed in by hand: each is copied from a file written by a script. Re-running the scripts on 2026-10-09 gave the
-same numbers: `train.py` reproduced `metrics.json`, `fairness.json` and `model_comparison.json` byte for byte, and
-the reporting evaluation differed only in its run date.
+typed in by hand: each is copied from a file written by a script. Re-running `train.py` reproduces
+`metrics.json`, `fairness.json` and `model_comparison.json` byte for byte (checked on 2026-10-09, and again on
+2026-10-11 after anonymous reporting was removed); the proxy analysis and the explanation evaluation also gave the
+same results, apart from the model's version label.
 
 All employee data is **synthetic** (100,000 made-up employees). The results describe the system on this data, not
 on a real organisation.
@@ -139,14 +140,13 @@ model works".
 
 ### Behaviour (automated tests)
 
-`backend/tests/test_feedback.py` (31 tests) and `backend/tests/test_isolation.py` (4 tests) check that:
+`backend/tests/test_feedback.py` (28 tests) and `backend/tests/test_isolation.py` (4 tests) check that:
 - ratings and correction requests never change a score;
 - only a correction HR confirms changes the record, and it is logged;
-- managers never see ratings or corrections;
-- re-appraisals carry no link to the report they came from.
+- managers never see ratings or corrections.
 
-The isolation test recorded every prediction answer before and after adding ratings, corrections, a held decision
-and four reports with conversations and outcomes. Every answer was byte-for-byte identical. A confirmed correction
+The isolation test recorded every prediction answer before and after adding a harsh rating, a pending and a
+rejected correction, and a decision held for the correction. Every answer was byte-for-byte identical. A confirmed correction
 then changed the prediction, and the change was logged.
 
 ### Measures from use
@@ -155,36 +155,18 @@ then changed the prediction, and the change was logged.
 **Reproduce:** `cd backend && python -m evaluation.export_feedback_measures`
 
 The script exports the clarity rate, usefulness rate, contest share per factor, correction confirmation rate, mean
-time to decide, reports per promotion category and the committee's override rate.
+time to decide and the committee's override rate.
 
 **No real use has happened yet.** On 2026-10-09 the database held 0 ratings and 0 correction requests, so these
-numbers are to be collected during the usability study (section 6) and reported with the number of participants.
+numbers are to be collected during the usability study (section 5) and reported with the number of participants.
 
-## 4. Anonymous reporting
-
-**Source:** `results/reporting_evaluation.json` and `.md` (developer set of 50 hand-labelled reports; the external
-set, written by other people, has no reports yet)
-**Reproduce:** `cd backend && python -m evaluation.evaluate_reporting`
-
-| Measure | Result |
-|---|---|
-| Identifying details removed automatically (recall) | 41 of 47 (87%); precision 87% |
-| Reports with every labelled detail removed | 44 of 50 |
-| Warnings about phrases that could identify the reporter | recall 91%, precision 91% |
-| Triage, language model with safety rules: accuracy | 66% |
-| Triage: urgent reports given high priority | 14 of 14 |
-| Triage: reports put too low / too high | 5 / 12 (keywords only: 12 / 1) |
-
-The developer wrote both the rules and this test set, so these numbers likely flatter the system. The reporter
-reviews the cleaned text before sending, and that review is the main safeguard.
-
-## 5. Software quality
+## 4. Software quality
 
 | Check | Result | How |
 |---|---|---|
-| Backend tests | 372 passed | `cd backend && python -m pytest`, in about 2 minutes |
-| Browser checks: sessions, no keys in the browser, the feedback channel end to end, dashboards, landing page, pagination, every menu page for six roles | 7 passed | `python scripts/browser_test.py`, against a throwaway copy of the app |
-| Accessibility: axe-core, WCAG 2.1 A/AA, 17 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
+| Backend tests | 281 passed | `cd backend && python -m pytest`, in about 3 minutes |
+| Browser checks: sessions, the feedback channel end to end, dashboards, landing page, pagination, every menu page for six roles (with no mention of the removed reporting) | 6 passed | `python scripts/browser_test.py`, against a throwaway copy of the app |
+| Accessibility: axe-core, WCAG 2.1 A/AA, 15 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
 | Pages wider than a phone screen (390 px) | none | same script |
 
 Performance, measured on the running app with 120 demo employees (`docs/CHANGELOG_UPGRADE.md`, Phase 8):
@@ -195,7 +177,7 @@ Performance, measured on the running app with 120 demo employees (`docs/CHANGELO
 | Scoring 5,000 employees | 11.25 s (one at a time) | 13 ms (one call) |
 | Website's first download | 482 kB | 309 kB |
 
-## 6. Usability and perceived fairness (to be collected)
+## 5. Usability and perceived fairness (to be collected)
 
 **Method:** `docs/USER_TEST.md`:
 - 11 tasks, including the three feedback routes and HR deciding on a correction;
