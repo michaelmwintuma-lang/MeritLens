@@ -243,6 +243,17 @@ reporting is future work. So the feature was removed, and the system matches the
   `run.py` already did); the landing-page check now waits for the page and fetches each screenshot (it passed
   before only because it read the page before any image was drawn).
 
+## "Run predictions for everyone" (2026-10-11)
+
+- The All employees page (HR) and My team (managers) list people with "Not run yet" until **Run predictions for
+  all** is clicked. `POST /api/promotion/employees/predict-all` then scores everyone the user may see with the live
+  model, in one call, and returns the model version and the time. Nothing is saved.
+- While it runs, a progress bar fills and the rows reveal their real scores from the top, paced over 5 seconds so
+  people can watch it work. The model itself answers in milliseconds; the page never shows a fake duration. The
+  last run stays while the app is open, with "Run again".
+- Tests: the endpoint gives the same scores as the list, a manager scores only their team, Finance can't use it; a
+  browser check confirms the progress, the 5-second pace and a score on every row afterwards.
+
 ## Left to do (by the project owner)
 
 - **Run the usability study** (`docs/USER_TEST.md`, with ethics approval first). Then run

@@ -236,3 +236,17 @@ def test_scoring_many_at_once_gives_exactly_the_same_scores():
     records = model.background.head(50).to_dict("records")
     assert model.scores(records) == [model.score(r) for r in records]
     assert model.scores([]) == []
+
+
+def test_running_predictions_for_everyone_gives_the_same_scores_as_the_list(client):
+    """The "Run predictions for everyone" button: the live model scores everyone the user may see, all at once."""
+    for username in ("hr", "manager"):
+        headers = login(client, username)
+        listed = client.get("/api/promotion/employees", headers=headers).json()
+        run = client.post("/api/promotion/employees/predict-all", headers=headers).json()
+        assert run["employees"] == listed["employees"] and run["threshold"] == listed["threshold"]
+        assert run["model_version"] == get_model().version and run["run_at"]
+    team = client.post("/api/promotion/employees/predict-all", headers=login(client, "manager")).json()["employees"]
+    everyone = client.post("/api/promotion/employees/predict-all", headers=login(client, "hr")).json()["employees"]
+    assert 0 < len(team) < len(everyone)  # a manager scores only their team
+    assert client.post("/api/promotion/employees/predict-all", headers=login(client, "finance")).status_code == 403

@@ -544,3 +544,27 @@ input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(
 .technical-details h3 { margin-top: 22px; }
 .helper { border-left: 3px solid var(--primary); padding-left: 12px; }
 .pager { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 14px; border-top: 1px solid var(--border); }
+
+/* "Run predictions for everyone" on the employee list: a progress bar, a sweep down the rows, scores fading in */
+.run-all { padding-top: 18px; padding-bottom: 18px; }
+.run-all-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.run-all-head > div { flex: 1; min-width: 220px; }
+.run-all-head h2 { margin: 0 0 2px; font-size: 17px; }
+.run-all-head p { margin: 0; }
+.run-all-icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); color: var(--primary); flex-shrink: 0; }
+.run-all-icon.working { animation: think 1.1s ease-in-out infinite; }
+.run-all-pct { font-size: 22px; font-variant-numeric: tabular-nums; }
+.run-all-track { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; margin-top: 14px; }
+.run-all-track span {
+  display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary)); background-size: 200% 100%;
+  animation: flow 1.2s linear infinite;
+}
+.row-scoring td { background: var(--tint); transition: background-color 0.15s ease; }
+.just-scored { animation: score-in 0.45s ease-out both; }
+.score-pending { display: inline-block; width: 44px; height: 12px; border-radius: 6px; background: var(--surface-2); animation: pending 1s ease-in-out infinite; }
+.score-pending.wide { width: 70%; }
+@keyframes think { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes flow { from { background-position: 0% 0; } to { background-position: 200% 0; } }
+@keyframes score-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pending { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }

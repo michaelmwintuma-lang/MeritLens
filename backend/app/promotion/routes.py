@@ -11,6 +11,7 @@ Who sees what (checked here, on every request):
   routes_decisions.py)
 """
 import time
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -67,9 +68,8 @@ def model():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(error))
 
 
-@router.get("/employees")
-def list_employees(user: User = Depends(promotion_roles), db: Session = Depends(get_db)):
-    """The employees this user may see, each with their readiness score."""
+def scored_employees(user: User, db: Session) -> dict:
+    """The employees this user may see, each scored by the live model (everyone in one call)."""
     query = select(Employee).order_by(Employee.full_name)
     if user.role == MANAGER:
         query = query.where(Employee.manager_user_id == user.id)
@@ -79,8 +79,23 @@ def list_employees(user: User = Depends(promotion_roles), db: Session = Depends(
     employees = list(db.scalars(query))
     rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
              "score": round(score, 4), "recommended": score >= live.threshold}
-            for e, score in zip(employees, live.scores([e.record for e in employees]))]  # scored all at once
-    return {"threshold": live.threshold, "employees": rows}
+            for e, score in zip(employees, live.scores([e.record for e in employees]))]
+    return {"threshold": live.threshold, "model_version": live.version, "employees": rows}
+
+
+@router.get("/employees")
+def list_employees(user: User = Depends(promotion_roles), db: Session = Depends(get_db)):
+    """The employees this user may see, each with their readiness score."""
+    return scored_employees(user, db)
+
+
+@router.post("/employees/predict-all")
+def predict_all(user: User = Depends(promotion_roles), db: Session = Depends(get_db)):
+    """
+    "Run predictions for everyone": score every employee this user may see with the live model, now, and say when.
+    Nothing is saved: the scores are worked out from the current records each time.
+    """
+    return {**scored_employees(user, db), "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
 @router.get("/employees/{employee_id}")

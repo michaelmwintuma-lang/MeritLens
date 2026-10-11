@@ -147,6 +147,24 @@ const CHECKS = {
     }
   },
 
+  /** "Run predictions for everyone": progress while it runs (about 5 seconds), then every row has its score. */
+  async "running predictions for everyone animates, then shows every score"(c) {
+    await signIn(c, "hr");
+    await goto(c, "/employees");
+    if (!(await waitFor(c, `document.body.innerText.includes("Not run yet")`))) throw new Error("the list didn't start as 'not run yet'");
+    const started = Date.now();
+    await c.evaluate(`[...document.querySelectorAll("button")].find((b) => b.innerText.startsWith("Run predictions for all")).click()`);
+    if (!(await waitFor(c, `document.querySelector('[role="progressbar"]')`, 3000))) throw new Error("no progress bar while running");
+    if (!(await waitFor(c, `document.querySelectorAll(".just-scored").length > 0 && document.querySelectorAll(".score-pending").length > 0`, 4000))) {
+      throw new Error("the rows weren't revealed one by one");
+    }
+    if (!(await waitFor(c, `document.body.innerText.includes("Predictions for 120 employees")`, 15000))) throw new Error("the run didn't finish");
+    const seconds = (Date.now() - started) / 1000;
+    if (seconds < 4.5) throw new Error(`the run finished in ${seconds.toFixed(1)} s, not about 5`);
+    const missing = await c.evaluate(`[...document.querySelectorAll("tbody tr")].filter((r) => !/\\d+%|under 1%/.test(r.innerText)).length`);
+    if (missing) throw new Error(`${missing} rows have no score after the run`);
+  },
+
   /** Phase 8: long lists come a page at a time. */
   async "the employee list shows 50 people at a time"(c) {
     await signIn(c, "hr");
