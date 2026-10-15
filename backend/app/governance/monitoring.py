@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.governance.models import EqualityMonitoring
-from app.promotion.models import Decision, Employee, Nomination
+from app.promotion.models import CycleScore, Decision, Employee, Nomination, ReviewCycle
 
 FOUR_FIFTHS = 0.8
 MIN_GROUP = 5
@@ -99,20 +99,33 @@ def stage(counts: dict[str, tuple[int, int]], label: str) -> dict:
             "status": "below four-fifths" if p_value < SIGNIFICANCE else "within chance"}
 
 
-def report(db: Session) -> dict:
+def report(db: Session, cycle: ReviewCycle | None = None) -> dict:
+    """
+    Today's directory, every nomination and every decision; or, for a review cycle, the people and saved scores in
+    that cycle and the nominations and decisions made in it.
+    """
     from app.promotion.explain import ModelNotTrained, get_model
 
     people = {m.employee_id: m for m in db.scalars(select(EqualityMonitoring))}
-    employees = list(db.scalars(select(Employee)))
-    try:
-        live = get_model()
-        recommended = {e.id: s >= live.threshold for e, s in zip(employees, live.scores([e.record for e in employees]))}
-        version = live.version
-    except ModelNotTrained:
-        recommended, version = {}, None
-    nominated = {n.employee_id for n in db.scalars(select(Nomination))}
+    nominations, decisions = select(Nomination), select(Decision)
+    if cycle is not None:
+        saved = {s.employee_id: s for s in db.scalars(select(CycleScore).where(CycleScore.cycle_id == cycle.id))}
+        employees = list(db.scalars(select(Employee).where(Employee.id.in_(saved))))
+        recommended = {e.id: saved[e.id].recommended for e in employees}
+        version = cycle.model_version
+        nominations = nominations.where(Nomination.cycle_id == cycle.id)
+        decisions = decisions.where(Decision.cycle_id == cycle.id)
+    else:
+        employees = list(db.scalars(select(Employee)))
+        try:
+            live = get_model()
+            recommended = {e.id: s >= live.threshold for e, s in zip(employees, live.scores([e.record for e in employees]))}
+            version = live.version
+        except ModelNotTrained:
+            recommended, version = {}, None
+    nominated = {n.employee_id for n in db.scalars(nominations)}
     decided = {}
-    for d in db.scalars(select(Decision)):
+    for d in db.scalars(decisions):
         decided[d.employee_id] = d.decision == "approve" or decided.get(d.employee_id, False)
 
     checks = []

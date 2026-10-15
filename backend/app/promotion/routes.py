@@ -26,6 +26,7 @@ from app.core import jobs
 from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
 from app.core.roles import ADMIN, AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import get_current_user
+from app.promotion import cycles
 from app.promotion.explain import ModelNotTrained, get_model
 from app.promotion.features import EXCLUDED
 from app.promotion.models import Employee
@@ -73,7 +74,10 @@ def model():
 
 
 def scored_employees(user: User, db: Session) -> dict:
-    """The employees this user may see, each scored by the live model (everyone in one call)."""
+    """
+    The employees this user may see, each with their readiness score: the saved score when a review cycle is open
+    (`cycle` says which), otherwise worked out by the live model now (everyone in one call).
+    """
     query = select(Employee).order_by(Employee.full_name)
     if user.role == MANAGER:
         query = query.where(Employee.manager_user_id == user.id)
@@ -81,10 +85,17 @@ def scored_employees(user: User, db: Session) -> dict:
         query = query.where(Employee.id == (user.employee_id or -1))
     live = model()
     employees = list(db.scalars(query))
+    cycle = cycles.open_cycle(db)
+    if cycle is not None:
+        saved = cycles.scores_for(db, cycle, employees, live)
+        rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
+                 "score": saved[e.id].score, "recommended": saved[e.id].recommended} for e in employees]
+        return {"threshold": cycle.threshold, "model_version": cycle.model_version, "employees": rows,
+                "cycle": cycles.summary(cycle)}
     rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
              "score": round(score, 4), "recommended": score >= live.threshold}
             for e, score in zip(employees, live.scores([e.record for e in employees]))]
-    return {"threshold": live.threshold, "model_version": live.version, "employees": rows}
+    return {"threshold": live.threshold, "model_version": live.version, "employees": rows, "cycle": None}
 
 
 @router.get("/employees")

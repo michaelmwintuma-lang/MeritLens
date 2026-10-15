@@ -18,6 +18,7 @@ from app.core.activity import record as log
 from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
 from app.core.roles import AUDITOR, HR, MANAGER
 from app.core.security import require_roles
+from app.promotion import cycles
 from app.promotion.models import Employee, RecordChange
 from app.promotion.records import CSV_COLUMNS, GROUPS, field_list, read_csv, to_entry, to_record
 from app.promotion.routes import model, warm_explanation
@@ -136,9 +137,11 @@ def record_history(db: Session, employee: Employee, old: dict, new: dict, user: 
                          model_version=live.version)
     db.add(entry)
     db.flush()  # gives the change its id
+    in_cycle = cycles.rescore(db, employee, new, entry.score_after, entry.id)
     audit.append(db, "record_changed", user, "employee", employee.id,
                  {"source": source, "record_change_id": entry.id, "changes": changes,
-                  "score_before": entry.score_before, "score_after": entry.score_after}, model_version=live.version)
+                  "score_before": entry.score_before, "score_after": entry.score_after,
+                  "cycle_id": in_cycle.cycle_id if in_cycle else None}, model_version=live.version)
     warm_explanation(new)  # the re-scored employee's second opinion is ready before anyone opens their page
     return entry
 

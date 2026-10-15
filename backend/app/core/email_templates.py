@@ -182,6 +182,22 @@ def team_members_added(manager_name: str, names: list[str]) -> dict:
 
 
 
+def cycle_opened(manager_name: str, cycle_name: str, team: int, recommended: int, nominations_close: str | None) -> dict:
+    """A review cycle opened. Totals for the manager's own team only: no names or scores."""
+    deadline = f"Nominations close on {nominations_close}." if nominations_close else "There is no nomination deadline."
+    return {
+        "subject": f"Review cycle open: {cycle_name}",
+        "heading": "A review cycle has started",
+        "greeting": f"Hello {manager_name},",
+        "paragraphs": [f"HR has opened the review cycle “{cycle_name}”. Everyone's readiness has been worked out and "
+                       "saved for the cycle, so you can see your team's scores now. The model only advises: you decide "
+                       f"whom to recommend. {deadline}"],
+        "details": [("Your team", str(team)), ("The model recommends", str(recommended))]
+                   + ([("Nominations close", nominations_close)] if nominations_close else []),
+        "button": ("Open My team", link("/team")),
+    }
+
+
 def correction_received(hr_name: str, employee_name: str, field: str) -> dict:
     return {
         "subject": f"Record correction requested: {employee_name}",

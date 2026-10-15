@@ -45,6 +45,8 @@ ACTIONS = {
     "nomination_deferred": "Put a promotion decision on hold for a correction",
     "nomination_resumed": "Took a promotion decision off hold",
     "model_released": "Released a model version (made it live)",
+    "cycle_opened": "Opened a review cycle",
+    "cycle_closed": "Closed a review cycle",
 }
 
 

@@ -1,4 +1,4 @@
-"""The promotion part's tables: the employee directory, nominations, and decisions (the decision log)."""
+"""The promotion part's tables: the employee directory, review cycles, nominations, and decisions (the decision log)."""
 import json
 from datetime import date, datetime, timezone
 
@@ -29,6 +29,46 @@ class Employee(Base):
         return {**json.loads(self.record_json), "department": self.department}
 
 
+class ReviewCycle(Base):
+    """
+    A review cycle (e.g. "2026 mid-year"): HR opens it, the live model scores every employee once and the scores are
+    saved (CycleScore), managers nominate until the nomination deadline, HR decides, and HR closes it. Everyone in a
+    cycle is scored by the same model: a new model can't be released while a cycle is open.
+    """
+    __tablename__ = "review_cycles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(10), default="open")        # open or closed; at most one is open
+    model_version: Mapped[str] = mapped_column(String(40))
+    threshold: Mapped[float] = mapped_column(Float)
+    nominations_close: Mapped[date | None] = mapped_column(Date, nullable=True)  # the last day managers may nominate
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    opened_by_name: Mapped[str] = mapped_column(String(120))               # kept even if the account is renamed or deleted
+    opened_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    closed_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class CycleScore(Base):
+    """
+    One employee's saved score in a review cycle, with the exact inputs it was worked out from, so it can always be
+    reproduced. It changes only when the employee's record changes during the open cycle (HR edits it or confirms a
+    correction); the score at opening is kept, and the record change that moved it is linked.
+    """
+    __tablename__ = "cycle_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cycle_id: Mapped[int] = mapped_column(ForeignKey("review_cycles.id"), index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), index=True)
+    score: Mapped[float] = mapped_column(Float)
+    recommended: Mapped[bool] = mapped_column(Boolean)
+    record_json: Mapped[str] = mapped_column(Text)                          # the inputs the score was worked out from
+    score_at_opening: Mapped[float | None] = mapped_column(Float, nullable=True)  # empty: added after the cycle opened
+    scored_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    record_change_id: Mapped[int | None] = mapped_column(ForeignKey("record_changes.id"), nullable=True)
+
+
 class Nomination(Base):
     """A manager proposes a team member for promotion, with a short reason. HR decides."""
     __tablename__ = "nominations"
@@ -46,6 +86,8 @@ class Nomination(Base):
     model_disagreement: Mapped[str | None] = mapped_column(Text, nullable=True)  # why, if the model didn't recommend them
     proposed_raise: Mapped[float | None] = mapped_column(Float, nullable=True)   # a percentage, never a salary amount
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    # The review cycle it was made in (empty when no cycle was open, or for nominations made before cycles existed)
+    cycle_id: Mapped[int | None] = mapped_column(ForeignKey("review_cycles.id"), nullable=True, index=True)
 
 
 class Decision(Base):
@@ -73,6 +115,7 @@ class Decision(Base):
     # Finance's sign-off of the pay rise (approvals only): awaiting_finance, returned (to HR) or signed_off.
     # Empty for rejections, and for approvals made before Finance sign-off existed.
     pay_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    cycle_id: Mapped[int | None] = mapped_column(ForeignKey("review_cycles.id"), nullable=True, index=True)  # its nomination's cycle
 
 
 class PayReview(Base):

@@ -21,6 +21,7 @@ from app.core.database import get_db
 from app.core.roles import ADMIN, AUDITOR, HR
 from app.core.security import require_roles
 from app.governance import monitoring, registry
+from app.promotion.models import ReviewCycle
 
 router = APIRouter(prefix="/api/governance", tags=["governance"])
 readers = require_roles(HR, ADMIN, AUDITOR)
@@ -132,9 +133,17 @@ class FairnessOut(BaseModel):
 
 
 @router.get("/fairness", response_model=FairnessOut)
-def live_fairness(db: Session = Depends(get_db), _: User = Depends(readers)):
-    """The four-fifths rule on today's directory and decisions: the model, managers' nominations and HR's approvals."""
-    return monitoring.report(db)
+def live_fairness(cycle_id: int | None = None, db: Session = Depends(get_db), _: User = Depends(readers)):
+    """
+    The four-fifths rule on today's directory and decisions: the model, managers' nominations and HR's approvals.
+    With `cycle_id`: on that review cycle's saved scores, and the nominations and decisions made in it.
+    """
+    cycle = None
+    if cycle_id is not None:
+        cycle = db.get(ReviewCycle, cycle_id)
+        if cycle is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No such review cycle.")
+    return monitoring.report(db, cycle)
 
 
 # ─── Audit trail ──────────────────────────────────────────────────────────────

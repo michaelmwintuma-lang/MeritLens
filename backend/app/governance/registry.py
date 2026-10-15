@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from app.core import audit, jobs
 from app.core.config import MODEL_REGISTRY_DIR, MODELS_DIR, RESULTS_DIR
 from app.governance.models import ModelRelease
+from app.promotion.models import ReviewCycle
 from app.promotion.explain import reload_model, version_of
 
 MODEL_FILES = ("model.joblib", "model_info.json", "background.csv")
@@ -176,6 +177,10 @@ def release(db: Session, version: str, user, note: str) -> ModelRelease:
         raise LookupError("No such model version.")
     if not data.get("fairness_passes"):
         raise PermissionError("This version failed the fairness check, so it can never be released.")
+    open_cycle = db.scalar(select(ReviewCycle).where(ReviewCycle.status == "open"))
+    if open_cycle is not None:
+        raise PermissionError(f"The review cycle “{open_cycle.name}” is open. Close it before releasing a model, so "
+                              "everyone in a cycle is scored by the same model.")
     previous = live_version()
     if version == previous:
         raise ValueError("This version is already live.")

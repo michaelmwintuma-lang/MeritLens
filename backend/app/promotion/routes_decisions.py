@@ -34,6 +34,7 @@ from app.core.database import get_promotion_db as get_db  # the promotion code's
 from app.core.holds import REASONS, active_hold
 from app.core.roles import AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import require_roles
+from app.promotion import cycles
 from app.promotion.models import Decision, Employee, Nomination, PayPolicy, PayReview
 from app.promotion.routes import model
 
@@ -125,6 +126,11 @@ def nominate(body: NominationIn, background: BackgroundTasks, user: User = Depen
         raise HTTPException(status.HTTP_409_CONFLICT, f"{employee.full_name} already has a nomination waiting for HR.")
     if set(body.criteria) != set(CRITERIA):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Please rate all four: {', '.join(CRITERIA.values())}.")
+    cycle = cycles.open_cycle(db)
+    if not cycles.nominations_open(cycle):
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"Nominations for “{cycle.name}” closed on {cycle.nominations_close.isoformat()}. "
+                            "Ask HR if someone was missed.")
     today = date.today()
     if not today <= body.proposed_start <= today + timedelta(days=366):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "The start date must be between today and a year from now.")
@@ -147,14 +153,14 @@ def nominate(body: NominationIn, background: BackgroundTasks, user: User = Depen
         proposed_title=body.proposed_title.strip(), proposed_start=body.proposed_start,
         criteria_json=json.dumps({k: {"rating": c.rating, "example": c.example.strip()} for k, c in body.criteria.items()}),
         model_recommended_then=recommended, model_disagreement=disagreement if not recommended else None,
-        proposed_raise=round(body.proposed_raise, 1))
+        proposed_raise=round(body.proposed_raise, 1), cycle_id=cycle.id if cycle else None)
     db.add(nomination)
     record(db, user, "nomination_made", f"{employee.full_name} → {nomination.proposed_title}")
     db.flush()  # gives the nomination its id
     audit.append(db, "nomination_made", user, "nomination", nomination.id, {
         "employee_id": employee.id, "proposed_title": nomination.proposed_title,
         "proposed_raise": nomination.proposed_raise, "model_recommended": recommended,
-        "disagrees_with_model": not recommended}, model_version=live.version)
+        "disagrees_with_model": not recommended, "cycle_id": nomination.cycle_id}, model_version=live.version)
     db.commit()
     for email, hr_name in hr_contacts(db):
         background.add_task(mailer.send, email, templates.nomination_received(hr_name, employee.full_name, user.full_name,
@@ -200,6 +206,7 @@ def describe(db: Session, nomination: Nomination, for_manager: bool = False, sco
         "recommendation": recommendation(nomination),
         "status": nomination.status,
         "created_at": iso(nomination.created_at),
+        "cycle_id": nomination.cycle_id,
         "model_now": {"score": round(score, 4), "threshold": live.threshold, "recommended": score >= live.threshold},
         "decision": log_entry(db, decision, histories) if decision else None,
     }
@@ -282,7 +289,7 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
                         model_version=live.version,
                         model_recommended=recommended, agrees_with_model=agrees, reason=reason,
                         approved_raise=raise_percent, raise_reason=raise_reason,
-                        pay_status="awaiting_finance" if approved else None)
+                        pay_status="awaiting_finance" if approved else None, cycle_id=nomination.cycle_id)
     nomination.status = "approved" if approved else "rejected"
     db.add(decision)
     employee_name = db.get(Employee, nomination.employee_id).full_name
@@ -293,6 +300,7 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
         "nomination_id": nomination.id, "employee_id": nomination.employee_id, "decision": body.decision,
         "score": round(score, 4), "threshold": live.threshold, "model_recommended": recommended,
         "agrees_with_model": agrees, "reason_given": reason is not None, "approved_raise": raise_percent,
+        "cycle_id": nomination.cycle_id,
         "top_factors": [{"feature": c["feature"], "contribution": c["contribution"]}
                         for c in live.contributions(record_now)[:5]],
     }, model_version=live.version)
