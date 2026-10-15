@@ -60,6 +60,7 @@ const PAGES = [
   ["admin-activity", "admin", "/admin/activity"],
   ["admin-email", "admin", "/admin/email"],
   ["admin-demo-requests", "admin", "/admin/demo-requests"],
+  ["admin-user-study", "admin", "/admin/study"],
   ["admin-model-registry", "admin", "/models"],
 ];
 

@@ -233,6 +233,19 @@ const CHECKS = {
     if (!(await waitFor(c, `document.body.innerText.includes("marked as sent to payroll")`))) throw new Error("payroll hand-over wasn't confirmed");
   },
 
+  /** User study: the admin starts a session; its link opens the facilitator's page, and consent leads to the tasks. */
+  async "a user-study link opens the facilitator's page without signing in"(c) {
+    await signIn(c, "admin");
+    const session = await c.evaluate(`fetch("/api/study/sessions", { method: "POST", headers: { "X-Requested-With": "MeritLens" } }).then((r) => r.json())`);
+    await c.evaluate(`fetch("/api/auth/logout", { method: "POST", headers: { "X-Requested-With": "MeritLens" } })`);
+    await goto(c, session.link);
+    if (!(await waitFor(c, `document.body.innerText.includes("The participant agrees")`, 15000))) throw new Error("no consent step");
+    await c.evaluate(`[...document.querySelectorAll("button")].find((b) => b.innerText.includes("The participant agrees")).click()`);
+    if (!(await waitFor(c, `document.body.innerText.includes("T1: sign in as employee") && document.body.innerText.includes("T11")`))) {
+      throw new Error("the tasks didn't appear after consent");
+    }
+  },
+
   /** Teams: HR gives someone without a manager a manager, and they join that manager's team. */
   async "hr gives someone a manager from the teams page"(c) {
     await signIn(c, "hr");

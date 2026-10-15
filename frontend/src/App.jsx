@@ -21,6 +21,8 @@ const Users = lazy(() => import("./pages/admin/Users"));
 const ActivityLog = lazy(() => import("./pages/admin/ActivityLog"));
 const Email = lazy(() => import("./pages/admin/Email"));
 const DemoRequests = lazy(() => import("./pages/admin/DemoRequests"));
+const Study = lazy(() => import("./pages/admin/Study"));
+const StudyRun = lazy(() => import("./pages/StudyRun"));
 const Readiness = lazy(() => import("./pages/promotion/Readiness"));
 const EmployeeList = lazy(() => import("./pages/promotion/EmployeeList"));
 const EmployeeForm = lazy(() => import("./pages/promotion/EmployeeForm"));
@@ -64,6 +66,11 @@ export default function App() {
   const { pathname } = useLocation();
   if (loading) return <AppLoading />;
 
+  // The user study's facilitator page: a private link, the same whether or not someone is signed in in this browser
+  if (pathname.startsWith("/study/")) {
+    return <Suspense fallback={<AppLoading />}><Routes><Route path="/study/:token" element={<StudyRun />} /></Routes></Suspense>;
+  }
+
   // Not signed in: the public website (one page per menu item) and the sign-in page
   if (!user) {
     return (
@@ -99,6 +106,7 @@ export default function App() {
         <Route path="admin/users" element={<OnlyFor roles={["admin"]}><Users /></OnlyFor>} />
         <Route path="admin/activity" element={<OnlyFor roles={["admin"]}><ActivityLog /></OnlyFor>} />
         <Route path="admin/email" element={<OnlyFor roles={["admin"]}><Email /></OnlyFor>} />
+        <Route path="admin/study" element={<OnlyFor roles={["admin"]}><Study /></OnlyFor>} />
         <Route path="admin/demo-requests" element={<OnlyFor roles={["admin"]}><DemoRequests /></OnlyFor>} />
         <Route path="my-readiness" element={<OnlyFor roles={["employee"]}><Readiness /></OnlyFor>} />
         <Route path="team" element={<OnlyFor roles={["manager"]}><EmployeeList /></OnlyFor>} />

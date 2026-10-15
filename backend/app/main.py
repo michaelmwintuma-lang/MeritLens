@@ -14,6 +14,7 @@ from app.feedback import routes as feedback_routes
 from app.feedback import routes_hr as feedback_hr_routes
 from app.feedback import dashboard as feedback_dashboard
 from app.governance import routes as governance_routes
+from app.study import routes as study_routes
 from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
 from app.core import notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
@@ -63,6 +64,7 @@ app.include_router(feedback_hr_routes.router)
 app.include_router(feedback_hr_routes.ratings_router)
 app.include_router(feedback_dashboard.router)
 app.include_router(governance_routes.router)
+app.include_router(study_routes.router)
 app.include_router(demo_routes.router)
 app.include_router(demo_routes.admin_router)
 

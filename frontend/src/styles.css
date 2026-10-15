@@ -736,3 +736,12 @@ th.wide-col { width: 30%; }
 
 /* Doing several at once: the bar above a table when rows are ticked */
 .bulk-bar { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-2) var(--s-3); border-radius: var(--radius); background: var(--selected); }
+
+/* User study */
+.study-page { min-height: 100vh; background: var(--bg); }
+.study-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-3) var(--s-6); background: var(--surface); border-bottom: 1px solid var(--border); }
+.study-main { max-width: 860px; margin: 0 auto; padding: var(--s-8) var(--s-4) var(--s-12); }
+.study-task { font-size: var(--text-16); font-weight: 500; }
+.study-clock { font-size: var(--text-24); font-weight: 700; min-width: 80px; }
+.study-link { word-break: break-all; padding: var(--s-2) var(--s-3); background: var(--surface-sunken); border-radius: var(--radius); }
+.study-report { white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; font-size: 13px; margin: 0; max-height: 640px; overflow: auto; }

@@ -51,6 +51,8 @@ ACTIONS = {
     "cover_arranged": "Arranged cover for a manager who is away",
     "cover_ended": "Ended a manager's cover",
     "payroll_sent": "Handed signed-off pay rises to payroll",
+    "study_session_created": "Started a user-study session",
+    "study_analysed": "Saved and analysed the user study",
 }
 
 

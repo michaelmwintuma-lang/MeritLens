@@ -8,6 +8,23 @@ problems; more gives steadier numbers).
 > Check with your supervisor before you start. Participants never use real data: they use the demo accounts and
 > the made-up scenarios below.
 
+## The easy way: run it inside the app
+
+Everything below can be done on paper, but the app can run it for you (Administration → **User study**):
+
+1. Sign in as `admin` and click **New participant**. They get a code (P1, P2, ...), never a name, and you get a
+   private link. Open it in a second window, or on a second screen, for yourself.
+2. On that page: read the consent note and record their agreement; then for each task, read it aloud, start the
+   clock, and record the outcome (completed alone, with a hint, or not) with any notes. The participant meanwhile
+   uses the main window, signing in as each role when a task says so. The link needs no sign-in.
+3. Hand over the screen for the questionnaire (SUS, e1 to e4, and the eight fairness statements) and the last
+   question. When they finish, the link stops working.
+4. After the sessions, click **Save and analyse**: every finished session is written to
+   `backend/evaluation/user_test_sus.csv` and `user_test_tasks.csv` (replacing them), `evaluation/user_test.py`
+   runs, and its report (`results/user_test.md`) appears on the page.
+
+The rest of this guide (ethics, the starting state, the tasks, the questionnaire) applies either way.
+
 ## Before each session
 
 - Start the app (`python run.py`) on a computer you control. Use the demo accounts (`employee`, `manager`, `hr`
