@@ -188,3 +188,13 @@ def test_the_history_cannot_be_changed_or_deleted(client):
     hr = login(client, "hr")
     for method in ("PUT", "PATCH", "DELETE"):
         assert client.request(method, f"/api/promotion/records/{employee_id}/history", headers=hr).status_code == 405
+
+
+def test_every_demo_record_can_be_edited_on_the_form(client):
+    """Counts are whole numbers in every record, so HR's edit form accepts any of them unchanged."""
+    hr = login(client, "hr")
+    people = client.get("/api/promotion/employees", headers=hr).json()["employees"]
+    for person in people[:20]:
+        record = client.get(f"/api/promotion/records/{person['id']}", headers=hr).json()
+        res = client.put(f"/api/promotion/records/{person['id']}", headers=hr, json=record)
+        assert res.status_code == 200, (person["full_name"], res.text)

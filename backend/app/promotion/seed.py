@@ -13,8 +13,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
+from app.core import audit
 from app.promotion.features import MODEL_FEATURES, NUMERIC_FEATURES, load_dataset, split_data
 from app.promotion.models import Employee
+from app.promotion.records import ENTRY_FIELDS
+
+# Inputs HR enters as whole numbers (counts). The dataset has a few as decimals (e.g. 36.4 tasks), which the
+# employee form rightly refuses, so they are rounded when the demo directory is made, and once in older databases.
+WHOLE = [name for name, _, _, whole, _ in ENTRY_FIELDS if whole]
+
+
+def whole_numbers(record: dict) -> dict:
+    return {k: (float(round(v)) if k in WHOLE and v != round(v) else v) for k, v in record.items()}
 
 DEMO_SIZE = 120
 TEAM_SIZE = 12
@@ -50,7 +60,7 @@ def seed_demo_employees(db: Session) -> None:
     employee_login = db.scalar(select(User).where(User.username == "employee"))
 
     for i, (row, name) in enumerate(zip(demo_rows(), unique_names(DEMO_SIZE))):
-        record = {feature: float(row[feature]) for feature in NUMERIC_FEATURES}
+        record = whole_numbers({feature: float(row[feature]) for feature in NUMERIC_FEATURES})
         db.add(Employee(
             id=int(row["employee_id"]),
             full_name=name,
@@ -62,3 +72,21 @@ def seed_demo_employees(db: Session) -> None:
         if i == 0 and employee_login:
             employee_login.employee_id = int(row["employee_id"])
     db.commit()
+
+
+def round_whole_numbers(db: Session) -> int:
+    """
+    Once, in a database made before counts were rounded: round them, so every record can be edited on the form.
+    The change is tiny (36.4 tasks becomes 36) and is noted in the audit trail. Returns how many records changed.
+    """
+    changed = 0
+    for employee in db.scalars(select(Employee)):
+        record = json.loads(employee.record_json)
+        fixed = whole_numbers(record)
+        if fixed != record:
+            employee.record_json = json.dumps(fixed)
+            changed += 1
+    if changed:
+        audit.append(db, "records_normalised", None, "employee", "all", {"records": changed, "fields": WHOLE})
+        db.commit()
+    return changed

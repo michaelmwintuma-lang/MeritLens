@@ -47,6 +47,7 @@ EVENTS = {
     "cover_arranged": "Cover arranged while a manager is away",
     "cover_ended": "Cover ended early",
     "payroll_sent": "Finance handed signed-off pay rises to payroll",
+    "records_normalised": "Counts in work records rounded to whole numbers (a one-off data repair)",
 }
 
 

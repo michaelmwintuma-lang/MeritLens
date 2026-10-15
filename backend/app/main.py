@@ -8,7 +8,7 @@ from app.accounts.seed import seed_demo_accounts
 from app.promotion import routes as promotion_routes
 from app.promotion import routes_cycles, routes_decisions, routes_finance, routes_records, routes_teams
 from app.public import routes as public_routes
-from app.promotion.seed import seed_demo_employees
+from app.promotion.seed import round_whole_numbers, seed_demo_employees
 from app.demo import routes as demo_routes
 from app.feedback import routes as feedback_routes
 from app.feedback import routes_hr as feedback_hr_routes
@@ -35,6 +35,7 @@ async def lifespan(_app: FastAPI):
     with SessionLocal() as db:
         seed_demo_accounts(db)
         seed_demo_employees(db)
+        round_whole_numbers(db)
         seed_demo_monitoring(db)
     ensure_live_registered()
     scheduler.start()  # email retries, reminders and daily digests (not in tests)

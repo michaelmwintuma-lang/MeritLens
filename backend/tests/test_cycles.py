@@ -111,7 +111,6 @@ def test_a_record_change_moves_the_saved_score_and_is_logged(client):
 
     record = client.get(f"/api/promotion/records/{person}", headers=hr).json()
     record["values"]["projects_completed"] += 6
-    record["values"]["tasks_completed"] = round(record["values"]["tasks_completed"])  # the form takes whole numbers
     record["reason"] = "Six projects were missing from the review form."
     assert client.put(f"/api/promotion/records/{person}", headers=hr, json=record).status_code == 200
 
@@ -131,7 +130,6 @@ def test_someone_added_mid_cycle_is_scored_into_it(client):
     cycle = open_cycle(client)["cycle"]
     record = client.get(f"/api/promotion/records/{team(client)['employees'][0]['id']}", headers=hr).json()
     record.update(full_name="New Starter", manager_user_id=None)
-    record["values"]["tasks_completed"] = round(record["values"]["tasks_completed"])
     added = client.post("/api/promotion/records", headers=hr, json=record)
     assert added.status_code == 201, added.text
     listed = client.get("/api/promotion/employees", headers=hr).json()
