@@ -323,3 +323,21 @@ the page-by-page list: `docs/UI_REVIEW.md`. The design system itself: `docs/HOW_
 Checked: `npm run build` (no warnings), 322 backend tests, 7 browser checks, and 0 axe findings on 39 pages in both
 themes, with nothing wider than a 390px phone.
 
+## Review cycles (2026-10-15)
+
+Promotion rounds now run as **review cycles** (details: `docs/HOW_IT_WORKS.md`, "Review cycles").
+
+- HR opens a cycle: the live model scores everyone once, and each score is saved with its inputs and model version.
+  Lists show the saved scores straight away. HR closes the cycle once every nomination in it is decided.
+- During a cycle a score changes only through a logged record change (an HR edit or a confirmed correction); the
+  score at opening is kept. No model can be released while a cycle is open.
+- Nominations and decisions belong to the cycle; after its deadline, managers can't nominate in it.
+- The cycle page: KPIs, the nomination pipeline, departments, "recommended, not nominated", movement since the last
+  cycle, fairness for the cycle, and CSV export. The auditor sees it read-only, with totals only.
+- Reminders on the overviews and in the bell; managers are emailed when a cycle opens; each employee's readiness
+  over time on their page.
+- Without a cycle, nothing changes: scores are worked out on demand and not stored. The privacy page says so.
+
+Checked: 336 backend tests (14 new in `tests/test_cycles.py`), 8 browser checks, and 0 axe findings on 41 pages in
+both themes.
+

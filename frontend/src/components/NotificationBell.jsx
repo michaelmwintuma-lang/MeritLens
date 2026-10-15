@@ -1,5 +1,6 @@
 // The bell in the top bar. HR is told about record corrections waiting and pay rises Finance sent back; Finance
-// about pay rises waiting for sign-off; employees about HR's decisions on their record.
+// about pay rises waiting for sign-off; employees about HR's decisions on their record; managers, during a review
+// cycle, about team members the model recommends who aren't nominated yet.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
@@ -26,6 +27,18 @@ async function employeeItems() {
     detail: d.label }));
 }
 
+async function managerItems() {
+  // During a review cycle, before its deadline: team members the model recommends who aren't nominated yet
+  const [team, nominations] = await Promise.all([api("/promotion/employees"), api("/promotion/nominations")]);
+  const { cycle } = team;
+  if (!cycle?.nominations_open) return [];
+  const nominated = new Set(nominations.filter((n) => n.cycle_id === cycle.id).map((n) => n.employee.id));
+  const open = team.employees.filter((e) => e.recommended && !nominated.has(e.id)).length;
+  return open ? [{ id: `cycle-${cycle.id}`, to: "/team",
+    text: `${open} team member${open === 1 ? "" : "s"} the model recommends, not nominated yet`,
+    detail: `${cycle.name}${cycle.nominations_close ? `: nominations close on ${cycle.nominations_close}` : ""}` }] : [];
+}
+
 async function financeItems() {
   const { reviews } = await api("/finance/pay-reviews");
   return reviews.filter((r) => r.status === "awaiting_finance").map((r) => ({
@@ -38,11 +51,11 @@ export default function NotificationBell() {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const box = useRef(null);
-  const role = ["hr", "finance", "employee"].includes(user.role) ? user.role : null;
+  const role = ["hr", "finance", "employee", "manager"].includes(user.role) ? user.role : null;
 
   useEffect(() => {
     if (!role) return undefined;
-    const load = () => ({ hr: hrItems, finance: financeItems, employee: employeeItems }[role])().then(setItems).catch(() => {});
+    const load = () => ({ hr: hrItems, finance: financeItems, employee: employeeItems, manager: managerItems }[role])().then(setItems).catch(() => {});
     load();
     const timer = setInterval(load, CHECK_EVERY_MS);
     return () => clearInterval(timer);

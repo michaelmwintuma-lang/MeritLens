@@ -541,6 +541,89 @@ Steps 6 and 7 built anonymous reporting (the anonymiser, case keys, triage, the 
 HR's report inbox). It was removed from this version to keep the scope focused; see `docs/future-work/` and the
 git tag `with-anonymous-reporting`.
 
+## Review cycles: running a promotion round
+
+Code: `backend/app/promotion/cycles.py` (how a cycle works), `routes_cycles.py` (its API), the tables `review_cycles`
+and `cycle_scores` (`models.py`), and the page `frontend/src/pages/promotion/ReviewCycles.jsx`. Tests:
+`tests/test_cycles.py`.
+
+Without a cycle, a readiness score is worked out when someone asks for it and is not stored. That is simple and
+private, but a promotion round needs more. Lists started as "Not run yet", a score could move between a manager's
+nomination and HR's decision, and nothing showed afterwards what the model had said to everyone. A **review cycle**
+fixes this:
+
+1. **HR opens a cycle** (Promotion → Review cycles) with a name such as "2026 mid-year", the last day managers may
+   nominate, and an optional note. The live model scores **everyone at once**. Each score is saved with the exact
+   inputs it came from and the model version, so it can always be reproduced. The opening is in the audit trail,
+   and every manager with a team gets an email: their team's size, how many the model recommends, and the
+   deadline (no names or scores).
+2. **The lists show the saved scores straight away**: All employees, My team, and the overviews, under a "Review
+   cycle" banner. Someone added to the directory during the cycle is scored into it with the same model.
+3. **A saved score changes only through a logged record change.** When HR edits a record, or confirms a record
+   correction, the person's cycle score follows. The score at opening is kept beside it, and the record change
+   (with its reason, in the record history and the audit trail) is linked. Nothing else moves a score mid-cycle.
+4. **The same model for everyone in a cycle.** A new model version can't be released while a cycle is open
+   (`app/governance/registry.py` refuses it). Close the cycle first.
+5. **Nominations belong to the cycle**, and so do HR's decisions on them. After the deadline the server refuses
+   new nominations for that cycle, and the manager's form says so.
+6. **HR closes the cycle** once every nomination in it is decided; the page says what is still waiting. Scores then
+   go back to being worked out on demand until the next cycle opens. Closed cycles stay exactly as they were.
+
+### The cycle page (HR; the auditor sees totals only)
+
+- **Headline:** the model version and threshold, the deadline and days left, how many scores were updated by a
+  record change, and who was added late.
+- **KPI tiles:** people scored, recommended, nominated (and "recommended, not nominated"), and decided (approved,
+  and how many went against the model).
+- **The nomination pipeline** (approved, not approved, waiting for HR, on hold) and a **department breakdown**.
+- **Recommended, not nominated** (HR only): a prompt to check, never a to-do list, because the model only advises.
+- **Since the last cycle:** for the people in both cycles, who crossed the threshold each way, the average change,
+  and (HR only) who rose and fell the most.
+- **Fairness in this cycle:** the four-fifths check on this cycle's saved scores, and the nominations and
+  decisions made in it (`GET /api/governance/fairness?cycle_id=…`).
+- **Export CSV** (HR only): one row per person, with their score, the score at opening, and what happened to any
+  nomination.
+
+### Helping people act on time
+
+- **Overviews:** HR is told when no cycle is open, while one is open, and when every nomination is decided and the
+  cycle is ready to close. Managers are told a cycle is open and when to recommend by.
+- **Notification bell:** during a cycle, before its deadline, managers see how many team members the model
+  recommends who aren't nominated yet.
+- **Readiness over time:** an employee's page (My growth, and the same page for HR and their manager) shows their
+  saved score in every cycle, as a chart with the threshold marked and as a list.
+
+### Who sees what
+
+| | HR | Manager | Employee | Auditor | Finance, Admin |
+|---|---|---|---|---|---|
+| Which cycle is open, its deadline | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Open and close a cycle, export it | ✓ | | | | |
+| A cycle's progress | ✓ (with names) | | | ✓ (totals only) | |
+| An employee's scores over time | ✓ | their team | their own | | |
+
+### API
+
+| Endpoint | Who | What |
+|---|---|---|
+| `GET /api/promotion/cycles/current` | everyone signed in | the open cycle, or null |
+| `GET /api/promotion/cycles` | HR, auditor | every cycle with its headline totals |
+| `POST /api/promotion/cycles` | HR | open a cycle: `{name, nominations_close?, note?}` |
+| `GET /api/promotion/cycles/{id}` | HR, auditor | its progress (the auditor's has no names) |
+| `POST /api/promotion/cycles/{id}/close` | HR | close it (refused while a nomination is waiting) |
+| `GET /api/promotion/cycles/{id}/export.csv` | HR | one row per person |
+| `GET /api/promotion/employees/{id}/trend` | as for that person's score | their saved score in each cycle |
+
+### Points to discuss in the thesis
+
+- **Storing scores is a trade-off.** Without cycles, nothing is stored, which is the most private choice. With
+  cycles, each score is kept so a round can be audited and reproduced, and decisions are compared against a stable
+  number. The data kept is the score, the inputs the model already uses, and the model version: no feedback, and no
+  protected characteristics.
+- **Stability against correctness.** Freezing scores completely would ignore a correction HR confirmed against
+  evidence; letting scores drift with every model change would make a round impossible to compare. The rule chosen
+  (only logged record changes move a score; no model releases mid-cycle) keeps both.
+
 ## Design system
 
 Every page is built from one small design system, so the whole interface looks and behaves the same. It is a
@@ -755,7 +838,7 @@ keeps dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **322 tests**, all passing, in about three
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **336 tests**, all passing, in about three
 minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |

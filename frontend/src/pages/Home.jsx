@@ -50,12 +50,21 @@ function PromotionOverview({ data, isHr }) {
   const notYetNominated = people.employees.filter((e) => e.recommended && !nominatedIds.has(e.id)).length;
   const returned = isHr ? decisions.filter((d) => d.pay_status === "returned").length : 0;
   const candidates = waitingModels(models);
+  const { cycle } = people;
+  const daysLeft = cycle?.days_left == null ? "" : cycle.days_left === 0 ? " (today)" : ` (in ${plural(cycle.days_left, "day")})`;
+  const cycleItem = isHr
+    ? !cycle ? { key: "cycle", text: "No review cycle is open", detail: "Start one to score everyone once and keep the scores for a promotion round.", to: "/cycles", action: "Start a cycle", tone: "info" }
+      : !cycle.nominations_open && !waiting ? { key: "cycle", text: `Every nomination in “${cycle.name}” is decided`, detail: "Nominations have closed: the cycle is ready to close.", to: "/cycles", action: "Close the cycle" }
+        : { key: "cycle", text: `Review cycle “${cycle.name}” is open`, detail: cycle.nominations_close ? `Nominations close on ${cycle.nominations_close}${daysLeft}.` : "No nomination deadline.", to: "/cycles", action: "Progress", tone: "info" }
+    : cycle?.nominations_open && { key: "cycle", text: `Review cycle “${cycle.name}” is open`, detail: cycle.nominations_close ? `Recommend team members by ${cycle.nominations_close}${daysLeft}.` : "Your team's scores are saved for this cycle.", to: "/team", action: "Open my team", tone: "info" };
   const attention = isHr ? [
+    cycleItem,
     waiting && { key: "nom", text: `${plural(waiting, "nomination")} to decide`, detail: "Each with the model's view and the manager's reasons.", to: "/nominations", action: "Review" },
     corrections.length && { key: "cor", text: `${plural(corrections.length, "record correction")} to check`, detail: "Employees asked for a value in their record to be corrected.", to: "/corrections", action: "Check" },
     returned && { key: "pay", text: `${plural(returned, "pay rise")} sent back by Finance`, detail: "Revise and resubmit.", to: "/decisions", action: "Open", tone: "warn" },
     candidates.length && { key: "model", text: `A new model version is waiting for release (${candidates[0].version})`, detail: "Read its model card; it goes live only when you release it.", to: "/models", action: "Read the card", tone: "info" },
   ] : [
+    cycleItem,
     notYetNominated && { key: "rec", text: `${plural(notYetNominated, "team member")} the model recommends, not nominated yet`, detail: "The model only advises: you decide whom to recommend.", to: "/team", action: "Open my team", tone: "info" },
     nominations.filter((n) => n.status === "finalising").length && { key: "fin", text: "A promotion you recommended is being finalised", detail: "HR approved it; Finance is signing off the pay rise.", to: "/nominations", action: "Open", tone: "info" },
   ];

@@ -8,7 +8,7 @@ import { useAuth } from "../../auth";
 import { percent } from "../../format";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
 import { useRunAll } from "../../components/promotion/useRunAll";
-import { Brain, FileUp, Play, RotateCcw, UserPlus, Users } from "lucide-react";
+import { Brain, CalendarRange, FileUp, Play, RotateCcw, UserPlus, Users } from "lucide-react";
 import { Button, Callout, EmptyState, LoadError, PageHeader, PageLoading, Pager, SortHeader, sortRows } from "../../components/ui";
 
 // Long lists are shown a page at a time: drawing thousands of rows at once makes the page slow to use
@@ -18,8 +18,30 @@ function time(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-/** The card above the list: the button, the run in progress, or what the last run did. */
-function RunPanel({ run, start, total, scored }) {
+/** During a review cycle: the scores below are the cycle's saved ones, and when nominations close. */
+function CyclePanel({ cycle, total, isHr }) {
+  const deadline = cycle.nominations_close
+    ? cycle.nominations_open ? `Nominations close on ${cycle.nominations_close}.` : `Nominations closed on ${cycle.nominations_close}.`
+    : "No nomination deadline.";
+  return (
+    <section className="card run-all" aria-labelledby="cycle-panel">
+      <div className="run-all-head">
+        <span className="run-all-icon"><CalendarRange size={22} aria-hidden="true" /></span>
+        <div>
+          <h2 id="cycle-panel">Review cycle: {cycle.name}</h2>
+          <p className="muted" role="status">
+            Scores for all {total} saved on {cycle.opened_at.slice(0, 10)} by model {cycle.model_version}. They change only
+            when a record changes. {deadline} The model only advises.
+          </p>
+        </div>
+        {isHr && <Link className="btn btn-secondary" to="/cycles">Cycle progress</Link>}
+      </div>
+    </section>
+  );
+}
+
+/** The card above the list (no review cycle open): the button, the run in progress, or what the last run did. */
+function RunPanel({ run, start, total, scored, hint }) {
   if (run.status === "running") {
     const pct = Math.round(run.progress * 100);
     return (
@@ -54,7 +76,7 @@ function RunPanel({ run, start, total, scored }) {
           ) : (
             <>
               <h2>Run the readiness predictions</h2>
-              <p className="muted">The live model scores all {total} employees from their current records. Nothing is saved.</p>
+              <p className="muted">The live model scores all {total} employees from their current records. Nothing is saved. {hint}</p>
             </>
           )}
         </div>
@@ -84,13 +106,15 @@ export default function EmployeeList() {
   if (error) return <LoadError message={error} onRetry={load} />;
   if (!data) return <PageLoading />;
 
-  const done = run.status === "done";
+  // A review cycle is open: the server sends everyone's saved score, so there is nothing to run
+  const cycle = data.cycle;
+  const done = Boolean(cycle) || run.status === "done";
   // The run works down the list in name order (the order the server sends); each row's place in it
-  const people = done ? run.result.employees : data.employees;
+  const people = cycle ? data.employees : done ? run.result.employees : data.employees;
   const place = new Map(data.employees.map((e, i) => [e.id, i]));
-  const scores = new Map((run.result?.employees || []).map((e) => [e.id, e]));
+  const scores = new Map((cycle ? data.employees : run.result?.employees || []).map((e) => [e.id, e]));
   const scored = Math.floor(run.progress * data.employees.length);
-  const threshold = run.result?.threshold ?? data.threshold;
+  const threshold = cycle ? data.threshold : run.result?.threshold ?? data.threshold;
 
   const departments = [...new Set(people.map((e) => e.department))].sort();
   const rows = people
@@ -135,7 +159,10 @@ export default function EmployeeList() {
         )} />
 
       {user.role === "admin" && <Callout>You're viewing employee data as an administrator: read-only. Nominations, decisions and feedback stay with managers and HR.</Callout>}
-      <RunPanel run={run} start={start} total={data.employees.length} scored={scored} />
+      {cycle
+        ? <CyclePanel cycle={cycle} total={data.employees.length} isHr={user.role === "hr"} />
+        : <RunPanel run={run} start={start} total={data.employees.length} scored={scored}
+            hint={user.role === "hr" ? "To keep scores for a promotion round, start a review cycle." : ""} />}
       <div className="card flush">
         <div className="card-head filters">
           <input placeholder="Search by name" value={search} onChange={filter(setSearch)} aria-label="Search by name" />

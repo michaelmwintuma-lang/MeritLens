@@ -926,6 +926,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/promotion/cycles/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current Cycle
+         * @description The open cycle's name, model and nomination deadline, or null. For every signed-in page.
+         */
+        get: operations["current_cycle_api_promotion_cycles_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cycles
+         * @description Every cycle, newest first, each with its headline totals.
+         */
+        get: operations["list_cycles_api_promotion_cycles_get"];
+        put?: never;
+        /**
+         * Open Cycle
+         * @description HR opens a cycle: everyone is scored with the live model now, and the scores are saved. One at a time.
+         */
+        post: operations["open_cycle_api_promotion_cycles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/cycles/{cycle_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cycle Progress
+         * @description How a cycle is going. HR sees the people it concerns; the auditor sees totals only.
+         */
+        get: operations["cycle_progress_api_promotion_cycles__cycle_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/cycles/{cycle_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close Cycle
+         * @description HR closes the open cycle, once every nomination in it has been decided.
+         */
+        post: operations["close_cycle_api_promotion_cycles__cycle_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/cycles/{cycle_id}/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Cycle
+         * @description HR: one row per employee in the cycle: their saved score, and what happened to any nomination.
+         */
+        get: operations["export_cycle_api_promotion_cycles__cycle_id__export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/employees/{employee_id}/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Score Trend
+         * @description One employee's saved score in every review cycle, oldest first: to them, their manager and HR.
+         */
+        get: operations["score_trend_api_promotion_employees__employee_id__trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/summary": {
         parameters: {
             query?: never;
@@ -1396,6 +1520,7 @@ export interface paths {
         /**
          * Live Fairness
          * @description The four-fifths rule on today's directory and decisions: the model, managers' nominations and HR's approvals.
+         *     With `cycle_id`: on that review cycle's saved scores, and the nominations and decisions made in it.
          */
         get: operations["live_fairness_api_governance_fairness_get"];
         put?: never;
@@ -1671,6 +1796,15 @@ export interface components {
             rating: number;
             /** Example */
             example: string;
+        };
+        /** CycleIn */
+        CycleIn: {
+            /** Name */
+            name: string;
+            /** Nominations Close */
+            nominations_close?: string | null;
+            /** Note */
+            note?: string | null;
         };
         /** DecisionIn */
         DecisionIn: {
@@ -3531,6 +3665,203 @@ export interface operations {
             };
         };
     };
+    current_cycle_api_promotion_cycles_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_cycles_api_promotion_cycles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    open_cycle_api_promotion_cycles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cycle_progress_api_promotion_cycles__cycle_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_cycle_api_promotion_cycles__cycle_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_cycle_api_promotion_cycles__cycle_id__export_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycle_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_trend_api_promotion_employees__employee_id__trend_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     summary_api_public_summary_get: {
         parameters: {
             query?: never;
@@ -4215,7 +4546,9 @@ export interface operations {
     };
     live_fairness_api_governance_fairness_get: {
         parameters: {
-            query?: never;
+            query?: {
+                cycle_id?: number | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4229,6 +4562,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FairnessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

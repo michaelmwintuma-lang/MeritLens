@@ -712,3 +712,7 @@ th.wide-col { width: 30%; }
 
 /* Spacing helper, last so it wins over a component's own margin */
 .section-gap { margin-top: var(--s-6); }
+
+/* Readiness over time (review cycles) */
+.trend-plot { max-width: 640px; }
+.trend-list { margin-top: var(--s-4); }

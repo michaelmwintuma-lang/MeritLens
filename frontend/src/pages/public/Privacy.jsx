@@ -7,6 +7,7 @@ const RULES = [
   ["No protected characteristics in the model", "Gender, age, education, department and pay are not inputs. Gender, age and education are used only afterwards, to check the model treats groups fairly."],
   ["Feedback never changes a score", "The promotion model never reads ratings or correction requests. Only a correction HR confirms against evidence changes a record, and every such change is logged."],
   ["Ratings are seen only as totals", "HR and the auditor see how explanations were rated added together, and only from five ratings. Managers never see them."],
+  ["Scores are kept only for review cycles", "Outside a review cycle a readiness score is worked out when it's needed and not stored. When HR opens a cycle, each person's score is saved with the exact inputs and model version it came from, so a promotion round can be checked later; during the cycle it changes only through a logged record change."],
   ["Pay is a percentage", "Pay rises are stored only as percentages, never salaries, and never reach the model."],
 ];
 

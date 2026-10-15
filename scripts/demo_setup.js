@@ -1,10 +1,11 @@
 /**
- * Demo activity for the screenshot scripts, so the review, correction, feedback and finance pages have something to
- * show. Only ever run against browser_test.py's throwaway copy of the app (never your real database):
+ * Demo activity for the screenshot scripts, so the review cycle, review, correction, feedback and finance pages have
+ * something to show. Only ever run against browser_test.py's throwaway copy of the app (never your real database):
+ * - HR opens a review cycle (everyone scored and saved), with nominations closing in two weeks;
  * - the manager nominates the demo employee, who then rates their explanation (flagging one factor) and asks HR to
  *   correct a value, so HR's review shows the pending-correction note; HR holds that decision;
  * - the manager nominates a teammate, whom HR approves, so Finance has a pay rise to sign off.
- * Returns { employee, held, approved }: the demo employee's record and the two nominations.
+ * Returns { employee, held, approved, cycle }: the demo employee's record, the two nominations and the cycle.
  */
 const { goto, openChrome, signIn, sleep } = require("./browser");
 
@@ -22,6 +23,9 @@ async function setUpDemo() {
       employee_id, proposed_title: "Senior Analyst", proposed_start: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
       criteria: Object.fromEntries(["performance", "leadership", "skills", "impact"].map((k) => [k, { rating: 4, example: `A clear example of ${k} this year.` }])),
       reason: "Led the migration project this year.", model_disagreement: "Strong client feedback the data doesn't capture.", proposed_raise: 8 });
+    await signIn(c, "hr");
+    ids.cycle = (await api(c, "/promotion/cycles", "POST", { name: "2026 year end",
+      nominations_close: new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10) })).cycle?.id;
     await signIn(c, "employee");
     ids.employee = (await api(c, "/auth/me")).employee_id;
     await signIn(c, "manager");

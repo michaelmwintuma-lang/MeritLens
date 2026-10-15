@@ -61,6 +61,10 @@ check is enforced by the backend, not just hidden in the interface.
 
 ### Main features
 
+- **Review cycles**: HR runs a promotion round: everyone is scored once and the scores are saved for the cycle,
+  with a nomination deadline, progress by department, "recommended, not nominated", movement since the last cycle,
+  fairness per cycle, CSV export, and each employee's readiness over time. A score changes mid-cycle only through a
+  logged record change, and no new model can be released while a cycle is open.
 - **Readiness score with explanations**: a plain-language summary, what raised and lowered the score, the path to
   promotion (realistic tips), "what-if" exploration, and, under "Show technical details", the exact contributions
   and a second opinion (LIME).
@@ -115,7 +119,7 @@ check is enforced by the backend, not just hidden in the interface.
 | Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite (default) or PostgreSQL, PyJWT |
 | Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Frontend | React 19, React Router 7, Vite 7, TypeScript (API layer, generated from the backend's OpenAPI contract), lucide-react icons |
-| Testing | pytest (322 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
+| Testing | pytest (336 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
 
 **Why it is built this way.** One backend with clearly separated modules is right for one organisation's HR
 team: simpler to run, test and reason about than many services. The redesign keeps that, and adds what a
@@ -210,7 +214,9 @@ and the numbers above are what it costs.
 
 ### From score to decision
 
-1. **The model advises:** it gives a readiness score and its explanation.
+1. **The model advises:** it gives a readiness score and its explanation. During a review cycle, everyone's score
+   is saved when the cycle opens, and nominations and decisions belong to that cycle (see `docs/HOW_IT_WORKS.md`,
+   "Review cycles").
 2. **A manager recommends**, using a structured form:
    - performance, leadership, skills and impact are each rated 1–5 with a concrete example;
    - a proposed title, start date and pay rise;
@@ -312,8 +318,8 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 | Explanations: exactness, common sense, LIME fit and agreement, tips | `results/explanation_evaluation.json` | Done |
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
-| Automated tests | `backend/tests/`, 322 tests | All passing |
-| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 7 checks passing; 0 accessibility findings on 39 pages |
+| Automated tests | `backend/tests/`, 336 tests | All passing |
+| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 8 checks passing; 0 accessibility findings on 41 pages |
 | Continuous integration | `.github/workflows/ci.yml` | Tests, build and browser checks on every push |
 
 Every number, with its source: **`docs/EVALUATION_RESULTS.md`**.
@@ -418,7 +424,7 @@ python -m evaluation.proxy_analysis              # proxies for gender, age, educ
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 322 automated tests, in about 5 minutes
+python -m pytest                                 # the 336 automated tests, in about 5 minutes
 python export_openapi.py                         # the API contract → frontend/openapi.json (then: npm run gen:api)
 ```
 
@@ -435,7 +441,7 @@ From the project folder, the browser checks and screenshots run against a throwa
 database:
 
 ```bash
-python scripts/browser_test.py                                        # 7 checks in headless Chrome
+python scripts/browser_test.py                                        # 8 checks in headless Chrome
 python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/latest   # screenshots + accessibility audit
 python scripts/browser_test.py scripts/capture_landing.js             # the website's screenshots
 python scripts/browser_test.py scripts/capture_thesis.js              # the thesis figures (docs/screenshots/thesis)
@@ -461,7 +467,7 @@ backend/
   evaluation/            explanation evaluation, proxy analysis, feedback export, user test
   data/                  the synthetic employee dataset (100,000 rows); mappings/ for other organisations' data
   models/                the live promotion model; registry/ every trained version (not committed)
-  tests/                 322 automated tests
+  tests/                 336 automated tests
   instance/              database, secret key, outbox, correction evidence (created automatically, never committed)
 deploy/postgres/         running on PostgreSQL, with database roles that enforce the isolation
 frontend/

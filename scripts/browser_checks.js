@@ -167,6 +167,27 @@ const CHECKS = {
     if (missing) throw new Error(`${missing} rows have no score after the run`);
   },
 
+  /** Review cycles: HR starts one from its page; the lists then show the saved scores, and the deadline reaches managers. */
+  async "hr runs a review cycle and the team sees its saved scores"(c) {
+    const text = () => c.evaluate("document.body.innerText");
+    await signIn(c, "hr");
+    await goto(c, "/cycles");
+    if (!(await waitFor(c, `document.body.innerText.includes("Start a review cycle")`))) throw new Error("no start form");
+    await c.evaluate(`[...document.querySelectorAll("button")].find((b) => b.innerText.includes("Start the cycle")).click()`);
+    if (!(await waitFor(c, `/people scored/i.test(document.body.innerText) && document.body.innerText.includes("Close the cycle")`, 20000))) {
+      throw new Error(`the cycle didn't start: ${(await c.evaluate("document.querySelector('main').innerText")).slice(0, 200)}`);
+    }
+    await goto(c, "/employees");
+    if (!(await waitFor(c, `document.body.innerText.includes("Review cycle:")`))) throw new Error("the list doesn't show the cycle");
+    if (/Not run yet/.test(await text())) throw new Error("the list still asks for a run during a cycle");
+    await signIn(c, "manager");
+    await goto(c, "/");
+    if (!(await waitFor(c, `/Review cycle .+ is open/.test(document.body.innerText)`))) throw new Error("the manager isn't told about the cycle");
+    await signIn(c, "employee");
+    await goto(c, "/my-readiness");
+    if (!(await waitFor(c, `document.body.innerText.includes("Your readiness over time")`, 30000))) throw new Error("no readiness trend for the employee");
+  },
+
   /** Phase 8: long lists come a page at a time. */
   async "the employee list shows 50 people at a time"(c) {
     await signIn(c, "hr");

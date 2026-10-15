@@ -2114,6 +2114,283 @@
         ]
       }
     },
+    "/api/promotion/cycles/current": {
+      "get": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "Current Cycle",
+        "description": "The open cycle's name, model and nomination deadline, or null. For every signed-in page.",
+        "operationId": "current_cycle_api_promotion_cycles_current_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/cycles": {
+      "get": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "List Cycles",
+        "description": "Every cycle, newest first, each with its headline totals.",
+        "operationId": "list_cycles_api_promotion_cycles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "Open Cycle",
+        "description": "HR opens a cycle: everyone is scored with the live model now, and the scores are saved. One at a time.",
+        "operationId": "open_cycle_api_promotion_cycles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CycleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/cycles/{cycle_id}": {
+      "get": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "Cycle Progress",
+        "description": "How a cycle is going. HR sees the people it concerns; the auditor sees totals only.",
+        "operationId": "cycle_progress_api_promotion_cycles__cycle_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Cycle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/cycles/{cycle_id}/close": {
+      "post": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "Close Cycle",
+        "description": "HR closes the open cycle, once every nomination in it has been decided.",
+        "operationId": "close_cycle_api_promotion_cycles__cycle_id__close_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Cycle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/cycles/{cycle_id}/export.csv": {
+      "get": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "Export Cycle",
+        "description": "HR: one row per employee in the cycle: their saved score, and what happened to any nomination.",
+        "operationId": "export_cycle_api_promotion_cycles__cycle_id__export_csv_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Cycle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/employees/{employee_id}/trend": {
+      "get": {
+        "tags": [
+          "review cycles"
+        ],
+        "summary": "Score Trend",
+        "description": "One employee's saved score in every review cycle, oldest first: to them, their manager and HR.",
+        "operationId": "score_trend_api_promotion_employees__employee_id__trend_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/public/summary": {
       "get": {
         "tags": [
@@ -3211,8 +3488,31 @@
           "governance"
         ],
         "summary": "Live Fairness",
-        "description": "The four-fifths rule on today's directory and decisions: the model, managers' nominations and HR's approvals.",
+        "description": "The four-fifths rule on today's directory and decisions: the model, managers' nominations and HR's approvals.\nWith `cycle_id`: on that review cycle's saved scores, and the nominations and decisions made in it.",
         "operationId": "live_fairness_api_governance_fairness_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cycle Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3223,13 +3523,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/governance/audit": {
@@ -3862,6 +4167,45 @@
           "example"
         ],
         "title": "CriterionIn"
+      },
+      "CycleIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "nominations_close": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominations Close"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CycleIn"
       },
       "DecisionIn": {
         "properties": {

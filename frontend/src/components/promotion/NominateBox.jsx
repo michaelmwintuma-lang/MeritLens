@@ -23,6 +23,7 @@ export default function NominateBox({ employeeId, name }) {
   const [pending, setPending] = useState(null); // an existing pending nomination, if any
   const [modelView, setModelView] = useState(null);
   const [policy, setPolicy] = useState(null);
+  const [cycle, setCycle] = useState(null); // the open review cycle, if any
   const [form, setForm] = useState({
     proposed_title: "", proposed_start: inDays(30), reason: "", model_disagreement: "", proposed_raise: "",
     criteria: Object.fromEntries(CRITERIA.map(([key]) => [key, { rating: "", example: "" }])),
@@ -34,6 +35,7 @@ export default function NominateBox({ employeeId, name }) {
   useEffect(() => {
     Promise.all([api("/promotion/nominations"), api("/promotion/employees"), api("/promotion/pay-policy")])
       .then(([list, team, pay]) => {
+        setCycle(team.cycle);
         setPending(list.find((n) => n.employee.id === employeeId && n.status === "pending") || false);
         const me = team.employees.find((e) => e.id === employeeId);
         setModelView(me ? { score: me.score, recommended: me.recommended, threshold: team.threshold } : null);
@@ -48,6 +50,14 @@ export default function NominateBox({ employeeId, name }) {
     return (
       <Callout title={`You recommended ${name}${pending.recommendation?.proposed_title ? ` as ${pending.recommendation.proposed_title}` : ""} on ${pending.created_at.slice(0, 10)}.`}>
         HR hasn't decided yet. <Link to="/nominations">See your nominations</Link>
+      </Callout>
+    );
+  }
+
+  if (cycle && !cycle.nominations_open) {
+    return (
+      <Callout tone="warning" title={`Nominations for “${cycle.name}” closed on ${cycle.nominations_close}.`}>
+        HR is deciding on this cycle's recommendations. If someone was missed, ask HR.
       </Callout>
     );
   }
@@ -81,6 +91,11 @@ export default function NominateBox({ employeeId, name }) {
   return (
     <form onSubmit={(e) => withWorking(() => submit(e))} className="recommend-form">
       <p className="muted">HR sees your recommendation next to the model's score and explanation, and makes the final decision.</p>
+      {cycle && (
+        <Callout title={`Part of the review cycle “${cycle.name}”`}>
+          {cycle.nominations_close ? `Nominations close on ${cycle.nominations_close}.` : "There is no nomination deadline."}
+        </Callout>
+      )}
       {error && <Callout tone="error">{error}</Callout>}
 
       <div className="form-row">

@@ -63,6 +63,10 @@
     "overflow": {},
     "axe": []
   },
+  "hr-review-cycles": {
+    "overflow": {},
+    "axe": []
+  },
   "hr-predict-explain": {
     "overflow": {},
     "axe": []
@@ -116,6 +120,10 @@
     "axe": []
   },
   "auditor-decisions": {
+    "overflow": {},
+    "axe": []
+  },
+  "auditor-review-cycles": {
     "overflow": {},
     "axe": []
   },

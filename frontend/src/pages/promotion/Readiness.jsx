@@ -18,6 +18,7 @@ import NominateBox from "../../components/promotion/NominateBox";
 import RunPrediction from "../../components/promotion/RunPrediction";
 import RecordHistory from "../../components/promotion/RecordHistory";
 import RespondPanel from "../../components/feedback/RespondPanel";
+import TrendChart from "../../components/charts/TrendChart";
 
 export default function Readiness() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function Readiness() {
   const employeeId = own ? user.employee_id : Number(params.id);
   const [promotions, setPromotions] = useState([]); // an employee's approved promotions (their own page only)
   useEffect(() => { if (own) api("/promotion/my-promotions").then(setPromotions).catch(() => {}); }, [own]);
+  const [trend, setTrend] = useState([]); // saved scores in each review cycle, oldest first
   const [profile, setProfile] = useState(null);
   const [result, setResult] = useState(null); // { prediction, lime, tips }, filled in step by step
   const [error, setError] = useState("");
@@ -40,6 +42,7 @@ export default function Readiness() {
     setProfile(null);
     setResult(null);
     loadProfile();
+    api(`/promotion/employees/${employeeId}/trend`).then(setTrend).catch(() => setTrend([]));
   }, [employeeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!employeeId) {
@@ -102,6 +105,13 @@ export default function Readiness() {
           <Card id="tips" title={own ? "Your path to promotion" : "Tips to improve"}>
             {result.tips ? <Tips data={result.tips} threshold={data.threshold} /> : <Loading label="Finding realistic steps…" />}
           </Card>
+
+          {trend.length > 0 && (
+            <Card id="trend" title={own ? "Your readiness over time" : "Readiness over time"}
+              subtitle="The score saved in each review cycle. During an open cycle it changes only when the record changes.">
+              <TrendChart points={trend} />
+            </Card>
+          )}
 
           <Card id="what-if" title="What if?">
             <WhatIf key={data.id} employeeId={data.id} options={data.improvable} score={data.score} />

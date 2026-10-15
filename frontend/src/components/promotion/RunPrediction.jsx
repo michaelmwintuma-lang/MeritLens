@@ -85,7 +85,7 @@ export default function RunPrediction({ profile, onResult, autoRun = false, comp
         <span>
           {working ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <CheckCircle2 size={16} aria-hidden="true" className="step-done" />}
           {working ? "Working out your readiness from your current work record…"
-            : "Worked out just now from your current work record. Nothing is saved, and the model only advises."}
+            : "Worked out just now from your current work record. The model only advises."}
         </span>
         <Button look="ghost" onClick={run} busy={running} busyText="Working…" icon={RotateCcw}>Work it out again</Button>
         {error && <Callout tone="error">{error}</Callout>}
@@ -102,7 +102,7 @@ export default function RunPrediction({ profile, onResult, autoRun = false, comp
           <h2>{finished ? "Prediction complete" : "Predict and explain"}</h2>
           <p className="card-sub">
             The {profile.model} model (trained on {profile.trained_at.slice(0, 10)}) scores {profile.full_name}'s current
-            work record and explains the result. Nothing is saved, and the model only advises.
+            work record and explains the result. This run saves nothing, and the model only advises.
           </p>
         </div>
         <Button onClick={run} busy={running} busyText="Running…" icon={finished ? RotateCcw : Play} look={finished ? "secondary" : "primary"}>
