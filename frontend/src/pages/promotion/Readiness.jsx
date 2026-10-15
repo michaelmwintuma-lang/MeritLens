@@ -60,7 +60,9 @@ export default function Readiness() {
   return (
     <>
       <PageHeader title={own ? "My growth" : profile.full_name}
-        subtitle={own ? "Your readiness for promotion, why, and the smallest steps that would raise it." : `${profile.department} · employee ${profile.id}`}
+        subtitle={own
+          ? `Your readiness for promotion, why, and the smallest steps that would raise it.${profile.manager ? ` Your manager, ${profile.manager}, can recommend you.` : ""}`
+          : `${profile.department} · employee ${profile.id} · ${profile.manager ? `managed by ${profile.manager}` : "no manager yet"}`}
         actions={user.role === "hr" && <Link to={`/employees/${profile.id}/edit`} className="btn btn-secondary"><Pencil size={16} aria-hidden="true" />Edit details</Link>} />
       {saved?.saved && (
         <Callout tone="success" title={`Details ${saved.saved}. Click Run prediction to score them${saved.saved === "added" ? "; the admin can now link them to a login" : ""}.`}>
@@ -68,6 +70,10 @@ export default function Readiness() {
         </Callout>
       )}
 
+      {profile.cover && <Callout>{profile.cover.name} is covering for {own ? "your manager" : profile.manager} until {profile.cover.until}.</Callout>}
+      {user.role === "manager" && profile.relation === "branch" && (
+        <Callout title="Read-only for you">{profile.manager} manages {profile.full_name} and is the one who can recommend them.</Callout>
+      )}
       {user.role === "admin" && <Callout>Read-only view for administrators: you can run the prediction, but not nominate, decide or edit.</Callout>}
       {promotions.map((p) => (
         <Callout key={p.approved_on + p.title} tone="success" icon={PartyPopper} title={`Promotion approved${p.title ? `: ${p.title}` : ""}`}>
@@ -135,7 +141,7 @@ export default function Readiness() {
 
       {user.role === "hr" && <RecordHistory employeeId={profile.id} />}
 
-      {user.role === "manager" && (
+      {user.role === "manager" && profile.may_nominate && (
         <Card id="recommend" title="Recommend for promotion">
           <NominateBox employeeId={profile.id} name={profile.full_name} />
         </Card>

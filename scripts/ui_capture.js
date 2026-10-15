@@ -36,6 +36,7 @@ const PAGES = [
   ["hr-home", "hr", "/"],
   ["hr-employees", "hr", "/employees"],
   ["hr-review-cycles", "hr", "/cycles"],
+  ["hr-teams", "hr", "/teams"],
   ["hr-predict-explain", "hr", "/employees/{employee}", RUN],
   ["hr-employee-new", "hr", "/employees/new"],
   ["hr-employee-import", "hr", "/employees/import"],

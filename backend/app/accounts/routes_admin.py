@@ -4,7 +4,7 @@ from email.policy import default as default_policy
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
@@ -17,7 +17,7 @@ from app.core.security import hash_password, require_roles, temporary_password, 
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import ACTIONS, ActivityEntry, record
-from app.promotion.models import Decision, Employee, Nomination
+from app.promotion.models import Decision, Employee, Nomination, TeamCover
 
 router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 employees_router = APIRouter(prefix="/api/admin/employees", tags=["admin"])
@@ -133,6 +133,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depen
         raise HTTPException(status.HTTP_409_CONFLICT, f"{user.full_name} appears in the promotion decision log, which must keep "
                             "who recommended and decided. Deactivate the account instead: they can no longer sign in.")
     db.execute(update(Employee).where(Employee.manager_user_id == user.id).values(manager_user_id=None))
+    db.execute(delete(TeamCover).where((TeamCover.manager_user_id == user.id) | (TeamCover.cover_user_id == user.id)))
     db.execute(update(ActivityEntry).where(ActivityEntry.user_id == user.id).values(user_id=None))
     record(db, admin, "account_deleted", f"{user.username} ({user.role})")
     db.delete(user)

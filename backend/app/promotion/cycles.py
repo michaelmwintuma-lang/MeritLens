@@ -161,6 +161,9 @@ def progress(db: Session, cycle: ReviewCycle, with_people: bool) -> dict:
     }
     not_nominated = [s for s in scores if s.recommended and s.employee_id not in nominated]
     totals["recommended_not_nominated"] = len(not_nominated)
+    # Recommended, but with nobody to recommend them: HR should give them a manager (Teams)
+    totals["recommended_no_manager"] = sum(1 for s in not_nominated
+                                           if s.employee_id in employees and employees[s.employee_id].manager_user_id is None)
     pending = status_counts["pending"]
     result = {
         "cycle": summary(cycle),

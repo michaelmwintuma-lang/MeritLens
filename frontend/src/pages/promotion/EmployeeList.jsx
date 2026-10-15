@@ -9,7 +9,8 @@ import { percent } from "../../format";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
 import { useRunAll } from "../../components/promotion/useRunAll";
 import { Brain, CalendarRange, FileUp, Play, RotateCcw, UserPlus, Users } from "lucide-react";
-import { Button, Callout, EmptyState, LoadError, PageHeader, PageLoading, Pager, SortHeader, sortRows } from "../../components/ui";
+import { Badge, Button, Callout, EmptyState, LoadError, PageHeader, PageLoading, Pager, SortHeader, sortRows } from "../../components/ui";
+import Cover from "../../components/promotion/Cover";
 
 // Long lists are shown a page at a time: drawing thousands of rows at once makes the page slow to use
 const PAGE_SIZE = 50;
@@ -95,6 +96,7 @@ export default function EmployeeList() {
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("");
   const [onlyRecommended, setOnlyRecommended] = useState(false);
+  const [scope, setScope] = useState("all"); // a manager: everyone they see, or only their own team
   const [sort, setSort] = useState({ by: "score", dir: "desc" }); // highest readiness first, once there are scores
   const [page, setPage] = useState(0);
   // Any new search or filter starts again at the first page
@@ -117,7 +119,10 @@ export default function EmployeeList() {
   const threshold = cycle ? data.threshold : run.result?.threshold ?? data.threshold;
 
   const departments = [...new Set(people.map((e) => e.department))].sort();
+  const hasBranch = isManager && data.employees.some((e) => e.relation !== "direct");
+  const relation = new Map(data.employees.map((e) => [e.id, e]));
   const rows = people
+    .filter((e) => scope === "all" || relation.get(e.id)?.relation !== "branch")
     .filter((e) => e.full_name.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => !department || e.department === department)
     .filter((e) => !done || !onlyRecommended || e.recommended);
@@ -166,6 +171,12 @@ export default function EmployeeList() {
       <div className="card flush">
         <div className="card-head filters">
           <input placeholder="Search by name" value={search} onChange={filter(setSearch)} aria-label="Search by name" />
+          {hasBranch && (
+            <select value={scope} onChange={filter(setScope)} aria-label="Who to show">
+              <option value="all">My team and everyone below</option>
+              <option value="mine">Only people I can recommend</option>
+            </select>
+          )}
           {!isManager && (
             <select value={department} onChange={filter(setDepartment)} aria-label="Department">
               <option value="">All departments</option>
@@ -186,7 +197,9 @@ export default function EmployeeList() {
           <tbody>
             {shown.map((e) => (
               <tr key={e.id} className={run.status === "running" && place.get(e.id) === scored ? "row-scoring" : ""}>
-                <td><Link to={`/employees/${e.id}`}>{e.full_name}</Link></td>
+                <td><Link to={`/employees/${e.id}`}>{e.full_name}</Link>
+                  {relation.get(e.id)?.relation === "branch" && <div className="cell-sub">Reports to {relation.get(e.id).manager}</div>}
+                  {relation.get(e.id)?.relation === "cover" && <div><Badge tone="info">Covering for {relation.get(e.id).manager}</Badge></div>}</td>
                 <td>{e.department}</td>
                 {readiness(e)}
               </tr>
@@ -196,6 +209,7 @@ export default function EmployeeList() {
         {rows.length === 0 && <EmptyState icon={Users} title="No one matches" text="Try a different name or filter." />}
         <Pager page={page} size={PAGE_SIZE} total={rows.length} onPage={setPage} label="Pages of employees" />
       </div>
+      {isManager && <Cover onChanged={load} />}
     </>
   );
 }

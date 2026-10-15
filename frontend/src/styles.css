@@ -716,3 +716,12 @@ th.wide-col { width: 30%; }
 /* Readiness over time (review cycles) */
 .trend-plot { max-width: 640px; }
 .trend-list { margin-top: var(--s-4); }
+
+/* Teams: reporting lines indented by level, cover rows */
+.org-name { display: inline-flex; align-items: baseline; gap: var(--s-1); flex-wrap: wrap; }
+.org-name.level-1 { padding-left: var(--s-6); }
+.org-name.level-2 { padding-left: var(--s-12); }
+.org-name.level-3 { padding-left: calc(var(--s-12) + var(--s-6)); }
+.org-name:not(.level-0)::before { content: "└"; color: var(--text-muted); margin-right: var(--s-1); }
+.cover-row { padding: var(--s-2) 0; border-bottom: 1px solid var(--border); }
+.cover-row:last-child { border-bottom: none; }

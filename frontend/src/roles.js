@@ -1,6 +1,6 @@
 // The six roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
-import { Banknote, BarChart3, BookCheck, Boxes, Brain, CalendarCheck, CalendarRange, ClipboardCheck, ClipboardPen, Gauge, LayoutGrid, Mail, Scale, ScrollText, ShieldCheck, UserCog, Users } from "lucide-react";
+import { Banknote, BarChart3, BookCheck, Boxes, Brain, CalendarCheck, CalendarRange, ClipboardCheck, ClipboardPen, Gauge, LayoutGrid, Mail, Network, Scale, ScrollText, ShieldCheck, UserCog, Users } from "lucide-react";
 
 export const ROLE_NAMES = {
   employee: "Employee",
@@ -13,8 +13,8 @@ export const ROLE_NAMES = {
 
 export const ROLE_DESCRIPTIONS = {
   employee: "See your readiness score, why, and tips to improve; rate the explanation, or ask HR to correct your record.",
-  manager: "See your team's scores, and nominate team members for promotion.",
-  hr: "Run review cycles, see all employees, decide on nominations, confirm record corrections, and release new model versions.",
+  manager: "See your team's scores (and, read-only, everyone further down your reporting line), nominate team members, and arrange cover while you're away.",
+  hr: "Run review cycles, see all employees, set who manages whom, decide on nominations, confirm record corrections, and release new model versions.",
   admin: "Create and manage user accounts, and view the activity log, system health and audit trail.",
   finance: "Sign off the pay rise of each approved promotion, or send it back to HR with a reason.",
   auditor: "Check decisions, the audit trail, the model and its fairness, read-only. Never sees an individual's feedback.",
@@ -26,6 +26,7 @@ const REGISTRY = { to: "/models", label: "Model registry", icon: Boxes };
 const FAIRNESS = { to: "/fairness", label: "Live fairness", icon: Scale };
 const AUDIT = { to: "/audit", label: "Audit trail", icon: ShieldCheck };
 const CYCLES = { to: "/cycles", label: "Review cycles", icon: CalendarRange };
+const TEAMS = { to: "/teams", label: "Teams", icon: Network };
 
 // Menu per role: the overview, then the pages in named groups
 export const MENU = {
@@ -39,6 +40,7 @@ export const MENU = {
     { group: "Promotion", items: [
       CYCLES,
       { to: "/employees", label: "All employees", icon: Users },
+      TEAMS,
       { to: "/nominations", label: "Nominations", icon: ClipboardCheck },
       { to: "/decisions", label: "Decision log", icon: BookCheck }, MODEL] },
     { group: "Feedback", items: [

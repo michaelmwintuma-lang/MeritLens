@@ -1,4 +1,4 @@
-"""The promotion part's tables: the employee directory, review cycles, nominations, and decisions (the decision log)."""
+"""The promotion part's tables: the employee directory, cover between managers, review cycles, nominations, and decisions."""
 import json
 from datetime import date, datetime, timezone
 
@@ -27,6 +27,24 @@ class Employee(Base):
     def record(self) -> dict:
         """The work record as a dictionary, including department."""
         return {**json.loads(self.record_json), "department": self.department}
+
+
+class TeamCover(Base):
+    """
+    A manager away for a while hands their team to another manager, who may then see and nominate them, from the
+    first day to the last (both included). Set by the manager or by HR; it ends by itself, or earlier if ended.
+    """
+    __tablename__ = "team_covers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    manager_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)   # the manager who is away
+    cover_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)     # the manager covering
+    starts: Mapped[date] = mapped_column(Date)
+    ends: Mapped[date] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    set_by_name: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)        # ended early
 
 
 class ReviewCycle(Base):

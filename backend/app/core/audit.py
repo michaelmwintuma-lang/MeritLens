@@ -43,6 +43,9 @@ EVENTS = {
     "model_released": "A model version was released (made live)",
     "cycle_opened": "HR opened a review cycle (everyone scored and saved)",
     "cycle_closed": "HR closed a review cycle",
+    "team_changed": "An employee's manager changed",
+    "cover_arranged": "Cover arranged while a manager is away",
+    "cover_ended": "Cover ended early",
 }
 
 
@@ -54,7 +57,7 @@ class AuditEvent(Base):
     event: Mapped[str] = mapped_column(String(40), index=True)
     actor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     actor_name: Mapped[str] = mapped_column(String(120))        # kept even if the account is renamed or deleted
-    subject_type: Mapped[str] = mapped_column(String(20))       # employee, nomination, decision, correction, model or cycle
+    subject_type: Mapped[str] = mapped_column(String(20))       # employee, nomination, decision, correction, model, cycle or cover
     subject_id: Mapped[str] = mapped_column(String(60), index=True)
     model_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     payload_json: Mapped[str] = mapped_column(Text, default="{}")

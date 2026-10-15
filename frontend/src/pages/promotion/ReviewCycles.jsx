@@ -189,6 +189,11 @@ function CycleReport({ id, isHr, onChanged }) {
           </div>
         )}
         {open && data.close_blocker && <Callout className="section-gap">{data.close_blocker} The cycle can be closed once they are decided.</Callout>}
+        {isHr && totals.recommended_no_manager > 0 && (
+          <Callout tone="warning" className="section-gap" title={`${totals.recommended_no_manager} ${totals.recommended_no_manager === 1 ? "person" : "people"} the model recommends ${totals.recommended_no_manager === 1 ? "has" : "have"} no manager`}>
+            Nobody can recommend them until they have one. <Link to="/teams">Give them a manager</Link>
+          </Callout>
+        )}
       </Card>
 
       <div className="stat-grid">

@@ -199,6 +199,24 @@ const CHECKS = {
     if (!(await waitFor(c, `document.querySelector(".pager").innerText.includes("51–100")`))) throw new Error("Next didn't show 51–100");
   },
 
+  /** Teams: HR gives someone without a manager a manager, and they join that manager's team. */
+  async "hr gives someone a manager from the teams page"(c) {
+    await signIn(c, "hr");
+    await goto(c, "/teams");
+    if (!(await waitFor(c, `document.querySelector('#unassigned tbody input[type="checkbox"]')`))) throw new Error("no one without a manager");
+    const name = await c.evaluate(`(() => { const row = document.querySelector('#unassigned tbody tr');
+      row.querySelector('input[type="checkbox"]').click(); return row.querySelector("a").innerText; })()`);
+    await c.evaluate(`(() => { const s = document.querySelector('#unassigned .inline-form select');
+      const option = [...s.options].find((o) => o.text === "Mo Manager");
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set.call(s, option.value);
+      s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+    await c.evaluate(`[...document.querySelectorAll("#unassigned button")].find((b) => b.innerText.startsWith("Assign 1")).click()`);
+    if (!(await waitFor(c, `document.body.innerText.includes("moved to Mo Manager")`))) throw new Error("the assignment wasn't confirmed");
+    await signIn(c, "manager");
+    await goto(c, "/team");
+    if (!(await waitFor(c, `document.body.innerText.includes(${JSON.stringify(name)})`))) throw new Error(`${name} isn't on Mo's team`);
+  },
+
   /**
    * No dead links or broken pages: every menu page opens for every role, without errors. Anonymous reporting was
    * removed, so no page may mention it, and its old addresses lead back to the overview.

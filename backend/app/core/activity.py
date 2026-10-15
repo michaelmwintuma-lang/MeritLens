@@ -47,6 +47,9 @@ ACTIONS = {
     "model_released": "Released a model version (made it live)",
     "cycle_opened": "Opened a review cycle",
     "cycle_closed": "Closed a review cycle",
+    "team_assigned": "Changed who manages whom",
+    "cover_arranged": "Arranged cover for a manager who is away",
+    "cover_ended": "Ended a manager's cover",
 }
 
 

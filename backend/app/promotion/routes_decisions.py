@@ -34,7 +34,7 @@ from app.core.database import get_promotion_db as get_db  # the promotion code's
 from app.core.holds import REASONS, active_hold
 from app.core.roles import AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import require_roles
-from app.promotion import cycles
+from app.promotion import cycles, teams
 from app.promotion.models import Decision, Employee, Nomination, PayPolicy, PayReview
 from app.promotion.routes import model
 
@@ -118,10 +118,10 @@ class NominationIn(BaseModel):
 @router.post("/nominations", status_code=status.HTTP_201_CREATED)
 def nominate(body: NominationIn, background: BackgroundTasks, user: User = Depends(require_roles(MANAGER)),
              db: Session = Depends(get_db)):
-    """A manager recommends one of their own team members for promotion."""
+    """A manager recommends one of their own team members (or of a team they're covering) for promotion."""
     employee = db.get(Employee, body.employee_id)
-    if employee is None or employee.manager_user_id != user.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only nominate people on your own team.")
+    if employee is None or teams.team_of(db, user).get(employee.id) not in teams.MAY_NOMINATE:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only nominate people on your own team (or a team you're covering).")
     if db.scalar(select(Nomination).where(Nomination.employee_id == employee.id, Nomination.status == "pending")):
         raise HTTPException(status.HTTP_409_CONFLICT, f"{employee.full_name} already has a nomination waiting for HR.")
     if set(body.criteria) != set(CRITERIA):
@@ -217,10 +217,13 @@ def describe(db: Session, nomination: Nomination, for_manager: bool = False, sco
 
 @router.get("/nominations")
 def list_nominations(user: User = Depends(require_roles(HR, MANAGER)), db: Session = Depends(get_db)):
-    """HR sees every nomination; a manager sees the ones they made. Newest first."""
+    """
+    HR sees every nomination; a manager sees the ones they made, and any made for their own team by a manager
+    covering for them. Newest first.
+    """
     query = select(Nomination).order_by(Nomination.created_at.desc())
     if user.role == MANAGER:
-        query = query.where(Nomination.nominated_by == user.id)
+        query = query.where((Nomination.nominated_by == user.id) | Nomination.employee_id.in_(teams.direct_reports(db, user.id)))
     nominations = list(db.scalars(query))
     scores = model().scores([db.get(Employee, n.employee_id).record for n in nominations])
     decisions = {d.nomination_id: d for d in db.scalars(select(Decision).where(
@@ -233,7 +236,8 @@ def list_nominations(user: User = Depends(require_roles(HR, MANAGER)), db: Sessi
 @router.get("/nominations/{nomination_id}")
 def get_nomination(nomination_id: int, user: User = Depends(require_roles(HR, MANAGER)), db: Session = Depends(get_db)):
     nomination = db.get(Nomination, nomination_id)
-    if nomination is None or (user.role == MANAGER and nomination.nominated_by != user.id):
+    if nomination is None or (user.role == MANAGER and nomination.nominated_by != user.id
+                              and nomination.employee_id not in teams.direct_reports(db, user.id)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such nomination.")
     return describe(db, nomination, for_manager=user.role == MANAGER)
 

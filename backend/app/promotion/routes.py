@@ -3,7 +3,8 @@ Promotion prediction API.
 
 Who sees what (checked here, on every request):
 - HR: every employee
-- Manager: only their own team
+- Manager: their own team, a team they cover for while its manager is away, and (read-only) everyone further down
+  their reporting line (teams.py)
 - Employee: only themselves
 - Admin: none of it (admins manage accounts, not promotions), unless an admin has given them
   "can view employee data": then they see everyone, read-only (they can't nominate, decide or edit)
@@ -26,7 +27,7 @@ from app.core import jobs
 from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
 from app.core.roles import ADMIN, AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import get_current_user
-from app.promotion import cycles
+from app.promotion import cycles, teams
 from app.promotion.explain import ModelNotTrained, get_model
 from app.promotion.features import EXCLUDED
 from app.promotion.models import Employee
@@ -46,12 +47,12 @@ def promotion_roles(user: User = Depends(get_current_user)) -> User:
     raise HTTPException(status.HTTP_403_FORBIDDEN, "Your role does not have access to this.")
 
 
-def can_see(user: User, employee: Employee) -> bool:
+def can_see(user: User, employee: Employee, db: Session) -> bool:
     """The access rule in one place."""
     if may_view_all(user):
         return True
     if user.role == MANAGER:
-        return employee.manager_user_id == user.id
+        return employee.id in teams.team_of(db, user)
     return user.role == EMPLOYEE and user.employee_id == employee.id
 
 
@@ -60,7 +61,7 @@ def visible_employee(employee_id: int, user: User, db: Session) -> Employee:
     employee = db.get(Employee, employee_id)
     if employee is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such employee.")
-    if not can_see(user, employee):
+    if not can_see(user, employee, db):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only see your own record, or your team's if you're a manager.")
     return employee
 
@@ -79,8 +80,10 @@ def scored_employees(user: User, db: Session) -> dict:
     (`cycle` says which), otherwise worked out by the live model now (everyone in one call).
     """
     query = select(Employee).order_by(Employee.full_name)
+    relation = {}
     if user.role == MANAGER:
-        query = query.where(Employee.manager_user_id == user.id)
+        relation = teams.team_of(db, user)
+        query = query.where(Employee.id.in_(relation))
     elif user.role == EMPLOYEE:
         query = query.where(Employee.id == (user.employee_id or -1))
     live = model()
@@ -90,12 +93,20 @@ def scored_employees(user: User, db: Session) -> dict:
         saved = cycles.scores_for(db, cycle, employees, live)
         rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
                  "score": saved[e.id].score, "recommended": saved[e.id].recommended} for e in employees]
-        return {"threshold": cycle.threshold, "model_version": cycle.model_version, "employees": rows,
-                "cycle": cycles.summary(cycle)}
-    rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
-             "score": round(score, 4), "recommended": score >= live.threshold}
-            for e, score in zip(employees, live.scores([e.record for e in employees]))]
-    return {"threshold": live.threshold, "model_version": live.version, "employees": rows, "cycle": None}
+        result = {"threshold": cycle.threshold, "model_version": cycle.model_version, "employees": rows,
+                  "cycle": cycles.summary(cycle)}
+    else:
+        rows = [{"id": e.id, "full_name": e.full_name, "department": e.department,
+                 "score": round(score, 4), "recommended": score >= live.threshold}
+                for e, score in zip(employees, live.scores([e.record for e in employees]))]
+        result = {"threshold": live.threshold, "model_version": live.version, "employees": rows, "cycle": None}
+    if user.role == MANAGER:  # how each person relates to this manager, and who manages anyone not on their own team
+        names = {u.id: u.full_name for u in db.scalars(select(User).where(
+            User.id.in_({e.manager_user_id for e in employees if e.manager_user_id})))}
+        for row, e in zip(rows, employees):
+            row["relation"] = relation[e.id]
+            row["manager"] = names.get(e.manager_user_id) if relation[e.id] != teams.DIRECT else None
+    return result
 
 
 @router.get("/employees")
@@ -137,8 +148,13 @@ def profile(employee_id: int, user: User = Depends(promotion_roles), db: Session
     """Who the employee is, without running the model (the page shows this before "Run prediction" is clicked)."""
     employee = visible_employee(employee_id, user, db)
     live = model()
+    cover = teams.cover_for(db, employee.manager_user_id)
+    relation = teams.team_of(db, user).get(employee.id) if user.role == MANAGER else None
     return {"id": employee.id, "full_name": employee.full_name, "department": employee.department,
-            "model": live.info["model"], "trained_at": live.info["trained_at"]}
+            "model": live.info["model"], "trained_at": live.info["trained_at"],
+            "manager": teams.manager_name(db, employee),
+            "cover": {"name": db.get(User, cover.cover_user_id).full_name, "until": cover.ends.isoformat()} if cover else None,
+            "relation": relation, "may_nominate": relation in teams.MAY_NOMINATE}
 
 
 @router.post("/employees/{employee_id}/predict")
