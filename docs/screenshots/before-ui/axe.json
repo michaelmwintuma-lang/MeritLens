@@ -1,0 +1,160 @@
+{
+  "landing": {
+    "overflow": {},
+    "axe": []
+  },
+  "public-approach": {
+    "overflow": {},
+    "axe": []
+  },
+  "public-promotion": {
+    "overflow": {},
+    "axe": []
+  },
+  "public-privacy": {
+    "overflow": {},
+    "axe": []
+  },
+  "public-demo": {
+    "overflow": {},
+    "axe": []
+  },
+  "login": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-growth": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-model": {
+    "overflow": {},
+    "axe": []
+  },
+  "employee-account": {
+    "overflow": {},
+    "axe": []
+  },
+  "manager-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "manager-team": {
+    "overflow": {},
+    "axe": []
+  },
+  "manager-employee": {
+    "overflow": {},
+    "axe": []
+  },
+  "manager-nominations": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-employees": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-predict-explain": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-employee-new": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-employee-import": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-nominations": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-review-pending-correction": {
+    "overflow": {
+      "phone": 541
+    },
+    "axe": []
+  },
+  "hr-corrections": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-feedback-dashboard": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-decisions": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-model-registry": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-live-fairness": {
+    "overflow": {},
+    "axe": []
+  },
+  "finance-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "finance-sign-off": {
+    "overflow": {},
+    "axe": []
+  },
+  "auditor-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "auditor-decisions": {
+    "overflow": {},
+    "axe": []
+  },
+  "auditor-audit-trail": {
+    "overflow": {},
+    "axe": []
+  },
+  "auditor-feedback": {
+    "overflow": {},
+    "axe": []
+  },
+  "model": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-home": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-users": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-activity": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-email": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-demo-requests": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-model-registry": {
+    "overflow": {},
+    "axe": []
+  }
+}
