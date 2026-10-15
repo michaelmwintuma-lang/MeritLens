@@ -1,14 +1,15 @@
-// Light or dark appearance. The choice is remembered in this browser only.
+// Light (white) or dark appearance. White is the default for everyone, whatever the computer's own setting; dark is
+// there for whoever switches it on, and that choice is remembered in this browser only.
 import { useEffect, useState } from "react";
 
-const KEY = "theme";
+// A new key: choices saved before white became the default (including "follow the computer") don't carry over
+const KEY = "appearance";
 
 function initialTheme() {
   try {
-    const saved = localStorage.getItem(KEY);
-    if (saved === "light" || saved === "dark") return saved;
+    if (localStorage.getItem(KEY) === "dark") return "dark";
   } catch { /* storage unavailable */ }
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "light";
 }
 
 // One shared value, so every toggle on the page stays in step

@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
-      - run: npx vite build
+      - run: npm run build  # type-checks the TypeScript API layer, then builds
         working-directory: frontend
 
   browser-checks:

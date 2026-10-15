@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc",
+    "gen:api": "openapi-typescript openapi.json -o src/api-types.ts"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",
@@ -15,7 +17,11 @@
     "react-router-dom": "^7.0.0"
   },
   "devDependencies": {
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^5.0.0",
+    "openapi-typescript": "^7.4.4",
+    "typescript": "^5.6.3",
     "vite": "^7.0.0"
   }
 }

@@ -1,6 +1,7 @@
 // HR's review of a nomination: a note when a record correction is pending for the nominee (the score may change),
 // with the option to hold the decision until it is resolved. A hold is not a decision: it is never counted as
-// agreeing or disagreeing with the model, and it lifts by itself once the correction is decided.
+// agreeing or disagreeing with the model, and it lifts by itself once the correction is decided. While it holds,
+// the server refuses a decision, so a held nomination can't be decided by accident from anywhere.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PauseCircle } from "lucide-react";
@@ -39,7 +40,7 @@ export default function CommitteeNote({ nominationId, pending, onChange }) {
       {note.deferred ? (
         <div className="alert alert-info">
           <strong>The decision is on hold</strong> until the correction is resolved (held by {note.deferred_by} on {note.deferred_at.slice(0, 10)}).
-          It isn't a decision and isn't counted as an override.
+          It isn't a decision and isn't counted as an override; no decision can be recorded until the hold lifts.
           <div className="row" style={{ marginTop: 10 }}>
             <Link className="btn btn-primary" to="/corrections">Open the correction queue</Link>
             <Button look="plain" busy={working} busyText="Resuming…" onClick={() => withWorking(() => act("resume"))}>Decide now anyway</Button>

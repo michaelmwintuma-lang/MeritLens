@@ -22,7 +22,8 @@ BACKEND, FRONTEND = ROOT / "backend", ROOT / "frontend"
 _VENV_PYTHON = BACKEND / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 PYTHON = _VENV_PYTHON if _VENV_PYTHON.exists() else Path(sys.executable)
 NPX = "npx.cmd" if os.name == "nt" else "npx"
-API_PORT, WEB_PORT = 8001, 5174
+# Other programs sometimes hold 8001 (Cisco Packet Tracer does): choose other ports with TEST_API_PORT / TEST_WEB_PORT
+API_PORT, WEB_PORT = int(os.getenv("TEST_API_PORT", "8001")), int(os.getenv("TEST_WEB_PORT", "5174"))
 WSL_PYTHON = "$HOME/venvs/hr-simple/bin/python"  # made by backend/setup_wsl.sh, as run.py uses
 
 

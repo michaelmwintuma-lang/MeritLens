@@ -2,12 +2,12 @@
 // it happens. Each step is its own request to the server, so the progress on screen is the progress of the work.
 import { useEffect, useState } from "react";
 import { Brain, CheckCircle2, Circle, Loader2, Play, RotateCcw, XCircle } from "lucide-react";
-import { api } from "../../api";
+import { api, apiWhenReady } from "../../api";
 import { Button } from "../ui";
 
 const STEPS = [
   { key: "predict", label: "Scoring the record with the model", detail: "and working out each factor's exact contribution" },
-  { key: "lime", label: "Checking with a second method", detail: "LIME builds a simple model around this one person" },
+  { key: "lime", label: "Checking with a second method", detail: "LIME builds a simple model around this one person (in the background)" },
   { key: "tips", label: "Finding realistic tips", detail: "the smallest improvements that would reach the threshold" },
 ];
 
@@ -52,7 +52,8 @@ export default function RunPrediction({ profile, onResult, autoRun = false, comp
       onResult(shown);                                            // show the score as soon as it's ready
       // The second opinion and the tips don't depend on each other, so they run at the same time
       await Promise.all([
-        step("lime", () => api(`${base}/lime`, { method: "POST" })).then((lime) => onResult(shown = { ...shown, lime })),
+        // LIME runs as a background job on the server: start it, then ask until it's ready (kept once worked out)
+        step("lime", () => apiWhenReady(`${base}/lime`)).then((lime) => onResult(shown = { ...shown, lime })),
         step("tips", () => api(`${base}/tips`)).then((tips) => onResult(shown = { ...shown, tips })),
       ]);
     } catch (err) {

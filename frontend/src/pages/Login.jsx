@@ -38,7 +38,7 @@ export default function Login() {
         <h1>Welcome back</h1>
         <p className="login-sub">Sign in to {BRAND}.</p>
 
-        {notice && !error && <p className="login-error" role="status">{notice}</p>}
+        {notice && !error && <p className="login-notice" role="status">{notice}</p>}
         {error && <p className="login-error" role="alert">{error}</p>}
 
         <label className="login-field" htmlFor="login-username">Username</label>

@@ -119,7 +119,7 @@ export default function EmployeeList() {
     if (run.status === "running") {
       return <><td><span className="score-pending" /></td><td><span className="score-pending wide" /></td><td /></>;
     }
-    return <><td className="muted small">Not run yet</td><td /><td /></>;
+    return <><td className="muted small nowrap">Not run yet</td><td /><td /></>;
   }
 
   return (

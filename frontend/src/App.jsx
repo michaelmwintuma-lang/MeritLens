@@ -29,6 +29,9 @@ const Nominations = lazy(() => import("./pages/promotion/Nominations"));
 const PaySignOff = lazy(() => import("./pages/finance/PaySignOff"));
 const ReviewNomination = lazy(() => import("./pages/promotion/ReviewNomination"));
 const DecisionLog = lazy(() => import("./pages/promotion/DecisionLog"));
+const ModelRegistry = lazy(() => import("./pages/governance/ModelRegistry"));
+const LiveFairness = lazy(() => import("./pages/governance/LiveFairness"));
+const AuditTrail = lazy(() => import("./pages/governance/AuditTrail"));
 const Corrections = lazy(() => import("./pages/feedback/Corrections"));
 const FeedbackDashboard = lazy(() => import("./pages/feedback/FeedbackDashboard"));
 
@@ -100,6 +103,9 @@ export default function App() {
         <Route path="nominations" element={<OnlyFor roles={["manager", "hr"]}><Nominations /></OnlyFor>} />
         <Route path="nominations/:id" element={<OnlyFor roles={["hr"]}><ReviewNomination /></OnlyFor>} />
         <Route path="decisions" element={<OnlyFor roles={["hr", "auditor"]}><DecisionLog /></OnlyFor>} />
+        <Route path="models" element={<OnlyFor roles={["hr", "admin", "auditor"]}><ModelRegistry /></OnlyFor>} />
+        <Route path="fairness" element={<OnlyFor roles={["hr", "admin", "auditor"]}><LiveFairness /></OnlyFor>} />
+        <Route path="audit" element={<OnlyFor roles={["admin", "auditor"]}><AuditTrail /></OnlyFor>} />
         <Route path="corrections" element={<OnlyFor roles={["hr"]}><Corrections /></OnlyFor>} />
         <Route path="feedback" element={<OnlyFor roles={["hr", "auditor"]}><FeedbackDashboard /></OnlyFor>} />
         <Route path="finance" element={<OnlyFor roles={["finance"]}><PaySignOff /></OnlyFor>} />

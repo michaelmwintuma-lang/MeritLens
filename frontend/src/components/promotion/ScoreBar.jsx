@@ -1,4 +1,5 @@
-// Readiness on a 0-100% bar, with the threshold marked so the score is always read against it.
+// Readiness on a 0-100% bar, with the threshold marked (dashed) so the score is always read against it. Above the
+// threshold the bar is the "raises" blue; below it, a quiet slate: "not yet" is neutral, never an alarm.
 import { percent } from "../../format";
 
 export default function ScoreBar({ score, threshold, compact = false }) {
@@ -15,9 +16,9 @@ export default function ScoreBar({ score, threshold, compact = false }) {
   );
 }
 
-/** "Recommended" or "Not yet recommended", always in words. */
+/** "Recommended" or "Not yet recommended", always in words. The model's view, so a data tag, not a status. */
 export function Verdict({ recommended }) {
   return recommended
-    ? <span className="tag tag-yes">Recommended</span>
+    ? <span className="tag tag-up">▲ Recommended by the model</span>
     : <span className="tag">Not yet recommended</span>;
 }

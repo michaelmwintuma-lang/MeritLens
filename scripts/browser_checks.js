@@ -14,8 +14,10 @@ const CHECKS = {
   async "an ended session returns to the sign-in page with a message"(c) {
     await signIn(c, "hr");
     if (await c.evaluate("location.pathname") !== "/") throw new Error("sign-in failed");
-    await c.evaluate(`localStorage.setItem("token", "no-longer-valid")`);  // as if it expired or was withdrawn
-    await goto(c, "/employees");
+    // The session is withdrawn on the server (as when it expires, or the password is changed elsewhere) while the
+    // page is open; then the person moves to another page inside the app
+    await c.evaluate(`fetch("/api/auth/logout", { method: "POST", headers: { "X-Requested-With": "MeritLens" } })`);
+    await c.evaluate(`history.pushState({}, "", "/employees"); dispatchEvent(new PopStateEvent("popstate"))`);
     const ok = await waitFor(c, `location.pathname === "/login" && /session has ended/i.test(document.body.innerText)`);
     if (!ok) throw new Error(`stayed on ${await c.evaluate("location.pathname")}: ${(await c.evaluate("document.body.innerText")).slice(0, 120)}`);
   },
@@ -31,7 +33,7 @@ const CHECKS = {
       Object.getOwnPropertyDescriptor(proto.prototype, "value").set.call(el, ${JSON.stringify(String(value))});
       el.dispatchEvent(new Event(el.tagName === "SELECT" ? "change" : "input", { bubbles: true })); })()`);
     const call = (path, method = "GET", body) => c.evaluate(`fetch("/api${path}", { method: ${JSON.stringify(method)},
-      headers: { Authorization: "Bearer " + localStorage.getItem("token"), "Content-Type": "application/json" },
+      headers: { "X-Requested-With": "MeritLens", "Content-Type": "application/json" },
       body: ${body ? JSON.stringify(JSON.stringify(body)) : "undefined"} }).then((r) => r.json())`);
 
     // The manager nominates the demo employee (the record the employee login is linked to), so HR's review shows
@@ -93,7 +95,7 @@ const CHECKS = {
     await signIn(c, "hr");
     await goto(c, "/feedback");
     if (!(await waitFor(c, `document.body.innerText.includes("Factors employees contest")`))) throw new Error("the feedback dashboard didn't load");
-    const fromApi = await c.evaluate(`fetch("/api/feedback/dashboard", { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }).then((r) => r.json())`);
+    const fromApi = await c.evaluate(`fetch("/api/feedback/dashboard", { headers: { "X-Requested-With": "MeritLens" } }).then((r) => r.json())`);
     // Stat labels are shown in capitals by the style sheet, so compare without regard to case
     if (!new RegExp(`received\\s+${fromApi.corrections.received}\\b`, "i").test(await text())) throw new Error("the corrections count isn't the server's");
     // Filter by a department: the page asks the server again and still shows the dashboard
@@ -113,7 +115,7 @@ const CHECKS = {
     if (!(await waitFor(c, `document.body.innerText.includes("System health") && document.body.innerText.includes("Drift")`))) {
       throw new Error("the admin dashboard has no system health or drift");
     }
-    const system = await c.evaluate(`fetch("/api/admin/system", { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }).then((r) => r.json())`);
+    const system = await c.evaluate(`fetch("/api/admin/system", { headers: { "X-Requested-With": "MeritLens" } }).then((r) => r.json())`);
     if (!(await text()).includes(system.model.version)) throw new Error("the admin dashboard doesn't show the live model version");
   },
 
@@ -208,7 +210,8 @@ const CHECKS = {
       }
       for (const old of ["/report", "/my-report", "/reports"]) {
         await goto(c, old);
-        if (await c.evaluate("location.pathname") !== "/") problems.push(`${role}: ${old} still opens`);
+        // The app first asks the server who is signed in, then redirects: allow a busy machine a few seconds
+        if (!(await waitFor(c, `location.pathname === "/"`, 10000))) problems.push(`${role}: ${old} still opens`);
       }
       } finally {
         c.close();

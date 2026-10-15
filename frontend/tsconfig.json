@@ -1,0 +1,21 @@
+{
+  // Type-checks the TypeScript files (the API layer, sign-in and shared types) against the backend's contract
+  // (openapi.json -> src/api-types.ts). Pages are still JavaScript; they call the typed functions in api.ts.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src"]
+}

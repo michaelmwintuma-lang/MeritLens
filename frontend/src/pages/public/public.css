@@ -1,6 +1,6 @@
 /* The public website. Uses the app's colour tokens (styles.css), so light and dark both work. */
 .landing { max-width: 1080px; margin: 0 auto; padding: 0 24px 40px; min-height: 60vh; }
-.landing h1 { font-size: clamp(30px, 4.2vw, 44px); line-height: 1.15; letter-spacing: -0.025em; }
+.landing h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.07; letter-spacing: -0.035em; font-weight: 700; }
 .landing h2 { font-size: 22px; line-height: 1.25; margin: 0 0 10px; }
 .landing h3 { font-size: 17px; margin: 0 0 6px; }
 .landing .lead { font-size: 17.5px; color: var(--muted); margin: 16px 0 0; max-width: 640px; }
@@ -9,15 +9,16 @@
 html { scroll-behavior: smooth; }
 
 /* Menu bar: stays at the top, and gets a border once the page scrolls */
-.landing-header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+/* Frosted glass, as Apple's site and iOS bars: the page scrolls softly underneath */
+.landing-header { position: sticky; top: 0; z-index: 20; background: var(--glass); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid transparent; transition: border-color 0.2s; }
 .landing-header.scrolled { border-bottom-color: var(--border); }
 .landing-nav { max-width: 1080px; margin: 0 auto; padding: 14px 24px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; }
 .brand-inline { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; }
 .brand-inline .brand-name { font-weight: 800; font-size: 16px; }
 .landing-links { display: flex; gap: 4px; flex-direction: row; padding: 0; justify-self: center; }
-.landing-links a { color: var(--text); text-decoration: none; font-weight: 600; font-size: 15px; padding: 8px 12px; border-radius: 8px; }
-.landing-links a:hover { color: var(--primary); }
-.landing-links a.active { color: var(--primary); text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+.landing-links a { color: var(--text); text-decoration: none; font-weight: 500; font-size: 14.5px; padding: 7px 14px; border-radius: 99px; white-space: nowrap; transition: background-color 0.15s ease; }
+.landing-links a:hover { background: var(--fill); text-decoration: none; }
+.landing-links a.active { background: var(--fill); font-weight: 600; }
 .landing-actions { display: flex; align-items: center; gap: 10px; justify-self: end; }
 .landing-actions .menu-toggle { display: none; }
 .landing-dropdown { display: flex; flex-direction: column; padding: 8px 16px 16px; border-top: 1px solid var(--border); background: var(--bg); }
@@ -90,7 +91,7 @@ html { scroll-behavior: smooth; }
 
 /* Book a demo */
 .demo-page { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 48px; align-items: start; padding: 52px 0 56px; }
-.demo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; box-shadow: var(--shadow); }
+.demo-card { background: var(--surface); border-radius: 20px; padding: 28px; box-shadow: 0 0 0 1px var(--border), var(--shadow); }
 .demo-card h2 { font-size: 20px; }
 .demo-card textarea { width: 100%; }
 .demo-submit { width: 100%; justify-content: center; margin-top: 4px; }
@@ -105,10 +106,10 @@ html { scroll-behavior: smooth; }
 .home-section { margin: 56px 0; }
 .home-section > h2 { font-size: 26px; margin-bottom: 20px; }
 .how-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.how-steps li { border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); position: relative; }
+.how-steps li { border-radius: 20px; padding: 24px; background: var(--surface-2); position: relative; }
 .how-steps li:not(:last-child)::after { content: "→" / ""; position: absolute; right: -18px; top: 30px; color: var(--muted); font-weight: 700; }
 .how-steps p, .feature-grid p, .promise-grid p { color: var(--muted); margin: 0; font-size: 15px; }
-.how-icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); color: var(--primary); margin-bottom: 12px; }
+.how-icon { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--brand-gradient); color: #fff; margin-bottom: 12px; }
 .how-number { color: var(--muted); }
 .feature-grid, .promise-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px 32px; }
 .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

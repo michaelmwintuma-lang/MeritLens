@@ -1,0 +1,5116 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MeritLens",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "description": "Check the username and password and start a session. After MAX_FAILED_LOGINS wrong passwords in a row, the\naccount is locked for LOCK_MINUTES: even the right password is refused until then.",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "description": "Sign out everywhere: every login token this account has stops working, and this browser's cookie is removed.",
+        "operationId": "logout_api_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "description": "The signed-in user's own account.",
+        "operationId": "me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Change Password",
+        "description": "Replace your password. You must know the current one. Every other device is signed out; this one gets a new\nsession.",
+        "operationId": "change_password_api_auth_change_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/change-username": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Change Username",
+        "description": "Choose a different username. You must confirm with your current password.",
+        "operationId": "change_username_api_auth_change_username_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeUsernameIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/profile": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Profile",
+        "description": "Your account and your work details (read-only): department, manager and, for managers, team size.",
+        "operationId": "profile_api_auth_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Update Profile",
+        "description": "Change your name, email, phone or job title. A new email address triggers an alert to the old one.",
+        "operationId": "update_profile_api_auth_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/profile/photo": {
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Set Photo",
+        "description": "Set or remove your profile picture (a small image, already shrunk by the browser).",
+        "operationId": "set_photo_api_auth_profile_photo_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Users",
+        "description": "Every account, sorted by name.",
+        "operationId": "list_users_api_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Users Api Admin Users Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create User",
+        "description": "Create an account with a temporary password and send the welcome email with the sign-in details. The person\nmust choose their own password at first sign-in (and may change their username then).",
+        "operationId": "create_user_api_admin_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/users/{user_id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Edit User",
+        "description": "Change an account's username, name or email address. The person signs in with the new username.",
+        "operationId": "edit_user_api_admin_users__user_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditUserIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete User",
+        "description": "Delete an account for good. Not allowed for your own account, or for an account that appears in the decision\nlog (it recommended someone or decided on a promotion): deleting it would erase who made those decisions, so\ndeactivate it instead. A manager's team members stay in the directory, without a manager. Activity-log\nentries keep the person's name.",
+        "operationId": "delete_user_api_admin_users__user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/active": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Set Active",
+        "description": "Deactivate an account (the person can no longer sign in) or reactivate it.",
+        "operationId": "set_active_api_admin_users__user_id__active_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActiveIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/permissions": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Set Permissions",
+        "description": "Let an Admin account view employees' records and scores (read-only), or stop it. Only Admin accounts can be\ngiven this: HR already sees everyone, and employees and managers see what their role allows.",
+        "operationId": "set_permissions_api_admin_users__user_id__permissions_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/reset-password": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reset Password",
+        "description": "Give a user a new temporary password, e.g. when they have forgotten theirs. It is emailed to them too.",
+        "operationId": "reset_password_api_admin_users__user_id__reset_password_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{user_id}/team": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Set Team",
+        "description": "Make exactly these employees the manager's team. People removed from the list no longer have a manager\nuntil they are given one; people on someone else's team move to this manager.",
+        "operationId": "set_team_api_admin_users__user_id__team_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/employees": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Employees For Admin",
+        "description": "The employee directory as the admin needs it to link logins and build teams: names, departments, managers.\nNo scores or work records: admins manage accounts, not promotions.",
+        "operationId": "list_employees_for_admin_api_admin_employees_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/activity": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Activity Log",
+        "description": "The latest 500 entries, newest first; filter by action, or search names and details.",
+        "operationId": "activity_log_api_admin_activity_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/email": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Email Status",
+        "description": "Whether a mail server is set up (never the password itself), and how many emails are in the outbox.",
+        "operationId": "email_status_api_admin_email_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/email/test": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Send Test Email",
+        "description": "Send a test email, to check the settings work. Waits for the answer, so the admin sees any problem.",
+        "operationId": "send_test_email_api_admin_email_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestEmailIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/email/outbox": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Outbox",
+        "description": "The 30 most recent saved (not sent) emails: who to, the subject and the plain-text body.",
+        "operationId": "outbox_api_admin_email_outbox_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/system": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "System",
+        "description": "Everything the admin's dashboard shows, from the live system: accounts by role, recent activity, the model\n(version, training date, a timed test prediction), the fairness check, drift, and email. Only totals and\ndistributions: no employee's record or score.",
+        "operationId": "system_api_admin_system_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/employees": {
+      "get": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "List Employees",
+        "description": "The employees this user may see, each with their readiness score.",
+        "operationId": "list_employees_api_promotion_employees_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/employees/predict-all": {
+      "post": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Predict All",
+        "description": "\"Run predictions for everyone\": score every employee this user may see with the live model, now, and say when.\nNothing is saved: the scores are worked out from the current records each time.",
+        "operationId": "predict_all_api_promotion_employees_predict_all_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/employees/{employee_id}": {
+      "get": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Explain Employee",
+        "description": "Score, exact contributions (SHAP), plain-language summary and the what-if options, at once. LIME's rules are\nincluded when they're already worked out for this record; otherwise \"lime\" is empty (start it with\nPOST /employees/{id}/lime).",
+        "operationId": "explain_employee_api_promotion_employees__employee_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/employees/{employee_id}/profile": {
+      "get": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Profile",
+        "description": "Who the employee is, without running the model (the page shows this before \"Run prediction\" is clicked).",
+        "operationId": "profile_api_promotion_employees__employee_id__profile_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/employees/{employee_id}/predict": {
+      "post": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Predict",
+        "description": "Run the model now: the score and each factor's exact contribution, the summary and the what-if options.\nThe page calls this when someone clicks \"Run prediction\"; LIME and the tips follow as separate steps.",
+        "operationId": "predict_api_promotion_employees__employee_id__predict_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/employees/{employee_id}/lime": {
+      "post": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Lime",
+        "description": "The second opinion: start LIME for this employee (or get the result if it's already worked out). 200 with the\nrules and fit when ready; 202 while it runs; then ask again with GET.",
+        "operationId": "lime_api_promotion_employees__employee_id__lime_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Lime Result",
+        "description": "LIME's result for this employee's current record and the live model: 200 when ready, 202 while it runs.",
+        "operationId": "lime_result_api_promotion_employees__employee_id__lime_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/employees/{employee_id}/what-if": {
+      "post": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "What If",
+        "description": "The score and explanation if some improvable inputs were different. Nothing is saved.",
+        "operationId": "what_if_api_promotion_employees__employee_id__what_if_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIfIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/employees/{employee_id}/tips": {
+      "get": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Tips",
+        "description": "The smallest realistic improvements that would reach the threshold.",
+        "operationId": "tips_api_promotion_employees__employee_id__tips_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/importance": {
+      "get": {
+        "tags": [
+          "promotion"
+        ],
+        "summary": "Importance",
+        "description": "Which inputs matter most across all employees (measured on the training sample), and every piece of\ninformation the model is never given, with the reason.",
+        "operationId": "importance_api_promotion_importance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/pay-policy": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get Pay Policy",
+        "operationId": "get_pay_policy_api_promotion_pay_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Set Pay Policy",
+        "description": "HR sets the range managers propose within.",
+        "operationId": "set_pay_policy_api_promotion_pay_policy_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayPolicyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/nominations": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "List Nominations",
+        "description": "HR sees every nomination; a manager sees the ones they made. Newest first.",
+        "operationId": "list_nominations_api_promotion_nominations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Nominate",
+        "description": "A manager recommends one of their own team members for promotion.",
+        "operationId": "nominate_api_promotion_nominations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NominationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/nominations/{nomination_id}": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get Nomination",
+        "operationId": "get_nomination_api_promotion_nominations__nomination_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "nomination_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Nomination Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/nominations/{nomination_id}/decision": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Decide",
+        "description": "HR approves (with the final pay rise) or rejects. Disagreeing with the model needs a 20-character reason.",
+        "operationId": "decide_api_promotion_nominations__nomination_id__decision_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "nomination_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Nomination Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/decisions/{decision_id}/resubmit": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Resubmit",
+        "description": "HR answers Finance: a revised (or the same) pay rise, with a note. It goes back to Finance.",
+        "operationId": "resubmit_api_promotion_decisions__decision_id__resubmit_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "decision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Decision Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResubmitIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/decisions": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Decision Log",
+        "description": "Every decision, newest first. HR, and the compliance auditor (read-only). `pay_status` keeps only those at one\nstep of Finance's sign-off (the notification bell asks only for the ones Finance sent back).",
+        "operationId": "decision_log_api_promotion_decisions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pay_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pay Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/my-promotions": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "My Promotions",
+        "description": "An employee's approved promotions: new role, start date and pay rise. Pending nominations aren't shown, and\nnor are approvals whose pay rise Finance hasn't signed off yet.",
+        "operationId": "my_promotions_api_promotion_my_promotions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/finance/pay-reviews": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Pay Reviews",
+        "description": "Every promotion pay rise that has been through Finance (waiting first, then newest), with a summary.",
+        "operationId": "pay_reviews_api_finance_pay_reviews_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/finance/pay-reviews/{decision_id}/sign-off": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Sign Off",
+        "description": "Finance confirms the pay rise. The promotion is now final: the manager and the employee are told.",
+        "operationId": "sign_off_api_finance_pay_reviews__decision_id__sign_off_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "decision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Decision Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignOffIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finance/pay-reviews/{decision_id}/return": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Send Back",
+        "description": "Finance sends the pay rise back to HR with a reason. Nobody else is told.",
+        "operationId": "send_back_api_finance_pay_reviews__decision_id__return_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "decision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Decision Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finance/pay-policy": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Read Pay Policy",
+        "description": "The range HR set (Finance can read it, not change it).",
+        "operationId": "read_pay_policy_api_finance_pay_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/records/fields": {
+      "get": {
+        "tags": [
+          "employee records"
+        ],
+        "summary": "Fields",
+        "description": "Everything the form and the CSV template need: the fields, departments and managers.",
+        "operationId": "fields_api_promotion_records_fields_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/records": {
+      "post": {
+        "tags": [
+          "employee records"
+        ],
+        "summary": "Add Employee",
+        "description": "Add one employee to the directory. They can be scored at once, and linked to a login by the admin.",
+        "operationId": "add_employee_api_promotion_records_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/records/{employee_id}": {
+      "get": {
+        "tags": [
+          "employee records"
+        ],
+        "summary": "Get Record",
+        "description": "One employee's details in the units HR types in, for the edit form.",
+        "operationId": "get_record_api_promotion_records__employee_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "employee records"
+        ],
+        "summary": "Edit Record",
+        "description": "Update an employee's details, e.g. after a new review. Past decisions keep the score they were made with.",
+        "operationId": "edit_record_api_promotion_records__employee_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/records/{employee_id}/history": {
+      "get": {
+        "tags": [
+          "employee records"
+        ],
+        "summary": "History",
+        "description": "Every change to this employee's work record, newest first.",
+        "operationId": "history_api_promotion_records__employee_id__history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/records/import": {
+      "post": {
+        "tags": [
+          "employee records"
+        ],
+        "summary": "Import Csv",
+        "description": "Check a CSV file of employees, row by row; with save=True, add them all.\nAll or nothing: if any row has an error, no one is added, so a file is never half-imported.",
+        "operationId": "import_csv_api_promotion_records_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/public/summary": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Summary",
+        "description": "The numbers the landing page shows, straight from the last training and evaluation runs.",
+        "operationId": "summary_api_public_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback/ratings/mine": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "My Rating",
+        "description": "Your rating of the explanation from the current model, if you have given one.",
+        "operationId": "my_rating_api_feedback_ratings_mine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/ratings": {
+      "post": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Rate",
+        "description": "Rate your explanation. Stored with the model version and the score it explained (worked out here, not taken\nfrom the page). Rating the same model's explanation again replaces your earlier rating. Never changes a score.",
+        "operationId": "rate_api_feedback_ratings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RatingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/fields": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Correctable Fields",
+        "description": "The values in your work record you can ask HR to correct, with what the record says now.",
+        "operationId": "correctable_fields_api_feedback_fields_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/corrections": {
+      "post": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Request Correction",
+        "description": "Ask HR to correct one value in your record. HR checks the evidence; nothing changes until HR confirms.",
+        "operationId": "request_correction_api_feedback_corrections_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/corrections/{request_id}/evidence": {
+      "post": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Add Evidence",
+        "description": "Attach one file (PDF, JPEG or PNG, up to 10 MB) to your pending request. A new file replaces the old one.",
+        "operationId": "add_evidence_api_feedback_corrections__request_id__evidence_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_evidence_api_feedback_corrections__request_id__evidence_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "My Evidence",
+        "operationId": "my_evidence_api_feedback_corrections__request_id__evidence_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback/corrections/mine": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "My Corrections",
+        "description": "Your correction requests, newest first, with HR's decisions.",
+        "operationId": "my_corrections_api_feedback_corrections_mine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/notifications": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Notifications",
+        "description": "HR's decisions on your correction requests that you haven't seen yet.",
+        "operationId": "notifications_api_feedback_notifications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/notifications/seen": {
+      "post": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Mark Seen",
+        "description": "You've seen the decisions on your record.",
+        "operationId": "mark_seen_api_feedback_notifications_seen_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/hr/feedback/corrections": {
+      "get": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Queue",
+        "description": "Every correction request: waiting ones first (oldest first), then decided ones (newest first).",
+        "operationId": "queue_api_hr_feedback_corrections_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/corrections/{request_id}": {
+      "get": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "One Request",
+        "operationId": "one_request_api_hr_feedback_corrections__request_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/corrections/{request_id}/evidence": {
+      "get": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Request Evidence",
+        "operationId": "request_evidence_api_hr_feedback_corrections__request_id__evidence_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/corrections/{request_id}/confirm": {
+      "post": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Confirm",
+        "description": "HR checked the evidence and confirms the value they verified (which may differ from the one asked for). The\nrecord is corrected, the employee re-scored, and both scores logged with the model version.",
+        "operationId": "confirm_api_hr_feedback_corrections__request_id__confirm_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/corrections/{request_id}/reject": {
+      "post": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Reject",
+        "description": "HR keeps the record as it is, with a reason (at least 20 characters) that the employee receives.",
+        "operationId": "reject_api_hr_feedback_corrections__request_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/nominations/{nomination_id}/note": {
+      "get": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Committee Note",
+        "description": "Pending corrections to the nominee's record (the score may change), and whether the decision is on hold. While\nit is, the decision API refuses a decision (app/promotion/routes_decisions.py).",
+        "operationId": "committee_note_api_hr_feedback_nominations__nomination_id__note_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "nomination_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Nomination Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/nominations/{nomination_id}/defer": {
+      "post": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Defer",
+        "description": "Hold the decision until the nominee's pending corrections are resolved. Not a decision, and not an override.",
+        "operationId": "defer_api_hr_feedback_nominations__nomination_id__defer_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "nomination_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Nomination Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/feedback/nominations/{nomination_id}/resume": {
+      "post": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Resume",
+        "description": "Take the decision off hold without waiting for the correction.",
+        "operationId": "resume_api_hr_feedback_nominations__nomination_id__resume_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "nomination_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Nomination Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback/ratings/summary": {
+      "get": {
+        "tags": [
+          "feedback (HR)"
+        ],
+        "summary": "Ratings Summary",
+        "description": "How employees rated their explanations, in aggregate only: the share rating clarity and usefulness 4 or 5 (shown\nonly from MIN_GROUP ratings), and how often each factor was marked wrong or unfair. Never one person's rating.",
+        "operationId": "ratings_summary_api_feedback_ratings_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/feedback/dashboard": {
+      "get": {
+        "tags": [
+          "feedback dashboard"
+        ],
+        "summary": "Dashboard",
+        "description": "The dashboard's numbers for these filters, and the filter options.",
+        "operationId": "dashboard_api_feedback_dashboard_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department"
+            }
+          },
+          {
+            "name": "model_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback/dashboard/export.csv": {
+      "get": {
+        "tags": [
+          "feedback dashboard"
+        ],
+        "summary": "Export",
+        "description": "The same numbers as a CSV file (section, measure, value), with the same small-group protection.",
+        "operationId": "export_api_feedback_dashboard_export_csv_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department"
+            }
+          },
+          {
+            "name": "model_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/governance/models": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Models",
+        "description": "Every trained version, newest first: which is live, which wait for release, which are blocked.",
+        "operationId": "models_api_governance_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelVersionOut"
+                  },
+                  "type": "array",
+                  "title": "Response Models Api Governance Models Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/governance/models/{version}": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Model Card",
+        "description": "One version's model card and its release history.",
+        "operationId": "model_card_api_governance_models__version__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelCardOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/governance/models/{version}/release": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Release",
+        "description": "Make this version the live model, after reading its card. HR only, with a note of at least 20 characters.\nReleasing an older version is how a release is rolled back.",
+        "operationId": "release_api_governance_models__version__release_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelCardOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/governance/fairness": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Live Fairness",
+        "description": "The four-fifths rule on today's directory and decisions: the model, managers' nominations and HR's approvals.",
+        "operationId": "live_fairness_api_governance_fairness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FairnessOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/governance/audit": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Audit Trail",
+        "description": "The audit trail, newest first, 50 per page; filter by event, or by what it is about.",
+        "operationId": "audit_trail_api_governance_audit_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event"
+            }
+          },
+          {
+            "name": "subject_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Type"
+            }
+          },
+          {
+            "name": "subject_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/governance/audit/verify": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Verify Trail",
+        "description": "Recompute every hash: is the trail exactly as it was written?",
+        "operationId": "verify_trail_api_governance_audit_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/public/demo-requests": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Request Demo",
+        "description": "Save a demo request and email it to the demo inbox.",
+        "operationId": "request_demo_api_public_demo_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/demo-requests/options": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Options",
+        "description": "The choices the form offers.",
+        "operationId": "options_api_public_demo_requests_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/demo-requests": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "List Requests",
+        "description": "Every demo request, newest first; unhandled ones first.",
+        "operationId": "list_requests_api_admin_demo_requests_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/demo-requests/{request_id}": {
+      "patch": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Mark Handled",
+        "description": "Tick a request off once it's been answered (or untick it).",
+        "operationId": "mark_handled_api_admin_demo_requests__request_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandledIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Quick check that the API is running.",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditEventOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "at": {
+            "type": "string",
+            "title": "At"
+          },
+          "event": {
+            "type": "string",
+            "title": "Event"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "subject_type": {
+            "type": "string",
+            "title": "Subject Type"
+          },
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "at",
+          "event",
+          "label",
+          "actor",
+          "subject_type",
+          "subject_id",
+          "model_version",
+          "payload",
+          "hash"
+        ],
+        "title": "AuditEventOut"
+      },
+      "AuditPageOut": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventOut"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          },
+          "event_types": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Event Types"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events",
+          "total",
+          "page",
+          "pages",
+          "event_types"
+        ],
+        "title": "AuditPageOut"
+      },
+      "Body_add_evidence_api_feedback_corrections__request_id__evidence_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_add_evidence_api_feedback_corrections__request_id__evidence_post"
+      },
+      "ChangePasswordIn": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordIn"
+      },
+      "ChangeUsernameIn": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "title": "Current Password"
+          },
+          "new_username": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "pattern": "^[a-zA-Z0-9._-]+$",
+            "title": "New Username"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_username"
+        ],
+        "title": "ChangeUsernameIn"
+      },
+      "CharacteristicOut": {
+        "properties": {
+          "characteristic": {
+            "type": "string",
+            "title": "Characteristic"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageOut"
+            },
+            "type": "array",
+            "title": "Stages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "characteristic",
+          "label",
+          "stages"
+        ],
+        "title": "CharacteristicOut"
+      },
+      "ConfirmIn": {
+        "properties": {
+          "verified_value": {
+            "type": "number",
+            "title": "Verified Value"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verified_value"
+        ],
+        "title": "ConfirmIn"
+      },
+      "CorrectionIn": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "requested_value": {
+            "type": "number",
+            "title": "Requested Value"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "requested_value",
+          "note"
+        ],
+        "title": "CorrectionIn"
+      },
+      "CreateUserIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "pattern": "^[a-zA-Z0-9._-]+$",
+            "title": "Username"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Full Name"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 5,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "pattern": "^(employee|manager|hr|admin|finance|auditor)$",
+            "title": "Role"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "employee_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "full_name",
+          "email",
+          "role"
+        ],
+        "title": "CreateUserIn",
+        "description": "What an admin fills in to create an account. The welcome email goes to `email`."
+      },
+      "CreateUserOut": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          },
+          "temporary_password": {
+            "type": "string",
+            "title": "Temporary Password"
+          },
+          "email_sent": {
+            "type": "boolean",
+            "title": "Email Sent"
+          },
+          "email_detail": {
+            "type": "string",
+            "title": "Email Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "temporary_password",
+          "email_sent",
+          "email_detail"
+        ],
+        "title": "CreateUserOut",
+        "description": "The account, its temporary password (shown to the admin once, stored only as a hash), and the email result."
+      },
+      "CriterionIn": {
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Rating"
+          },
+          "example": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Example"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rating",
+          "example"
+        ],
+        "title": "CriterionIn"
+      },
+      "DecisionIn": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "pattern": "^(approve|reject)$",
+            "title": "Decision"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "approved_raise": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Raise"
+          },
+          "raise_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raise Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "DecisionIn"
+      },
+      "DemoRequestIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 5,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email"
+          },
+          "organisation": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Organisation"
+          },
+          "job_title": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Job Title",
+            "default": ""
+          },
+          "size": {
+            "type": "string",
+            "title": "Size"
+          },
+          "interest": {
+            "type": "string",
+            "title": "Interest"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Message",
+            "default": ""
+          },
+          "website": {
+            "type": "string",
+            "title": "Website",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "organisation",
+          "size",
+          "interest"
+        ],
+        "title": "DemoRequestIn"
+      },
+      "EditUserIn": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 2,
+                "pattern": "^[a-zA-Z0-9._-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 5,
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          }
+        },
+        "type": "object",
+        "title": "EditUserIn",
+        "description": "What an admin may change about an account. Anything left out stays as it is."
+      },
+      "FairnessOut": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "min_group": {
+            "type": "integer",
+            "title": "Min Group"
+          },
+          "employees": {
+            "type": "integer",
+            "title": "Employees"
+          },
+          "with_monitoring_data": {
+            "type": "integer",
+            "title": "With Monitoring Data"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "overall": {
+            "type": "string",
+            "title": "Overall"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CharacteristicOut"
+            },
+            "type": "array",
+            "title": "Checks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "min_group",
+          "employees",
+          "with_monitoring_data",
+          "model_version",
+          "overall",
+          "checks"
+        ],
+        "title": "FairnessOut"
+      },
+      "FlagIn": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^(wrong|unfair)$",
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "kind"
+        ],
+        "title": "FlagIn"
+      },
+      "GroupOut": {
+        "properties": {
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "shown": {
+            "type": "boolean",
+            "title": "Shown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group",
+          "count",
+          "rate",
+          "shown"
+        ],
+        "title": "GroupOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HandledIn": {
+        "properties": {
+          "handled": {
+            "type": "boolean",
+            "title": "Handled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "handled"
+        ],
+        "title": "HandledIn"
+      },
+      "ImportIn": {
+        "properties": {
+          "csv": {
+            "type": "string",
+            "maxLength": 2000000,
+            "title": "Csv"
+          },
+          "save": {
+            "type": "boolean",
+            "title": "Save",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "csv"
+        ],
+        "title": "ImportIn"
+      },
+      "LoginIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginIn"
+      },
+      "LoginOut": {
+        "properties": {
+          "access_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "title": "LoginOut"
+      },
+      "ModelCardOut": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "card": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Card"
+          },
+          "releases": {
+            "items": {
+              "$ref": "#/components/schemas/ReleaseOut"
+            },
+            "type": "array",
+            "title": "Releases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "status",
+          "card",
+          "releases"
+        ],
+        "title": "ModelCardOut"
+      },
+      "ModelVersionOut": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "trained_at": {
+            "type": "string",
+            "title": "Trained At"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "live, candidate (waiting for release), retired (live before) or blocked (failed fairness)"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "roc_auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roc Auc"
+          },
+          "pr_auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Auc"
+          },
+          "fairness_passes": {
+            "type": "boolean",
+            "title": "Fairness Passes"
+          },
+          "lowest_fairness_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lowest Fairness Ratio"
+          },
+          "released_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released By"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "data_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "model",
+          "trained_at",
+          "status",
+          "threshold",
+          "roc_auc",
+          "pr_auc",
+          "fairness_passes",
+          "lowest_fairness_ratio",
+          "released_by",
+          "released_at",
+          "data_name"
+        ],
+        "title": "ModelVersionOut"
+      },
+      "NominationIn": {
+        "properties": {
+          "employee_id": {
+            "type": "integer",
+            "title": "Employee Id"
+          },
+          "proposed_title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Proposed Title"
+          },
+          "proposed_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Proposed Start"
+          },
+          "criteria": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CriterionIn"
+            },
+            "type": "object",
+            "title": "Criteria"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Reason"
+          },
+          "model_disagreement": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Disagreement"
+          },
+          "proposed_raise": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Proposed Raise"
+          }
+        },
+        "type": "object",
+        "required": [
+          "employee_id",
+          "proposed_title",
+          "proposed_start",
+          "criteria",
+          "reason",
+          "proposed_raise"
+        ],
+        "title": "NominationIn"
+      },
+      "PayPolicyIn": {
+        "properties": {
+          "min_raise": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Min Raise"
+          },
+          "max_raise": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Max Raise"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_raise",
+          "max_raise"
+        ],
+        "title": "PayPolicyIn"
+      },
+      "PermissionIn": {
+        "properties": {
+          "can_view_employees": {
+            "type": "boolean",
+            "title": "Can View Employees"
+          }
+        },
+        "type": "object",
+        "required": [
+          "can_view_employees"
+        ],
+        "title": "PermissionIn"
+      },
+      "PhotoIn": {
+        "properties": {
+          "photo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300000,
+                "pattern": "^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          }
+        },
+        "type": "object",
+        "title": "PhotoIn",
+        "description": "A small profile picture as a data URL (the browser shrinks it first), or null to remove it."
+      },
+      "ProfileIn": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 5,
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[0-9+()\\-. ]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          }
+        },
+        "type": "object",
+        "title": "ProfileIn",
+        "description": "What people may change about themselves. Anything left out stays as it is; an empty phone or title clears it."
+      },
+      "RatingIn": {
+        "properties": {
+          "clarity": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Clarity"
+          },
+          "usefulness": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Usefulness"
+          },
+          "flagged": {
+            "items": {
+              "$ref": "#/components/schemas/FlagIn"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Flagged"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clarity",
+          "usefulness"
+        ],
+        "title": "RatingIn"
+      },
+      "RecordIn": {
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Full Name"
+          },
+          "department": {
+            "type": "string",
+            "title": "Department"
+          },
+          "manager_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager User Id"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Values"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "full_name",
+          "department",
+          "values"
+        ],
+        "title": "RecordIn"
+      },
+      "RejectIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "RejectIn"
+      },
+      "ReleaseIn": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "ReleaseIn"
+      },
+      "ReleaseOut": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "previous_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Version"
+          },
+          "released_by": {
+            "type": "string",
+            "title": "Released By"
+          },
+          "released_at": {
+            "type": "string",
+            "title": "Released At"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "previous_version",
+          "released_by",
+          "released_at",
+          "note"
+        ],
+        "title": "ReleaseOut"
+      },
+      "ResubmitIn": {
+        "properties": {
+          "approved_raise": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Approved Raise"
+          },
+          "raise_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raise Reason"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approved_raise",
+          "note"
+        ],
+        "title": "ResubmitIn"
+      },
+      "ReturnIn": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "ReturnIn"
+      },
+      "SetActiveIn": {
+        "properties": {
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_active"
+        ],
+        "title": "SetActiveIn"
+      },
+      "SignOffIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "SignOffIn"
+      },
+      "StageOut": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupOut"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "p_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Value",
+            "description": "chance of a gap this big if the groups really were alike (when below 0.8)"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "passes, below four-fifths, within chance, or not enough data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "groups",
+          "ratio",
+          "p_value",
+          "status"
+        ],
+        "title": "StageOut"
+      },
+      "TeamIn": {
+        "properties": {
+          "employee_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Employee Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "employee_ids"
+        ],
+        "title": "TeamIn"
+      },
+      "TestEmailIn": {
+        "properties": {
+          "to": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 5,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "to"
+        ],
+        "title": "TestEmailIn"
+      },
+      "UserOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password"
+          },
+          "employee_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Id"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          },
+          "can_view_employees": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can View Employees",
+            "default": false
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "full_name",
+          "email",
+          "role",
+          "is_active",
+          "must_change_password",
+          "employee_id"
+        ],
+        "title": "UserOut",
+        "description": "A user as the API shows it. The password hash is never included."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VerifyOut": {
+        "properties": {
+          "intact": {
+            "type": "boolean",
+            "title": "Intact"
+          },
+          "events": {
+            "type": "integer",
+            "title": "Events"
+          },
+          "first_broken_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Broken Id"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intact",
+          "events",
+          "first_broken_id",
+          "problem"
+        ],
+        "title": "VerifyOut"
+      },
+      "WhatIfIn": {
+        "properties": {
+          "changes": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changes"
+        ],
+        "title": "WhatIfIn"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

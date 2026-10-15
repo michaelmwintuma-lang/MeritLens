@@ -82,10 +82,15 @@ async function goto(c, pathname) {
 /** Sign in through the real sign-in page (signing out first, if someone is signed in). */
 async function signIn(c, username, password = PASSWORD) {
   let ready = false;
-  for (let attempt = 0; attempt < 2 && !ready; attempt++) {
+  for (let attempt = 0; attempt < 3 && !ready; attempt++) {
+    // Sign out first, through the API (the session is an httpOnly cookie the page can't touch). Not signed in: a
+    // harmless 401. Only the status comes back, so the browser never has to hand over a Response object.
+    if (await c.evaluate("location.protocol").catch(() => "") === "http:") {
+      await c.evaluate(`fetch("/api/auth/logout", { method: "POST", headers: { "X-Requested-With": "MeritLens" } }).then((r) => r.status, () => 0)`);
+    }
     await goto(c, "/login");
-    ready = await waitFor(c, `document.getElementById("login-username")`, 8000);
-    if (!ready) await c.evaluate(`localStorage.removeItem("token")`); // someone is signed in: sign out, try again
+    // A busy machine (e.g. still working out a second opinion in the background) can be slow to show the page
+    ready = await waitFor(c, `document.getElementById("login-username")`, 20000);
   }
   if (!ready) throw new Error(`the sign-in page didn't load (at ${await c.evaluate("location.href")})`);
   await c.evaluate(`(() => {
