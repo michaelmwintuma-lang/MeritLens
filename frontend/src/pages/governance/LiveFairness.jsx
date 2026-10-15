@@ -1,11 +1,10 @@
 // Live fairness: the four-fifths rule on what is happening now. For each characteristic, three stages side by
 // side (the model, managers' nominations, HR's approvals), so a gap can be traced to where it appears. Totals per
 // group only; a group under 5 people is never shown.
-import { Scale } from "lucide-react";
 import { governance } from "../../api";
 import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
-import { Card, LoadError, Loading, PageHeader } from "../../components/ui";
+import { Card, LoadError, PageHeader, PageLoading } from "../../components/ui";
 
 export const STATUS_TAG = {
   passes: ["tag tag-yes", "Passes"],
@@ -36,11 +35,11 @@ function Stage({ stage }) {
               {g.rate != null && top > 0 && <span className="bar-fill" style={{ width: `${Math.max((g.rate / top) * 100, g.rate ? 2 : 0)}%` }} />}
             </span>
             <span className="bar-value">{g.shown ? (g.rate != null ? percent(g.rate) : "–") : "fewer than 5"}
-              {g.count != null && <span className="muted small"> of {g.count}</span>}</span>
+              {g.count != null && <span className="muted"> of {g.count}</span>}</span>
           </li>
         ))}
       </ul>
-      <p className="muted small">
+      <p className="muted">
         {stage.ratio != null ? `Lowest ÷ highest: ${stage.ratio.toFixed(2)} (needs 0.80).` : "Needs at least two groups of 5 or more, and at least 5 people selected."}
         {stage.p_value != null && ` A gap this size would happen by chance ${percent(stage.p_value)} of the time${stage.p_value < 0.05 ? ", so it is unlikely to be chance." : ", so it may well be chance; keep watching."}`}
       </p>
@@ -50,15 +49,15 @@ function Stage({ stage }) {
 
 export default function LiveFairness() {
   const { data, error, reload } = useLoad(() => governance.fairness(), []);
-  const header = <PageHeader icon={Scale} title="Live fairness"
+  const header = <PageHeader title="Live fairness"
     subtitle="The four-fifths rule on today's directory and decisions, not only on the test set at training time." />;
   if (error) return <>{header}<LoadError message={error} onRetry={reload} /></>;
-  if (!data) return <>{header}<Loading /></>;
+  if (!data) return <>{header}<PageLoading /></>;
   return (
     <>
       {header}
       <Card title="How to read this" actions={<StatusTag status={data.overall} />}>
-        <p className="muted" style={{ margin: 0 }}>
+        <p className="muted">
           For each characteristic, every group's rate should be at least 80% of the highest group's. Three stages are
           checked: what the model recommends ({data.model_version}), whom managers nominate, and whom HR approves.
           Comparing them shows where a gap appears. In a small directory a few people more or less move a ratio a lot,

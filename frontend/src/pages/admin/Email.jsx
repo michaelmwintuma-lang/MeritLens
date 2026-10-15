@@ -1,9 +1,9 @@
 // Admin: is email set up, send a test email, and read the emails saved in the outbox (when no server is set up).
 import { useEffect, useState } from "react";
-import { CheckCircle2, Inbox, Mail, Send, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Inbox, Send, TriangleAlert } from "lucide-react";
 import { api } from "../../api";
 import { useAction } from "../../useAction";
-import { Button, Card, EmptyState, PageHeader } from "../../components/ui";
+import { Button, Callout, Card, EmptyState, PageHeader } from "../../components/ui";
 
 const EMAILS_SENT = [
   ["Welcome", "A new account's sign-in details", "the new person"],
@@ -42,14 +42,13 @@ export default function Email() {
 
   return (
     <>
-      <PageHeader icon={Mail} title="Email" subtitle="Delivery settings, a test email and the outbox." />
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      <PageHeader title="Email" subtitle="Delivery settings, a test email and the outbox." />
+      {error && <Callout tone="error">{error}</Callout>}
 
       {status && (status.configured ? (
-        <p className="alert alert-success"><span><CheckCircle2 size={16} style={{ verticalAlign: "-3px" }} /> <strong>Email is set up.</strong> Sending through {status.host}:{status.port} as <span className="mono">{status.sender}</span>.</span></p>
+        <Callout tone="success" icon={CheckCircle2} title="Email is set up.">Sending through {status.host}:{status.port} as <span className="mono">{status.sender}</span>.</Callout>
       ) : (
-        <div className="alert alert-warning">
-          <strong><TriangleAlert size={16} style={{ verticalAlign: "-3px" }} /> Email isn't set up yet, so emails are saved in the outbox instead of sent.</strong>
+        <Callout tone="warning" icon={TriangleAlert} title="Email isn't set up yet, so emails are saved in the outbox instead of sent.">
           <span>To send with Gmail:</span>
           <ol className="steps-list">
             <li>Switch on 2-Step Verification for the Google account that will send the emails.</li>
@@ -57,7 +56,7 @@ export default function Email() {
             <li>Copy <span className="mono">backend/.env.example</span> to <span className="mono">backend/.env</span> and fill in your Gmail address and the 16-letter app password.</li>
             <li>Restart the app (<span className="mono">python run.py</span>), then send a test email below.</li>
           </ol>
-        </div>
+        </Callout>
       ))}
 
       <div className="two-columns">
@@ -66,11 +65,11 @@ export default function Email() {
             <label className="field">Send to<input type="email" value={to} onChange={(e) => setTo(e.target.value)} required placeholder="you@example.com" /></label>
             <Button icon={Send} busy={sending} busyText="Sending…">Send test email</Button>
           </form>
-          {result && <p className={`alert ${result.sent ? "alert-success" : "alert-warning"}`} style={{ marginTop: 14 }}>{result.detail}</p>}
+          {result && <Callout tone={result.sent ? "success" : "warning"} className="section-gap" role="status">{result.detail}</Callout>}
         </Card>
         <Card title="What the platform emails" subtitle="Emails say what happened and link to the page; scores and records stay in the app.">
           <ul className="email-kinds">
-            {EMAILS_SENT.map(([name, what, who]) => <li key={name}><strong>{name}</strong><span className="muted small">{what} · to {who}</span></li>)}
+            {EMAILS_SENT.map(([name, what, who]) => <li key={name}><strong>{name}</strong><span className="muted">{what} · to {who}</span></li>)}
           </ul>
         </Card>
       </div>
@@ -81,7 +80,7 @@ export default function Email() {
             {outbox.map((m) => (
               <li key={m.file}>
                 <details>
-                  <summary><span className="strong">{m.subject}</span><span className="muted small">to {m.to}</span></summary>
+                  <summary><span className="strong">{m.subject}</span><span className="muted">to {m.to}</span></summary>
                   <pre className="email-body">{m.body}</pre>
                 </details>
               </li>

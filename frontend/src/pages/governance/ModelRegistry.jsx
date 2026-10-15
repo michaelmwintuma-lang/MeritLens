@@ -3,13 +3,13 @@
 // version that failed the fairness check can never be released. Releasing an older version is how a release is
 // rolled back. Admins and the auditor can read everything here; only HR releases.
 import { useEffect, useState } from "react";
-import { Boxes, Rocket, RotateCcw, ShieldAlert } from "lucide-react";
+import { Rocket, RotateCcw, ShieldAlert } from "lucide-react";
 import { governance } from "../../api";
 import { useAuth } from "../../auth";
 import { useAction } from "../../useAction";
 import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
-import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
+import { Button, Callout, Card, LoadError, Loading, PageHeader, PageLoading } from "../../components/ui";
 import CalibrationChart, { CalibrationSummary } from "../../components/governance/CalibrationChart";
 
 const STATUS = {
@@ -31,7 +31,7 @@ const num = (v, digits = 3) => (v == null ? "–" : Number(v).toFixed(digits));
 function Delta({ value, live }) {
   if (value == null || live == null || value === live) return null;
   const d = value - live;
-  return <span className="muted small"> ({d > 0 ? "+" : "−"}{Math.abs(d).toFixed(3)} vs live)</span>;
+  return <span className="muted"> ({d > 0 ? "+" : "−"}{Math.abs(d).toFixed(3)} vs live)</span>;
 }
 
 function ReleaseBox({ row, onReleased }) {
@@ -51,7 +51,7 @@ function ReleaseBox({ row, onReleased }) {
   return (
     <form className="release-box" onSubmit={(e) => withWorking(() => release(e))}>
       <h3>{rollback ? "Restore this version (roll back)" : "Release this version"}</h3>
-      <p className="muted small">
+      <p className="muted">
         It becomes the live model at once, for every score and explanation. The release is recorded with your name,
         your note and the version it replaces, in the tamper-evident audit trail.
       </p>
@@ -62,8 +62,8 @@ function ReleaseBox({ row, onReleased }) {
       </label>
       <label className="check"><input type="checkbox" checked={read} onChange={(e) => setRead(e.target.checked)} />
         I have read this model card, including its fairness results and limitations.</label>
-      {error && <p className="alert alert-error" role="alert" style={{ marginTop: 12 }}>{error}</p>}
-      <div className="row" style={{ marginTop: 14 }}>
+      {error && <Callout tone="error" className="section-gap">{error}</Callout>}
+      <div className="form-actions section-gap">
         <Button type="submit" busy={working} busyText="Releasing…" icon={rollback ? RotateCcw : Rocket}
           disabled={!read || note.trim().length < MIN_NOTE}>{rollback ? "Restore as the live model" : "Release as the live model"}</Button>
       </div>
@@ -87,9 +87,9 @@ function ModelCard({ version, rows, onChanged }) {
     <Card title={`Model card: ${version}`} subtitle={`${card.model}, trained ${date(card.trained_at)}`}
       actions={<ModelStatus status={data.status} />}>
       <dl className="rec-facts">
-        <div><dt>Decision threshold</dt><dd>{percent(card.threshold)} <span className="muted small">({card.threshold_rule})</span></dd></div>
+        <div><dt>Decision threshold</dt><dd>{percent(card.threshold)} <span className="muted">({card.threshold_rule})</span></dd></div>
         <div><dt>Inputs</dt><dd>{card.inputs.length} performance and development measures</dd></div>
-        <div><dt>Data</dt><dd>{card.mapping?.name || card.data?.note || "–"}{card.data?.rows && <span className="muted small"> · {card.data.rows.toLocaleString()} rows</span>}</dd></div>
+        <div><dt>Data</dt><dd>{card.mapping?.name || card.data?.note || "–"}{card.data?.rows && <span className="muted"> · {card.data.rows.toLocaleString()} rows</span>}</dd></div>
       </dl>
 
       <div className="two-columns">
@@ -97,7 +97,7 @@ function ModelCard({ version, rows, onChanged }) {
           <h3>Tested once, on {metrics.test_size?.toLocaleString() ?? "–"} unseen records</h3>
           <table className="compact-table"><tbody>
             <tr><td>ROC-AUC</td><td className="strong">{num(metrics.roc_auc)}<Delta value={metrics.roc_auc} live={live && version !== live.version ? live.roc_auc : null} /></td></tr>
-            <tr><td>PR-AUC</td><td className="strong">{num(metrics.pr_auc)} <span className="muted small">(random guessing {num(metrics.pr_auc_baseline, 2)})</span><Delta value={metrics.pr_auc} live={live && version !== live.version ? live.pr_auc : null} /></td></tr>
+            <tr><td>PR-AUC</td><td className="strong">{num(metrics.pr_auc)} <span className="muted">(random guessing {num(metrics.pr_auc_baseline, 2)})</span><Delta value={metrics.pr_auc} live={live && version !== live.version ? live.pr_auc : null} /></td></tr>
             <tr><td>Precision · recall</td><td>{percent(metrics.precision ?? 0)} · {percent(metrics.recall ?? 0)}</td></tr>
             <tr><td>Share recommended</td><td>{percent(metrics.share_recommended ?? 0)}</td></tr>
           </tbody></table>
@@ -113,24 +113,24 @@ function ModelCard({ version, rows, onChanged }) {
         </div>
       </div>
 
-      <h3 style={{ marginTop: 20 }}>Calibration: does a score of 30% mean about 30%?</h3>
+      <h3 className="section-gap">Calibration: does a score of 30% mean about 30%?</h3>
       {card.calibration ? (
         <>
           <CalibrationSummary calibration={card.calibration} />
-          <p className="small muted" style={{ margin: "0 0 12px", maxWidth: "72ch" }}>
+          <p className="muted measure">
             Employees are put in ten equal groups by score. If each point sits on the dashed line (perfect calibration), a score can be read
             as the share of similar employees promoted in the past data. It describes past decisions, not a promise.
           </p>
           <CalibrationChart calibration={card.calibration} />
         </>
-      ) : <p className="small muted">Not measured for this version yet (python -m evaluation.calibration {version}).</p>}
+      ) : <p className="muted">Not measured for this version yet (python -m evaluation.calibration {version}).</p>}
 
       {card.why_this_model && (
         <details className="details">
           <summary>Why this model, and the models it was compared with</summary>
           <p>{card.why_this_model}</p>
           {comparison.length > 0 && (
-            <div className="table-wrap" tabIndex={0}><table>
+            <div className="table-wrap auto-height" tabIndex={0} role="region" aria-label="Models compared"><table>
               <thead><tr><th>Model</th><th>Validation PR-AUC</th><th>ROC-AUC</th><th>Scores that dropped when an input improved</th></tr></thead>
               <tbody>{comparison.map(([name, m]) => (
                 <tr key={name}><td className={name === card.model ? "strong" : ""}>{name}</td><td>{num(m.val_pr_auc, 4)}</td>
@@ -141,29 +141,28 @@ function ModelCard({ version, rows, onChanged }) {
         </details>
       )}
 
-      <div className="two-columns" style={{ marginTop: 18 }}>
-        <div><h3>Intended use</h3><p className="small">{card.intended_use}</p></div>
+      <div className="two-columns section-gap">
+        <div><h3>Intended use</h3><p>{card.intended_use}</p></div>
         <div><h3>Limitations</h3><ul className="small tips">{card.limitations.map((l) => <li key={l}>{l}</li>)}</ul></div>
       </div>
-      {card.registered_note && <p className="muted small">{card.registered_note}</p>}
+      {card.registered_note && <p className="muted">{card.registered_note}</p>}
 
-      <h3 style={{ marginTop: 18 }}>Release history</h3>
-      {data.releases.length === 0 ? <p className="muted small">Never released{data.status === "live" ? " through the registry (it was live before the registry existed)" : ""}.</p> : (
+      <h3 className="section-gap">Release history</h3>
+      {data.releases.length === 0 ? <p className="muted">Never released{data.status === "live" ? " through the registry (it was live before the registry existed)" : ""}.</p> : (
         <ul className="plain-list">{data.releases.map((r) => (
-          <li key={r.released_at} className="small"><strong>{r.released_by}</strong> released it on {date(r.released_at)}
+          <li key={r.released_at}><strong>{r.released_by}</strong> released it on {date(r.released_at)}
             {r.previous_version && <> (replacing {r.previous_version})</>}: <span className="muted">"{r.note}"</span></li>
         ))}</ul>
       )}
 
       {data.status === "blocked" && (
-        <p className="alert alert-warning"><span><ShieldAlert size={16} style={{ verticalAlign: "-3px" }} aria-hidden="true" /> This version
-          failed the four-fifths fairness check, so it can never be released.</span></p>
+        <Callout tone="warning" icon={ShieldAlert}>This version failed the four-fifths fairness check, so it can never be released.</Callout>
       )}
       {user.role === "hr" && (data.status === "candidate" || data.status === "retired") && (
         <ReleaseBox row={row} onReleased={(result) => { setData(result); onChanged(); }} />
       )}
       {user.role !== "hr" && data.status === "candidate" && (
-        <p className="alert alert-info">Waiting for an HR person to read this card and release it. Read-only for your role.</p>
+        <Callout>Waiting for an HR person to read this card and release it. Read-only for your role.</Callout>
       )}
     </Card>
   );
@@ -176,24 +175,24 @@ export default function ModelRegistry() {
     if (rows && !open) setOpen((rows.find((r) => r.status === "candidate") || rows.find((r) => r.status === "live") || rows[0])?.version);
   }, [rows, open]);
 
-  const header = <PageHeader icon={Boxes} title="Model registry"
+  const header = <PageHeader title="Model registry"
     subtitle="Every trained model version and its model card. Training never changes the live model: a person releases it." />;
   if (error) return <>{header}<LoadError message={error} onRetry={reload} /></>;
-  if (!rows) return <>{header}<Loading /></>;
+  if (!rows) return <>{header}<PageLoading /></>;
   return (
     <>
       {header}
       <Card title="Versions" subtitle="Newest first. Open one to read its card." flush>
-        <div className="table-wrap" tabIndex={0}><table>
-          <thead><tr><th>Version</th><th>Trained</th><th>Test ROC-AUC</th><th>Lowest fairness ratio</th><th>Status</th><th /></tr></thead>
+        <div className="table-wrap auto-height" tabIndex={0} role="region" aria-label="Model versions"><table>
+          <thead><tr><th>Version</th><th>Trained</th><th className="num">Test ROC-AUC</th><th className="num">Lowest fairness ratio</th><th>Status</th><th><span className="visually-hidden">Open</span></th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.version} className={r.version === open ? "row-open" : ""}>
-              <td className="strong mono">{r.version}<div className="muted small" style={{ fontFamily: "inherit" }}>{r.model}</div></td>
-              <td>{date(r.trained_at)}</td>
-              <td>{num(r.roc_auc)}</td>
-              <td>{num(r.lowest_fairness_ratio, 2)}</td>
-              <td><ModelStatus status={r.status} />{r.released_by && <div className="muted small">by {r.released_by}, {date(r.released_at)}</div>}</td>
-              <td><div className="actions"><button type="button" className="btn btn-plain" aria-pressed={r.version === open}
+              <td><span className="strong mono">{r.version}</span><div className="cell-sub">{r.model}</div></td>
+              <td className="num">{date(r.trained_at)}</td>
+              <td className="num">{num(r.roc_auc)}</td>
+              <td className="num">{num(r.lowest_fairness_ratio, 2)}</td>
+              <td><ModelStatus status={r.status} />{r.released_by && <div className="muted">by {r.released_by}, {date(r.released_at)}</div>}</td>
+              <td><div className="actions"><button type="button" className="btn btn-secondary btn-sm" aria-pressed={r.version === open}
                 onClick={() => setOpen(r.version)}>{r.version === open ? "Open" : "Open card"}</button></div></td>
             </tr>
           ))}</tbody>

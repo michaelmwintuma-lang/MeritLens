@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Send } from "lucide-react";
 import { api } from "../../api";
 import { percent } from "../../format";
-import { Button, LoadError } from "../ui";
+import { Button, Callout, LoadError } from "../ui";
 import { useAction } from "../../useAction";
 
 const CRITERIA = [
@@ -14,7 +14,7 @@ const CRITERIA = [
   ["skills", "Skills and knowledge", "Expertise the new role needs"],
   ["impact", "Impact", "Difference made to the team and organisation"],
 ];
-const RATINGS = ["1 · Below expectations", "2 · Partly meets", "3 · Meets", "4 · Exceeds", "5 · Outstanding"];
+const RATINGS = ["Below expectations", "Partly meets", "Meets", "Exceeds", "Outstanding"];
 const MIN_DISAGREEMENT = 20;
 
 const inDays = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
@@ -46,10 +46,9 @@ export default function NominateBox({ employeeId, name }) {
   if (pending === null || !policy) return error ? <LoadError message={error} /> : null;
   if (pending) {
     return (
-      <p className="alert alert-info">
-        You recommended {name} {pending.recommendation?.proposed_title ? `as ${pending.recommendation.proposed_title} ` : ""}
-        on {pending.created_at.slice(0, 10)}. HR hasn't decided yet. <Link to="/nominations">See your nominations</Link>
-      </p>
+      <Callout title={`You recommended ${name}${pending.recommendation?.proposed_title ? ` as ${pending.recommendation.proposed_title}` : ""} on ${pending.created_at.slice(0, 10)}.`}>
+        HR hasn't decided yet. <Link to="/nominations">See your nominations</Link>
+      </Callout>
     );
   }
 
@@ -82,7 +81,7 @@ export default function NominateBox({ employeeId, name }) {
   return (
     <form onSubmit={(e) => withWorking(() => submit(e))} className="recommend-form">
       <p className="muted">HR sees your recommendation next to the model's score and explanation, and makes the final decision.</p>
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      {error && <Callout tone="error">{error}</Callout>}
 
       <div className="form-row">
         <label className="field">Proposed new role<input value={form.proposed_title} onChange={set("proposed_title")} required minLength={2} maxLength={120} placeholder="e.g. Senior Analyst" /></label>
@@ -97,11 +96,17 @@ export default function NominateBox({ employeeId, name }) {
       <div className="criteria-grid">
         {CRITERIA.map(([key, label, help]) => (
           <fieldset key={key} className="criterion">
-            <legend>{label} <span className="muted small">· {help}</span></legend>
-            <select value={form.criteria[key].rating} onChange={setCriterion(key, "rating")} required aria-label={`${label} rating`}>
-              <option value="">Rate…</option>
-              {RATINGS.map((r, i) => <option key={r} value={i + 1}>{r}</option>)}
-            </select>
+            <legend>{label} <span className="muted">{help}</span></legend>
+            <div className="agree-options" role="radiogroup" aria-label={`${label}: rating from 1 to 5`}>
+              {RATINGS.map((words, i) => (
+                <label key={words} className="agree-option" title={words}>
+                  <input type="radio" name={`rating-${key}`} value={i + 1} checked={form.criteria[key].rating === String(i + 1)}
+                    onChange={setCriterion(key, "rating")} required aria-label={`${i + 1}: ${words}`} />
+                  <span aria-hidden="true">{i + 1}</span>
+                </label>
+              ))}
+            </div>
+            <span className="field-hint" aria-live="polite">{form.criteria[key].rating ? RATINGS[form.criteria[key].rating - 1] : "1 is below expectations, 5 is outstanding"}</span>
             <textarea rows={2} value={form.criteria[key].example} onChange={setCriterion(key, "example")} required minLength={10} maxLength={500}
               placeholder="A specific example from this year" aria-label={`${label} example`} />
           </fieldset>
@@ -109,19 +114,19 @@ export default function NominateBox({ employeeId, name }) {
       </div>
 
       {modelView && (
-        <div className={`alert ${disagrees ? "alert-warning" : "alert-info"}`}>
-          <span>The model gives {name} <strong>{percent(modelView.score)}</strong>, {disagrees
+        <Callout tone={disagrees ? "warning" : "info"}>
+          The model gives {name} <strong>{percent(modelView.score)}</strong>, {disagrees
             ? `below the ${percent(modelView.threshold)} threshold, so it doesn't recommend promotion yet. You can still recommend them: say why you see it differently.`
-            : "above the threshold, so it also recommends promotion."}</span>
-        </div>
+            : "above the threshold, so it also recommends promotion."}
+        </Callout>
       )}
       {disagrees && (
-        <label className="field"><span>Why you disagree with the model <span className="small">(required, {form.model_disagreement.trim().length}/{MIN_DISAGREEMENT} characters)</span></span>
+        <label className="field"><span>Why you disagree with the model <span className="muted">(required, {form.model_disagreement.trim().length}/{MIN_DISAGREEMENT} characters)</span></span>
           <textarea rows={2} value={form.model_disagreement} onChange={set("model_disagreement")} required minLength={MIN_DISAGREEMENT} maxLength={2000}
             placeholder="What do you know that the data doesn't show?" />
         </label>
       )}
-      <label className="field"><span>Overall recommendation <span className="muted small">(at least 10 characters)</span></span>
+      <label className="field"><span>Overall recommendation <span className="muted">(at least 10 characters)</span></span>
         <textarea rows={3} value={form.reason} onChange={set("reason")} required minLength={10} maxLength={2000} placeholder={`Why ${name} is ready for this role`} />
       </label>
       <Button icon={Send} busy={working} busyText="Sending to HR…" disabled={raiseOutside}>Send recommendation to HR</Button>

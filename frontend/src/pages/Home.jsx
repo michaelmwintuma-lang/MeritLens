@@ -2,11 +2,11 @@
 // your role, then the list you work from.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, LayoutGrid } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { api, governance } from "../api";
 import { useAuth } from "../auth";
 import { percent } from "../format";
-import { Card, LoadError, Loading, PageHeader, StatCard } from "../components/ui";
+import { Card, LoadError, PageHeader, PageLoading, StatCard } from "../components/ui";
 import ScoreBar, { Verdict } from "../components/promotion/ScoreBar";
 import NominationsTable from "../components/promotion/NominationsTable";
 import AdminDashboard from "../components/home/AdminDashboard";
@@ -90,16 +90,16 @@ function EmployeeOverview({ me, requests = [] }) {
       <Card title="Where you stand" actions={<Verdict recommended={me.recommended} />}>
         <div className="score-big">{percent(me.score)}</div>
         <ScoreBar score={me.score} threshold={me.threshold} />
-        <p className="summary">{me.summary}</p>
-        <p className="muted small">An average employee scores {percent(me.average_employee_score)}. The model only advises: people make every decision.</p>
-        <Link className="btn btn-primary" to="/my-readiness">See why, try changes and get tips <ArrowRight size={16} /></Link>
+        <p className="summary section-gap">{me.summary}</p>
+        <p className="muted">An average employee scores {percent(me.average_employee_score)}. The model only advises: people make every decision.</p>
+        <Link className="btn btn-primary" to="/my-readiness">See why, try changes and get tips <ArrowRight size={16} aria-hidden="true" /></Link>
       </Card>
       <Card title="Respond to your explanation"
         subtitle="Rate whether it was clear and useful, or ask HR to correct a value in your record. Neither changes your score.">
-        <p className="muted small">{requests.length
+        <p className="muted">{requests.length
           ? `Your correction requests: ${requests.length}, of which ${waiting} waiting for HR.`
           : "You haven't asked for a correction."}</p>
-        <Link className="btn btn-plain" to="/my-readiness">Open My growth to respond</Link>
+        <Link className="btn btn-secondary" to="/my-readiness">Open My growth to respond</Link>
       </Card>
     </>
   );
@@ -143,27 +143,39 @@ function AuditorOverview({ data }) {
           note={ratings.clarity_rate == null ? `${ratings.ratings} rating${ratings.ratings === 1 ? "" : "s"} so far: shown from 5` : `Of ${ratings.ratings} ratings, 4 or 5 out of 5`} />
       </div>
       <Card title="Live fairness" subtitle="The four-fifths rule on today's directory and decisions." actions={<StatusTag status={fairness.overall} />}>
-        <div className="row">
-          <Link className="btn btn-primary" to="/audit">Open the audit trail <ArrowRight size={16} /></Link>
-          <Link className="btn btn-plain" to="/fairness">Live fairness</Link>
-          <Link className="btn btn-plain" to="/decisions">Decision log</Link>
+        <p className="muted">Everything here is read-only for your role.</p>
+        <div className="form-actions">
+          <Link className="btn btn-primary" to="/audit">Open the audit trail <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className="btn btn-secondary" to="/fairness">Live fairness</Link>
+          <Link className="btn btn-secondary" to="/decisions">Decision log</Link>
         </div>
       </Card>
     </>
   );
 }
 
+// One line under the greeting: what this overview is for
+const INTROS = {
+  employee: "Where you stand, and what you can do next.",
+  manager: "Your team's readiness and your recommendations.",
+  hr: "What's waiting for you, and how promotions are going.",
+  admin: "Accounts, system health and recent activity.",
+  finance: "Promotion pay rises waiting for your sign-off.",
+  auditor: "Decisions, fairness and the model, read-only.",
+};
+
 export default function Home() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { loadOverview(user).then(setData).catch((err) => setError(err.message)); }, [user]);
+  const load = () => { setError(""); return loadOverview(user).then(setData).catch((err) => setError(err.message)); };
+  useEffect(() => { load(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
-      <PageHeader icon={LayoutGrid} title={`Hello, ${user.full_name.split(" ")[0]}`} />
-      {error && <LoadError message={error} />}
-      {!data && !error && <Loading />}
+      <PageHeader title={`Hello, ${user.full_name.split(" ")[0]}`} subtitle={INTROS[user.role]} />
+      {error && <LoadError message={error} onRetry={load} />}
+      {!data && !error && <PageLoading />}
       {data && (user.role === "hr" || user.role === "manager") && <PromotionOverview data={data} isHr={user.role === "hr"} />}
       {data && user.role === "employee" && <EmployeeOverview me={data.me} requests={data.requests} />}
       {data && user.role === "admin" && <AdminDashboard system={data.system} employees={data.employees} fairness={data.fairness} models={data.models} />}

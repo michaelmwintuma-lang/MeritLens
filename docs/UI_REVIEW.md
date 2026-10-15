@@ -1,4 +1,4 @@
-# UI review: MeritLens before the UI overhaul
+# UI review: MeritLens before and after the UI overhaul
 
 Baseline: tag `before-ui-overhaul` (commit 5db091a). Work continues on branch `ui-overhaul`.
 
@@ -216,3 +216,163 @@ Browser checks depend on some selectors, so they'll be preserved or updated toge
    probability or a chance, and the text doesn't, but a "%" still reads that way to many people. Should the gauge
    show it as a 0 to 100 readiness score ("Readiness 1 / 100, threshold 23")? This is display only: the API
    value doesn't change.
+
+## 6. Decisions taken
+
+1. **Navy and teal.** Navy (`#1E3A5F`, with a `#0F2A44` sidebar) is used for primary actions and the sidebar.
+   Teal is used only for the "raises" data colour and small highlights (the active-menu marker and focus rings).
+2. **Dark mode** now follows the computer's setting on a first visit. The toggle still overrides it and is
+   remembered in the browser.
+3. **Score format: kept as a percentage, which differs from the suggestion.** The plain-language summary
+   ("Readiness is under 1%, below the 23% threshold…"), the what-if result and the tips all come from the API as
+   text with percentages. Showing "1 / 100" in the gauge beside those sentences would put two formats for the same
+   number on one screen, and changing the sentences would mean changing the backend. So the score stays a
+   percentage, always labelled "Readiness score" and read against its threshold, and nothing on screen calls it a
+   probability or a chance. The helper text still says it "describes past decisions, so it isn't a promise".
+
+## 7. What changed
+
+After screenshots: `docs/screenshots/after-ui/`. Every page has 4 shots: desktop (1366px) and phone (390px), each
+in light and dark. axe-core results are in `axe.json`. Thesis figures (PNG, 1600px, light) are in
+`docs/screenshots/thesis/`.
+
+**Results:** 0 axe-core findings on all 39 pages (desktop light, desktop dark, phone dark), and no page is wider
+than a 390px phone screen. All 7 browser checks and all 322 backend tests pass, and `npm run build` finishes with
+no errors or warnings. Backend logic, the model, API responses and permissions are unchanged.
+
+### Everywhere
+
+- **Design system:** tokens in `frontend/src/tokens.css` (light and dark), components styled once in `styles.css`.
+  This is described in HOW_IT_WORKS.md, under "Design system".
+- **Type:**
+  - Montserrat, installed locally; the Google Fonts link in `index.html` is gone.
+  - One 32/24/20/16/14/12 type scale replaces the 23 sizes there were before.
+  - Body text is at least 14px.
+  - Tabular figures for scores, tables and KPI tiles.
+  - The stretched hyphens in dates ("2026 - 10 - 15") are fixed.
+- **Colour:**
+  - Navy for actions, teal and orange only for the model's data, and status colours each with a tinted background.
+  - Every pair was checked for AA contrast in both themes.
+  - Disabled buttons are now readable: a quiet fill with muted text, not faded out.
+- **Shape and spacing:** a 4px spacing grid, 8px corners on cards and inputs, 6px on buttons, one soft shadow. The
+  gradient icon tiles beside page titles are removed.
+- **Shared components replace one-off styles:**
+  - New: `Callout`, `Badge` (every status has an icon and a word), `PageLoading`, `SortHeader`, `Pager`, `Modal`,
+    `Drawer`, `useConfirm`, toasts.
+  - Restyled: `PageHeader`, `Card`, `StatCard`, `Button` (primary, secondary, ghost, danger), `Segmented` tabs,
+    `EmptyState`, `LoadError`.
+  - Inline styles went from 73 to a handful, each one a computed width or position.
+- **App shell:**
+  - A full-height navy sidebar with the menu grouped per role.
+  - A top bar with the breadcrumb, light/dark switch, the bell (now on every page) and a profile menu.
+  - Content up to 1280px wide.
+  - An icon rail from 640 to 1023px, and a drawer under 640px. The phone tab bar that covered content is gone.
+  - A page opened for the first time now loads inside the frame with a skeleton, instead of a blank "Loading…"
+    screen.
+- **Tables:** sticky headers, hover rows, right-aligned numbers, sort arrows (with `aria-sort`) on the employee
+  list, and pagination on the employee list, decision log and audit trail. Every scrolling table is a labelled,
+  keyboard-scrollable region.
+- **Loading and errors:** skeletons instead of spinners. Errors say "This couldn't be loaded", give the reason, and
+  offer "Try again".
+- **Keyboard:**
+  - A "Skip to the page" link and a visible teal focus ring.
+  - Escape closes the profile menu, notifications, modals, drawers and the phone menu, and focus returns to the
+    opener.
+  - Focus moves into the phone drawer when it opens.
+  - Every icon-only button has an `aria-label`.
+  - The browser's own confirm boxes (Users page) are now an accessible modal.
+- **Motion:** 150–200 ms fades and slides only, and none when the computer asks for reduced motion.
+
+### Employee: My growth
+
+- **The score:** a half-circle gauge with the threshold marked and labelled, "Readiness score" under the number,
+  and a "Recommended" or "Not yet recommended" badge with an icon.
+- **The plain-language summary** is in its own highlighted "In plain words" card beside the gauge.
+- **"What raised and lowered your score"** is now two-sided: "Raised the score" (teal) and "Lowered the score"
+  (orange), up to five each, all bars on one scale. Before, only factors that lowered the score were shown for this
+  employee.
+- **"Your path to promotion"** is a checklist.
+- **What-if:** sliders are tidier tiles. "Now: …" appears only when a slider has moved, and a moved slider is
+  highlighted.
+- **"Show technical details"** stays collapsed. The run line at the top is shorter, and the model jargon has moved
+  into "How it was worked out".
+
+### Respond to this explanation
+
+- **The two routes** are two cards with icons and a short description each: "Rate this explanation" and "Correct my
+  record". The whole card can be clicked, and the chosen card is outlined in navy.
+- **The 1–5 scales** are larger square buttons with "Disagree" and "Agree" at the ends.
+
+### HR
+
+- **Predict and explain** (`/employees/:id`):
+  - The same gauge, summary, factors and tips as My growth.
+  - A clearer "Predict and explain" run card.
+  - The breadcrumb leads back to the list.
+- **Nomination review:**
+  - The committee note (a record correction is pending, and the hold) is a highlighted warning card at the top.
+  - The manager's recommendation and the model's view are side by side from 1100px wide.
+  - The criteria are a list that reflows; this was the page that was 541px wide on a phone.
+  - The duplicate "on hold" message is removed.
+  - The status badge sits beside the title, not by the bell.
+- **Correction queue:**
+  - The change is shown as "In the record 5 → Asked for 8".
+  - The evidence is quoted.
+  - Confirm and Reject are two cards with icons.
+  - Helpful empty state.
+- **Decision log:** pagination, right-aligned model scores, status badges.
+- **Feedback dashboard:**
+  - Export CSV is the page's primary action, and the filters sit in one row.
+  - KPI tiles.
+  - Charts in one style: meters for "Clear" and "Useful", a stacked bar for correction outcomes, a bar list for
+    contested factors, and a stacked bar for decisions against the model.
+  - Values are written beside every mark; withheld values show "–" with the reason, and small counts show "<3".
+- **Pay-rise policy:** an inline form, and a toast confirms the save.
+- **All employees:** sortable Name, Department and Readiness columns, right-aligned scores, and the shared pager.
+
+### Manager
+
+- **Team readiness table:** as for HR.
+- **Recommendation form:**
+  - The four criteria each have a 1–5 button scale with the rating in words, and an example box, in two columns.
+  - The model's view is a callout.
+  - The title, start date and pay rise fields are grouped.
+
+### Finance
+
+- **Sign-off queue:** a clean table with status badges. "Review" opens a drawer with what is being signed off, its
+  history, and Sign off or Send back. A toast confirms the action.
+- **Empty states** explain what will appear.
+
+### Auditor
+
+- **Overview:** says the pages are read-only.
+- **Read-only pages:** the decision log, audit trail (with a paged, labelled table and callouts for the chain
+  check), live fairness and model registry use the shared components.
+
+### Admin
+
+- **Overview:** system health is a list, one row per part with an icon and a word (OK, Problem, Check, Note) and
+  its detail underneath, instead of a cluster of pills. The drift table has right-aligned numbers and a clearer
+  column name ("PSI from chance alone"). Recent activity has column headings.
+- **Users:**
+  - The account-type tabs sit under the title.
+  - Row actions are compact ghost buttons.
+  - Status and role are badges.
+  - Confirmations use the modal.
+  - The team editor opens in a drawer.
+- **Activity log, Email and Demo requests:** use callouts, badges and the shared table style.
+
+### Landing page and login
+
+- **Landing page:**
+  - The hero has the title, a one-line value statement and the app beside it in a window frame.
+  - "How it works": three numbered steps joined by a line (Predict, Explain, Respond).
+  - Six feature cards.
+  - Two screenshots of the new interface.
+  - A "Fairness and privacy" section.
+  - Result tiles.
+  - A navy closing band.
+  - A footer with product and get-started columns.
+  - The screenshots were recaptured from the new interface (`frontend/public/landing/`).
+- **Login:** a clean centred card under the MeritLens wordmark, without the blurred background blobs.

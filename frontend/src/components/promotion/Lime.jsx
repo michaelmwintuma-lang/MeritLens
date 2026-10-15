@@ -1,4 +1,5 @@
 // LIME: a second, independent explanation, with how well it fits.
+import { Callout } from "../ui";
 
 export default function Lime({ lime, contributions }) {
   if (!lime) return null;
@@ -13,12 +14,12 @@ export default function Lime({ lime, contributions }) {
         {lime.rules.map((r) => (
           <li key={r.rule}>
             <span>{r.rule}</span>
-            <span className="small">{r.effect === "raises" ? "▲ raises" : "▼ lowers"}{[...topFive].some((label) => r.rule.includes(label)) && " · also in the top 5 above"}</span>
+            <span className={r.effect === "raises" ? "effect-raises" : "effect-lowers"}>{r.effect === "raises" ? "▲ raises" : "▼ lowers"}{[...topFive].some((label) => r.rule.includes(label)) && " · also in the top 5 above"}</span>
           </li>
         ))}
       </ul>
-      <p className="small">Fit (R²): <strong>{lime.fit_r2.toFixed(2)}</strong> <span className="muted">(1.0 = LIME copies the model perfectly here)</span></p>
-      {lime.note && <p className="alert alert-info">{lime.note}</p>}
+      <p>Fit (R²): <strong>{lime.fit_r2.toFixed(2)}</strong> <span className="muted">(1.0 = LIME copies the model perfectly here)</span></p>
+      {lime.note && <Callout>{lime.note}</Callout>}
     </>
   );
 }

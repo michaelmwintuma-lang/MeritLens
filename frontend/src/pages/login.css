@@ -1,77 +1,36 @@
-/* Sign-in page: a white card on a white page, with a faint, slow glow of the brand colours behind it. Every text
-   colour meets WCAG AA contrast on white. (Dark mode, when chosen, uses the same layout with the dark tokens.) */
-.login-page {
-  position: relative; min-height: 100vh; display: grid; place-items: center; padding: 72px 16px 40px; overflow: hidden;
-  background: var(--bg); color: var(--text);
-}
+/* Sign-in page: the wordmark above a clean, centred card on the page background. Uses the app's tokens, so light
+   and dark both work and every text colour meets WCAG AA. */
+.login-page { position: relative; min-height: 100vh; display: grid; place-items: center; padding: var(--s-12) var(--s-4) var(--s-8); background: var(--bg); color: var(--text); }
+.login-main { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: var(--s-6); }
+.login-logo .brand-name { font-size: var(--text-20); }
+.login-logo .brand-logo { width: 40px; height: 40px; font-size: var(--text-14); }
 
-/* Soft lights drifting slowly behind the card: barely-there colour, so the page stays white */
-.login-lights span { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.22; animation: drift 18s ease-in-out infinite alternate; }
-.login-lights span:nth-child(1) { width: 420px; height: 420px; left: 8%; top: 38%; background: radial-gradient(circle, #14b8a6, transparent 70%); }
-.login-lights span:nth-child(2) { width: 460px; height: 460px; right: 6%; top: -6%; background: radial-gradient(circle, #3b82f6, transparent 70%); animation-delay: -6s; }
-.login-lights span:nth-child(3) { width: 260px; height: 260px; right: 14%; bottom: 8%; background: radial-gradient(circle, #22d3ee, transparent 70%); animation-delay: -12s; }
-.login-lights span:nth-child(4) { width: 220px; height: 220px; left: 30%; bottom: -8%; background: radial-gradient(circle, #6366f1, transparent 70%); opacity: 0.14; animation-delay: -3s; }
-@keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, -30px) scale(1.08); } }
+.login-back { position: absolute; top: var(--s-4); left: var(--s-4); display: inline-flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); border-radius: var(--radius-btn); color: var(--text-muted); font-weight: 500; }
+.login-back:hover { background: var(--surface-sunken); color: var(--text); text-decoration: none; }
 
-.login-back {
-  position: absolute; top: 22px; left: 24px; z-index: 2; display: inline-flex; align-items: center; gap: 6px;
-  color: var(--muted); font-weight: 600; text-decoration: none; padding: 7px 12px; border-radius: 10px;
-}
-.login-back:hover { background: var(--surface-2); color: var(--text); }
+.login-box { width: 100%; padding: var(--s-8); border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.login-box h1 { font-size: var(--text-24); }
+.login-sub { color: var(--text-muted); margin: var(--s-1) 0 var(--s-6); }
 
-/* The card */
-.login-box {
-  position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 36px 32px; border-radius: 28px;
-  background: var(--glass); backdrop-filter: saturate(180%) blur(30px); -webkit-backdrop-filter: saturate(180%) blur(30px);
-  box-shadow: 0 0 0 1px var(--border), var(--shadow-lg); text-align: left;
-}
-.login-logo { display: flex; justify-content: center; margin: 0 0 18px; }
-/* The app icon, larger: as on an iPhone home screen */
-.login-logo .brand-logo { width: 60px; height: 60px; border-radius: 15px; font-size: 21px; }
-.login-box h1 { text-align: center; font-size: 28px; color: var(--text); }
-.login-sub { text-align: center; color: var(--muted); margin: 8px 0 26px; font-size: 14.5px; }
-
-.login-field { display: block; font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 7px; }
+.login-field { display: block; font-weight: 500; margin-bottom: var(--s-2); }
 .login-input {
-  display: flex; align-items: center; gap: 10px; padding: 0 6px 0 14px; margin-bottom: 18px; border-radius: 12px;
-  background: var(--surface); border: 1px solid var(--input-border); color: var(--muted);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-1) 0 var(--s-3); margin-bottom: var(--s-4);
+  border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-muted);
+  transition: border-color var(--fast) var(--ease);
 }
-.login-input:hover { border-color: var(--text); }
-.login-input:focus-within { border-color: var(--primary); box-shadow: var(--ring); color: var(--primary); }
-.login-input input {
-  flex: 1; min-width: 0; border: none; background: none; box-shadow: none; padding: 12px 0; min-height: 46px; color: var(--text);
-}
+.login-input:hover { border-color: var(--text-muted); }
+.login-input:focus-within { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: 0; color: var(--text); }
+.login-input input { flex: 1; min-width: 0; border: none; background: none; padding: var(--s-3) 0; min-height: 44px; }
 .login-input input:hover:not(:disabled) { border: none; }
-.login-input input:focus { box-shadow: none; outline: none; }
-.login-input input::placeholder { color: var(--muted); opacity: 0.85; }
-.login-eye {
-  display: grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: 9px; background: none;
-  color: var(--muted); cursor: pointer;
-}
-.login-eye:hover { background: var(--surface-2); color: var(--text); }
+.login-input input:focus-visible { outline: none; }
+.login-eye { display: grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: var(--radius-btn); background: none; color: var(--text-muted); cursor: pointer; }
+.login-eye:hover { background: var(--surface-sunken); color: var(--text); }
 
-/* The one main action: the same navy as every main button in the app */
-.login-btn.btn {
-  width: 100%; min-height: 50px; margin-top: 6px; border-radius: 999px; font-size: 16px; border: none;
-  background: var(--accent); color: var(--on-accent);
-}
-.login-btn.btn:not(:disabled):hover { background: var(--accent-hover); }
-.login-btn.btn:disabled { opacity: 0.6; }
-
-.login-error {
-  margin: 0 0 18px; padding: 11px 14px; border-radius: 12px; font-size: 14px;
-  background: var(--error-bg); border: 1px solid color-mix(in srgb, var(--error) 22%, transparent); color: var(--error);
-}
-.login-foot { text-align: center; margin: 20px 0 0; font-size: 14px; color: var(--muted); }
-.login-foot a { color: var(--primary); font-weight: 700; text-decoration: none; }
-.login-foot a:hover { text-decoration: underline; }
-
-@media (max-width: 480px) {
-  .login-box { padding: 32px 22px 26px; border-radius: 20px; }
-}
-/* Why you were signed out: information, not an error */
-.login-notice {
-  margin: 0 0 18px; padding: 11px 14px; border-radius: 12px; font-size: 14px;
-  background: var(--info-bg); border: 1px solid color-mix(in srgb, var(--info) 18%, transparent); color: var(--info);
-}
+.login-btn.btn { width: 100%; min-height: 44px; margin-top: var(--s-2); font-size: var(--text-16); }
+.login-error, .login-notice { margin: 0 0 var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--radius); }
+.login-error { background: var(--danger-bg); color: var(--danger); }
+.login-notice { background: var(--info-bg); color: var(--info); }
+.login-foot { text-align: center; margin: var(--s-6) 0 0; color: var(--text-muted); }
+.login-foot a { font-weight: 600; }
+.login-tagline { text-align: center; color: var(--text-muted); margin: 0; max-width: 36ch; }
+@media (max-width: 480px) { .login-box { padding: var(--s-6) var(--s-4); } }

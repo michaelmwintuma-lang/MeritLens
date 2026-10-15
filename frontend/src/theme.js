@@ -1,21 +1,34 @@
-// Light (white) or dark appearance. White is the default for everyone, whatever the computer's own setting; dark is
-// there for whoever switches it on, and that choice is remembered in this browser only.
+// Light or dark appearance. Until someone uses the toggle, the app follows the computer's own setting (and changes
+// with it); a choice made with the toggle is remembered in this browser only.
 import { useEffect, useState } from "react";
 
-// A new key: choices saved before white became the default (including "follow the computer") don't carry over
 const KEY = "appearance";
+const system = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
-function initialTheme() {
+function saved() {
   try {
-    if (localStorage.getItem(KEY) === "dark") return "dark";
-  } catch { /* storage unavailable */ }
-  return "light";
+    const value = localStorage.getItem(KEY);
+    return value === "dark" || value === "light" ? value : null;
+  } catch {
+    return null; // storage unavailable
+  }
 }
 
+const fromSystem = () => (system?.matches ? "dark" : "light");
+
 // One shared value, so every toggle on the page stays in step
-let current = initialTheme();
+let current = saved() || fromSystem();
 const listeners = new Set();
-document.documentElement.dataset.theme = current;
+
+function apply(theme) {
+  current = theme;
+  document.documentElement.dataset.theme = theme;
+  listeners.forEach((set) => set(theme));
+}
+apply(current);
+
+// Nothing chosen yet: follow the computer when its setting changes
+system?.addEventListener?.("change", () => { if (!saved()) apply(fromSystem()); });
 
 export function useTheme() {
   const [theme, setTheme] = useState(current);
@@ -25,10 +38,9 @@ export function useTheme() {
   }, []);
 
   function toggle() {
-    current = current === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = current;
-    try { localStorage.setItem(KEY, current); } catch { /* not remembered: fine */ }
-    listeners.forEach((set) => set(current));
+    const next = current === "dark" ? "light" : "dark";
+    try { localStorage.setItem(KEY, next); } catch { /* not remembered: fine */ }
+    apply(next);
   }
 
   return { theme, toggle };

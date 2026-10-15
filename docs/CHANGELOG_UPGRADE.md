@@ -300,3 +300,26 @@ reporting is future work. So the feature was removed, and the system matches the
 | **Sign-in page:** a frosted card with the app icon, and a blue capsule button. | Consistent with the rest of the app. |
 
 Checked: 18 pages, desktop and phone, light theme: 0 accessibility findings (axe); all 7 browser checks pass.
+
+## UI/UX overhaul: Montserrat, navy and teal, one design system (2026-10-15)
+
+A presentation-layer upgrade only: the backend, the model, API responses, permissions and every feature's
+behaviour are unchanged. It replaces the Apple-style interface above. Details, before and after screenshots and
+the page-by-page list: `docs/UI_REVIEW.md`. The design system itself: `docs/HOW_IT_WORKS.md`, under "Design system".
+
+- **Montserrat**, installed locally (no Google Fonts), on a 32/24/20/16/14/12 scale with tabular figures.
+- **Navy and teal** tokens for light and dark (`frontend/src/tokens.css`). Dark mode follows the computer until
+  the toggle is used.
+- **One set of shared components** (header, card, stat tile, badge, buttons, inputs, tabs, table with sorting and
+  pages, modal, drawer, toast, callout, empty state, skeleton, error state), with the one-off styles removed.
+- **App shell:** a navy sidebar grouped per role, a top bar with breadcrumb, bell and profile menu, an icon rail
+  from 640 to 1023px, and a drawer on phones.
+- **Key pages redesigned:** My growth (gauge, plain-words card, two-sided factors, checklist), the respond panel
+  (two route cards), the HR review (side by side, committee note on top), the correction queue, the feedback
+  dashboard (charts), Finance's sign-off (review drawer), admin system health, the landing page and sign-in.
+- **Scripts:** `ui_capture.js` covers all 39 pages in light and dark, with demo data from `demo_setup.js`; the new
+  `capture_thesis.js` saves the thesis figures.
+
+Checked: `npm run build` (no warnings), 322 backend tests, 7 browser checks, and 0 axe findings on 39 pages in both
+themes, with nothing wider than a 390px phone.
+

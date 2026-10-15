@@ -1,4 +1,4 @@
-// The bell at the top right. HR is told about record corrections waiting and pay rises Finance sent back; Finance
+// The bell in the top bar. HR is told about record corrections waiting and pay rises Finance sent back; Finance
 // about pay rises waiting for sign-off; employees about HR's decisions on their record.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -48,11 +48,13 @@ export default function NotificationBell() {
     return () => clearInterval(timer);
   }, [role]);
 
-  // Close the list when clicking anywhere else
+  // Close the list when clicking anywhere else, or with Escape
   useEffect(() => {
     const close = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const escape = (e) => { if (e.key === "Escape" && box.current?.contains(document.activeElement)) { setOpen(false); box.current.querySelector("button").focus(); } };
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); };
   }, []);
 
   if (!role) return null;
@@ -66,8 +68,8 @@ export default function NotificationBell() {
     <div className="bell" ref={box}>
       <button type="button" className="icon-btn" onClick={() => setOpen(!open)} aria-expanded={open}
         aria-label={`Notifications: ${items.length} new`} title="Notifications">
-        <Bell size={17} />
-        {items.length > 0 && <span className="bell-count">{items.length}</span>}
+        <Bell size={18} aria-hidden="true" />
+        {items.length > 0 && <span className="bell-count" aria-hidden="true">{items.length}</span>}
       </button>
       {open && (
         <div className="bell-panel" role="menu">
@@ -76,7 +78,7 @@ export default function NotificationBell() {
             <p className="muted small bell-empty">You're all caught up.</p>
           ) : items.map((item) => (
             <button key={item.id} type="button" role="menuitem" className="bell-item" onClick={() => go(item)}>
-              <strong>{item.text}</strong><span className="muted small">{item.detail}</span>
+              <strong>{item.text}</strong><span className="muted">{item.detail}</span>
             </button>
           ))}
         </div>

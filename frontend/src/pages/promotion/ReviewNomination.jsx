@@ -2,7 +2,7 @@
 // setting the final pay rise for an approval.
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ClipboardCheck } from "lucide-react";
+import { ArrowRight, Banknote } from "lucide-react";
 import { api } from "../../api";
 import { percent } from "../../format";
 import ScoreBar, { Verdict } from "../../components/promotion/ScoreBar";
@@ -10,7 +10,7 @@ import Contributions from "../../components/promotion/Contributions";
 import Recommendation from "../../components/promotion/Recommendation";
 import { NominationStatus } from "../../components/promotion/Status";
 import { PayStatus, PayTimeline } from "../../components/promotion/PayStatus";
-import { Button, LoadError, Loading, PageHeader } from "../../components/ui";
+import { Button, Callout, Card, LoadError, PageHeader, PageLoading } from "../../components/ui";
 import CommitteeNote from "../../components/feedback/CommitteeNote";
 import { useAction } from "../../useAction";
 
@@ -39,8 +39,7 @@ function PaySignOff({ decision, policy, onChange }) {
   }
 
   return (
-    <section className="card">
-      <div className="row spread"><h2>Pay rise: {decision.approved_raise}%</h2><PayStatus status={decision.pay_status} /></div>
+    <Card id="pay" icon={Banknote} title={`Pay rise: ${decision.approved_raise}%`} actions={<PayStatus status={decision.pay_status} />}>
       <p className="muted">
         {decision.pay_status === "awaiting_finance" && "Waiting for Finance to sign it off. The manager and employee are told only after that."}
         {decision.pay_status === "returned" && "Finance sent this back. Revise the pay rise (or keep it) and answer their note."}
@@ -49,8 +48,8 @@ function PaySignOff({ decision, policy, onChange }) {
       </p>
       <PayTimeline history={decision.pay_history} />
       {decision.pay_status === "returned" && (
-        <form onSubmit={(e) => withWorking(() => resubmit(e))} style={{ marginTop: 16 }}>
-          {error && <p className="alert alert-error" role="alert">{error}</p>}
+        <form onSubmit={(e) => withWorking(() => resubmit(e))} className="section-gap">
+          {error && <Callout tone="error">{error}</Callout>}
           <div className="form-row">
             <label className="field">Revised pay rise (%)
               <input type="number" value={raise} onChange={(e) => setRaise(e.target.value)} min={0} max={100} step="0.5" required />
@@ -58,17 +57,17 @@ function PaySignOff({ decision, policy, onChange }) {
             </label>
           </div>
           {outside && (
-            <label className="field"><span>Why go outside the policy? <span className="small">(required, {raiseReason.trim().length}/{MIN_REASON} characters)</span></span>
+            <label className="field"><span>Why go outside the policy? <span className="muted">(required, {raiseReason.trim().length}/{MIN_REASON} characters)</span></span>
               <textarea rows={2} value={raiseReason} onChange={(e) => setRaiseReason(e.target.value)} maxLength={2000} />
             </label>
           )}
-          <label className="field"><span>Your answer to Finance <span className="small">(at least 10 characters)</span></span>
+          <label className="field"><span>Your answer to Finance <span className="muted">(at least 10 characters)</span></span>
             <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} />
           </label>
           <Button busy={working} busyText="Sending to Finance…" disabled={blocked}>Send to Finance again</Button>
         </form>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -99,7 +98,7 @@ export default function ReviewNomination() {
 
   // Any of the three missing with an error: show the error (not an endless spinner)
   if (error && (!nomination || !explanation || !policy)) return <LoadError message={error} />;
-  if (!nomination || !explanation || !policy) return <Loading />;
+  if (!nomination || !explanation || !policy) return <PageLoading />;
 
   // Disagreeing = approving someone the model doesn't recommend, or rejecting someone it does
   const disagrees = decision && (decision === "approve") !== explanation.recommended;
@@ -122,50 +121,45 @@ export default function ReviewNomination() {
     }
   }
 
+  const pending = nomination.status === "pending";
   return (
     <>
-      <Link to="/nominations" className="back"><ArrowLeft size={16} />Back to nominations</Link>
-      <PageHeader icon={ClipboardCheck} title={`Review: ${nomination.employee.full_name}`}
+      <PageHeader title={`Review: ${nomination.employee.full_name}`}
         subtitle={`${nomination.employee.department} · recommended by ${nomination.nominated_by} on ${nomination.created_at.slice(0, 10)}`}
-        actions={<NominationStatus status={nomination.status} />} />
+        status={<NominationStatus status={nomination.status} />} />
 
-      <section className="card">
-        <h2>The manager's recommendation</h2>
-        <Recommendation nomination={nomination} />
-      </section>
+      <CommitteeNote nominationId={nomination.id} pending={pending} onChange={(note) => setOnHold(note.deferred)} />
 
-      <section className="card">
-        <div className="row spread">
-          <h2>The model's view: {percent(explanation.score)}</h2>
-          <Verdict recommended={explanation.recommended} />
-        </div>
-        <ScoreBar score={explanation.score} threshold={explanation.threshold} />
-        <p className="summary">{explanation.summary}</p>
-        <Contributions contributions={explanation.contributions} limit={4} />
-        <p className="small"><Link to={`/employees/${nomination.employee.id}`}>Full explanation, what-if and tips</Link></p>
-      </section>
+      <div className="review-columns">
+        <Card id="manager" title="The manager's recommendation">
+          <Recommendation nomination={nomination} />
+        </Card>
 
-      <CommitteeNote nominationId={nomination.id} pending={nomination.status === "pending"}
-        onChange={(note) => setOnHold(note.deferred)} />
+        <Card id="model" title="The model's view" actions={<Verdict recommended={explanation.recommended} />}>
+          <div className="score-big">{percent(explanation.score)}</div>
+          <ScoreBar score={explanation.score} threshold={explanation.threshold} />
+          <p className="summary section-gap">{explanation.summary}</p>
+          <Contributions contributions={explanation.contributions} limit={3} />
+          <p className="section-gap"><Link className="text-link" to={`/employees/${nomination.employee.id}`}>Full explanation, what-if and tips <ArrowRight size={16} aria-hidden="true" /></Link></p>
+        </Card>
+      </div>
 
-      {nomination.status === "pending" && onHold ? (
-        <p className="alert alert-info">Your decision is on hold until the record correction above is resolved.</p>
-      ) : nomination.status === "pending" ? (
-        <form className="card" onSubmit={(e) => withWorking(() => submit(e))}>
-          <h2>Your decision</h2>
+      {pending && onHold ? null : pending ? (
+        <form className="card" onSubmit={(e) => withWorking(() => submit(e))} aria-labelledby="decision-title">
+          <h2 id="decision-title">Your decision</h2>
           <p className="muted">The model only advises. Your decision is final and is recorded in the decision log with the model's score.</p>
-          {error && <p className="alert alert-error" role="alert">{error}</p>}
+          {error && <Callout tone="error">{error}</Callout>}
           <div className="choices" role="radiogroup" aria-label="Decision">
             <label className="check"><input type="radio" name="decision" value="approve" checked={decision === "approve"} onChange={() => setDecision("approve")} /> Approve the promotion</label>
             <label className="check"><input type="radio" name="decision" value="reject" checked={decision === "reject"} onChange={() => setDecision("reject")} /> Reject the promotion</label>
           </div>
           {disagrees && (
-            <p className="alert alert-info">
+            <Callout>
               This differs from the model, which {explanation.recommended ? "recommends" : "doesn't recommend"} promotion.
               That's allowed, but please explain why, in at least {MIN_REASON} characters.
-            </p>
+            </Callout>
           )}
-          <label className="field"><span>Reason {disagrees ? <span className="small">(required, {reason.trim().length}/{MIN_REASON} characters)</span> : <span className="muted small">(optional)</span>}</span>
+          <label className="field"><span>Reason {disagrees ? <span className="muted">(required, {reason.trim().length}/{MIN_REASON} characters)</span> : <span className="muted">(optional)</span>}</span>
             <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={2000} />
           </label>
 
@@ -181,11 +175,11 @@ export default function ReviewNomination() {
                 </label>
               </div>
               {raiseOutside && (
-                <label className="field"><span>Why go outside the policy? <span className="small">(required, {raiseReason.trim().length}/{MIN_REASON} characters)</span></span>
+                <label className="field"><span>Why go outside the policy? <span className="muted">(required, {raiseReason.trim().length}/{MIN_REASON} characters)</span></span>
                   <textarea rows={2} value={raiseReason} onChange={(e) => setRaiseReason(e.target.value)} maxLength={2000} />
                 </label>
               )}
-              <p className="muted small" style={{ margin: 0 }}>Only the percentage is recorded, never a salary. It's never used by the model.</p>
+              <p className="muted">Only the percentage is recorded, never a salary. It's never used by the model.</p>
             </div>
           )}
           <Button busy={working} busyText="Saving decision…" disabled={!decision || reasonTooShort || raiseMissing || raiseReasonTooShort}>Save decision</Button>
@@ -194,7 +188,7 @@ export default function ReviewNomination() {
         <PaySignOff decision={nomination.decision} policy={policy}
           onChange={(decision) => setNomination({ ...nomination, decision })} />
       ) : (
-        <p className="alert alert-info">This nomination has already been decided. See the decision log.</p>
+        <Callout>This nomination has already been decided. See the <Link to="/decisions">decision log</Link>.</Callout>
       )}
     </>
   );

@@ -1,0 +1,108 @@
+/* MeritLens design tokens: every colour, size, space, radius and shadow the interface uses, defined once for the
+   light and dark themes. styles.css uses only these names.
+
+   Colour families, never mixed:
+   - Interface: navy for primary actions and the sidebar, a deeper blue for links. Teal is a small highlight only
+     (the active menu marker, focus rings).
+   - Data (the model's view): teal raises readiness, orange lowers it, grey for "not yet". These are never button
+     or link colours, so "this helps your score" never looks like "tap this".
+   - Status (system messages): green success, amber warning, red danger, blue info. Always shown with a word or an
+     icon as well, never by colour alone. "Not yet recommended" is neutral, never red.
+   Every text colour meets WCAG AA (4.5:1) on the surfaces it sits on, in both themes. */
+
+:root {
+  /* Type: Montserrat, installed locally (main.jsx); never loaded from Google's servers */
+  --font: "Montserrat Variable", "Montserrat", system-ui, sans-serif;
+  --text-32: 32px; --text-24: 24px; --text-20: 20px; --text-16: 16px; --text-14: 14px; --text-12: 12px;
+  --lh-body: 1.55; --lh-heading: 1.25;
+
+  /* Spacing: a 4px grid */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-6: 24px; --s-8: 32px; --s-12: 48px;
+
+  /* Shape and depth */
+  --radius: 8px;          /* cards, inputs, panels */
+  --radius-btn: 6px;      /* buttons */
+  --radius-pill: 999px;   /* badges */
+  --shadow: 0 1px 2px rgba(15, 42, 68, 0.06), 0 2px 8px rgba(15, 42, 68, 0.06);    /* the one level for raised cards */
+  --shadow-overlay: 0 4px 12px rgba(15, 42, 68, 0.12), 0 16px 40px rgba(15, 42, 68, 0.16);  /* menus, modals, toasts */
+
+  /* Motion: subtle, and none at all for people who ask for less (styles.css) */
+  --fast: 150ms; --normal: 200ms; --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --sidebar-w: 248px; --rail-w: 72px; --topbar-h: 64px; --content-max: 1280px;
+}
+
+/* Light: the default, and whenever the computer asks for light */
+:root, [data-theme="light"] {
+  --bg: #f4f6f9;              /* the page */
+  --surface: #ffffff;         /* cards: surface-raised */
+  --surface-sunken: #eef1f5;  /* insets, table headers, quiet fills */
+  --border: #dfe4ea;
+  --border-strong: #7b8696;   /* form fields: 3:1 against white, so their edges are always visible */
+  --text: #17212e;
+  --text-muted: #526072;
+  --primary: #1e3a5f;         /* navy: the one main action */
+  --primary-hover: #0f2a44;
+  --on-primary: #ffffff;
+  --link: #1d4f91;
+  --focus: #0b7a6e;           /* teal focus ring */
+  --highlight: #0b7a6e;       /* teal: active menu marker */
+  --selected: #e7eef8;        /* behind chosen rows and options */
+
+  --success: #1e7038; --success-bg: #e6f4ea;
+  --warning: #8a5300; --warning-bg: #fdf2dc;
+  --danger: #b42318;  --danger-bg: #fdecea;
+  --info: #1d4f91;    --info-bg: #e7eef8;
+
+  /* Data colours: the model's view only */
+  --up: #0b7a6e;   --up-bg: #e3f3f1;     /* raises readiness */
+  --down: #b8460b; --down-bg: #fcebe1;   /* lowers readiness */
+  --not-yet: #8a95a5;                    /* below the threshold: neutral grey */
+  --track: #e3e8ee;
+  /* Charts (dashboards): categorical slots in fixed order, validated for colour-vision deficiency on these surfaces;
+     slot 1 is also the single-series colour. Values are always written beside the marks as well. */
+  --chart-1: #2a78d6; --chart-2: #eb6834; --chart-3: #1baf7a; --chart-4: #8a95a5;
+
+  /* The sidebar: navy in both themes */
+  --sidebar: #0f2a44; --sidebar-text: #c9d5e3; --sidebar-active: #1e4269; --sidebar-hover: #183856;
+  --sidebar-focus: #8fd8cc;
+
+  color-scheme: light;
+}
+
+/* Dark: chosen with the toggle, or the computer's setting when nothing was chosen (theme.js sets data-theme) */
+[data-theme="dark"] {
+  --bg: #0b121c;
+  --surface: #131e2b;
+  --surface-sunken: #0f1823;
+  --border: #263446;
+  --border-strong: #6c7a8c;
+  --text: #e6ebf2;
+  --text-muted: #9ba9ba;
+  --primary: #3a73b5;
+  --primary-hover: #2f62a0;
+  --on-primary: #ffffff;
+  --link: #8dbbf2;
+  --focus: #3cc4b2;
+  --highlight: #3cc4b2;
+  --selected: #1a2c42;
+
+  --success: #6fd08f; --success-bg: #12301d;
+  --warning: #f2bd5a; --warning-bg: #33260c;
+  --danger: #ff8f86;  --danger-bg: #3a1614;
+  --info: #8dbbf2;    --info-bg: #142a45;
+
+  --up: #3cc4b2;   --up-bg: #0f3330;
+  --down: #ff9a5c; --down-bg: #3a2312;
+  --not-yet: #6c7a8c;
+  --track: #223042;
+  --chart-1: #3987e5; --chart-2: #d95926; --chart-3: #199e70; --chart-4: #6c7a8c;
+
+  --sidebar: #08131f; --sidebar-text: #b7c4d4; --sidebar-active: #1c3553; --sidebar-hover: #12253a;
+  --sidebar-focus: #8fd8cc;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}

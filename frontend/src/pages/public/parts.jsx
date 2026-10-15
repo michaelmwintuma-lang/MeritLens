@@ -14,11 +14,11 @@ export function PageIntro({ title, children }) {
   );
 }
 
-/** A screenshot of the app with a caption underneath. */
-export function Screenshot({ src, alt, children, wide = false }) {
+/** A screenshot of the app in a window frame, with a caption underneath. `eager` loads it straight away (the hero). */
+export function Screenshot({ src, alt, children, eager = false }) {
   return (
-    <figure className={`screenshot ${wide ? "wide" : ""}`}>
-      <img src={src} alt={alt} loading="lazy" />
+    <figure className="screenshot">
+      <div className="screenshot-frame"><span aria-hidden="true" /><img src={src} alt={alt} loading={eager ? "eager" : "lazy"} /></div>
       {children && <figcaption>{children}</figcaption>}
     </figure>
   );

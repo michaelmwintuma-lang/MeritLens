@@ -5,9 +5,9 @@ const RATING_WORDS = ["", "Below expectations", "Partly meets", "Meets", "Exceed
 /** Five dots plus the rating in words, so it never depends on colour alone. */
 function Rating({ value }) {
   return (
-    <span className="rating" aria-label={`${value} out of 5: ${RATING_WORDS[value]}`}>
+    <span className="rating" role="img" aria-label={`${value} out of 5: ${RATING_WORDS[value]}`}>
       <span className="rating-dots" aria-hidden="true">{[1, 2, 3, 4, 5].map((i) => <span key={i} className={i <= value ? "on" : ""} />)}</span>
-      <span className="small strong">{value}/5 · {RATING_WORDS[value]}</span>
+      <span className="strong num" aria-hidden="true">{value}/5 · {RATING_WORDS[value]}</span>
     </span>
   );
 }
@@ -22,14 +22,16 @@ export default function Recommendation({ nomination }) {
         <div><dt>Start date</dt><dd>{rec.proposed_start}</dd></div>
         <div><dt>Proposed pay rise</dt><dd>{rec.proposed_raise}%</dd></div>
       </dl>
-      <table className="rec-criteria">
-        <thead><tr><th>Area</th><th>Rating</th><th>Example</th></tr></thead>
-        <tbody>
-          {rec.criteria.map((c) => (
-            <tr key={c.key}><td className="strong">{c.label}</td><td><Rating value={c.rating} /></td><td>{c.example}</td></tr>
-          ))}
-        </tbody>
-      </table>
+      <h3 className="form-subhead">Ratings, with an example for each</h3>
+      <ul className="criteria-list">
+        {rec.criteria.map((c) => (
+          <li key={c.key}>
+            <span className="strong">{c.label}</span>
+            <Rating value={c.rating} />
+            <span className="example">{c.example}</span>
+          </li>
+        ))}
+      </ul>
       <h3 className="form-subhead">Overall</h3>
       <blockquote className="quote">{rec.reason}</blockquote>
       {rec.model_disagreement && (

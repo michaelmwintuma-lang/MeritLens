@@ -13,7 +13,7 @@ export function CalibrationSummary({ calibration: c }) {
   return (
     <p className="calibration-summary">
       <span className={tag}>{c.verdict.charAt(0).toUpperCase() + c.verdict.slice(1)}</span>
-      <span className="small muted">
+      <span className="muted">
         Average gap {(c.ece * 100).toFixed(1)} percentage points · slope {c.slope.toFixed(2)} (1 is perfect) ·
         Brier {c.brier.toFixed(3)} against {c.brier_baseline.toFixed(3)} for always guessing {percent(c.base_rate)} ·
         {" "}{c.groups_within_interval} of {c.bins.length} groups within their 95% interval
@@ -72,11 +72,11 @@ export default function CalibrationChart({ calibration: c }) {
       </div>
       <details className="details">
         <summary>Show the numbers as a table</summary>
-        <div className="table-wrap" tabIndex={0}><table>
-          <thead><tr><th>Score group</th><th>Employees</th><th>Average score</th><th>Actually promoted</th><th>95% interval</th></tr></thead>
+        <div className="table-wrap auto-height" tabIndex={0} role="region" aria-label="Calibration numbers"><table>
+          <thead><tr><th>Score group</th><th className="num">Employees</th><th className="num">Average score</th><th className="num">Actually promoted</th><th className="num">95% interval</th></tr></thead>
           <tbody>{rows.map((r) => (
-            <tr key={r.from}><td>{pct1(r.from)}–{pct1(r.to)}</td><td>{r.count.toLocaleString()}</td><td>{pct1(r.mean_score)}</td>
-              <td className="strong">{pct1(r.promoted)}</td><td>{pct1(r.promoted_low)}–{pct1(r.promoted_high)}</td></tr>
+            <tr key={r.from}><td>{pct1(r.from)}–{pct1(r.to)}</td><td className="num">{r.count.toLocaleString()}</td><td className="num">{pct1(r.mean_score)}</td>
+              <td className="num strong">{pct1(r.promoted)}</td><td className="num">{pct1(r.promoted_low)}–{pct1(r.promoted_high)}</td></tr>
           ))}</tbody>
         </table></div>
       </details>

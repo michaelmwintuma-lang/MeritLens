@@ -1,6 +1,7 @@
-// The public landing page: what the platform is (predict → explain → respond), what it offers, the promises it
-// keeps, and its measured results. Every result comes from the last training and evaluation runs
-// (/api/public/summary); a result that hasn't been measured yet shows as "–", never as an example number.
+// The public landing page: what the platform is, how it works (predict → explain → respond), what it offers, the
+// app itself, its fairness and privacy promises, and its measured results. Every result comes from the last
+// training and evaluation runs (/api/public/summary); a result that hasn't been measured yet shows as "–", never as
+// an example number.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ClipboardPen, FileCheck2, Gauge, ListChecks, MessageSquareText, Route, Scale, ScanSearch, ShieldCheck, UserCheck, Users } from "lucide-react";
@@ -36,42 +37,44 @@ export default function Home() {
 
   return (
     <>
-      <section className="home-intro">
-        <p className="eyebrow">{BRAND}</p>
-        <h1>{TAGLINE}</h1>
-        <p className="lead">
-          {BRAND} helps an organisation decide promotions it can explain. It predicts how ready each employee is, shows
-          why in plain words, and gives every employee a way to respond.
-        </p>
-        <div className="row intro-actions">
-          <Link className="btn btn-primary btn-lg" to="/login">Sign in</Link>
-          <a className="btn btn-accent btn-lg" href="#how-it-works">How it works</a>
+      <section className="hero">
+        <div className="hero-text">
+          <p className="eyebrow">{BRAND}</p>
+          <h1>{TAGLINE}</h1>
+          <p className="lead">
+            {BRAND} helps an organisation decide promotions it can explain. It predicts how ready each employee is, shows
+            why in plain words, and gives every employee a way to respond.
+          </p>
+          <div className="intro-actions">
+            <Link className="btn btn-primary btn-lg" to="/login">Sign in</Link>
+            <a className="btn btn-secondary btn-lg" href="#how-it-works">How it works <ArrowRight size={18} aria-hidden="true" /></a>
+          </div>
         </div>
+        <Screenshot eager src="/landing/growth.webp" alt="An employee's My growth page: the readiness score as a gauge, a plain-language summary, and the factors that raised and lowered it" />
       </section>
 
       <section aria-labelledby="how-it-works" className="home-section">
-        <h2 id="how-it-works">How it works</h2>
+        <p className="eyebrow">How it works</p>
+        <h2 id="how-it-works">Predict, explain, respond</h2>
         <ol className="how-steps">
           {STEPS.map(({ icon: Icon, title, text }, i) => (
             <li key={title}>
               <span className="how-icon"><Icon size={22} aria-hidden="true" /></span>
-              <h3><span className="how-number">{i + 1}.</span> {title}</h3>
+              <span className="how-number">Step {i + 1}</span>
+              <h3>{title}</h3>
               <p>{text}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <Screenshot wide src="/landing/growth.webp" alt="An employee's My growth page: the readiness score, the factors that raised and lowered it, and the panel to respond">
-        An employee's own page: the score, and exactly what raised and lowered it compared with an average employee.
-      </Screenshot>
-
       <section aria-labelledby="features" className="home-section">
+        <p className="eyebrow">Features</p>
         <h2 id="features">What it does</h2>
         <ul className="feature-grid">
           {FEATURES.map(({ icon: Icon, title, text }) => (
-            <li key={title}>
-              <Icon size={20} aria-hidden="true" className="feature-icon" />
+            <li key={title} className="feature-card">
+              <span className="feature-icon"><Icon size={20} aria-hidden="true" /></span>
               <h3>{title}</h3>
               <p>{text}</p>
             </li>
@@ -79,26 +82,40 @@ export default function Home() {
         </ul>
       </section>
 
-      <Screenshot src="/landing/respond.webp" alt="The Respond to this explanation panel, with tabs to rate the explanation or correct the record, and two 1 to 5 scales">
-        Further down: the smallest realistic steps to the threshold, then the panel to respond: rate the explanation, or ask HR to correct a value.
-      </Screenshot>
+      <section aria-labelledby="screens" className="home-section">
+        <p className="eyebrow">The app</p>
+        <h2 id="screens">See it from an employee's side</h2>
+        <div className="screens">
+          <Screenshot src="/landing/growth.webp" alt="The My growth page: the score, what raised and lowered it, and the path to promotion">
+            The score, and exactly what raised and lowered it compared with an average employee.
+          </Screenshot>
+          <Screenshot src="/landing/respond.webp" alt="The Respond to this explanation panel: rate the explanation, or ask HR to correct the record">
+            Two ways to respond: rate the explanation, or ask HR to correct a value.
+          </Screenshot>
+        </div>
+      </section>
 
       <section aria-labelledby="promises" className="home-section trust">
+        <p className="eyebrow">Fairness and privacy</p>
         <h2 id="promises">What we promise</h2>
         <ul className="promise-grid">
           {PROMISES.map(({ icon: Icon, title, text }) => (
             <li key={title}>
-              <Icon size={22} aria-hidden="true" className="feature-icon" />
+              <span className="feature-icon"><Icon size={20} aria-hidden="true" /></span>
               <h3>{title}</h3>
               <p>{text}</p>
             </li>
           ))}
         </ul>
-        <p className="small"><Link className="text-link" to="/privacy">What we store, and what we don't <ArrowRight size={16} aria-hidden="true" /></Link></p>
+        <p className="trust-foot">
+          <ListChecks size={18} aria-hidden="true" className="icon-inline" /> The model never sees gender, age, education, department or pay.{" "}
+          <Link className="text-link" to="/privacy">What we store, and what we don't <ArrowRight size={16} aria-hidden="true" /></Link>
+        </p>
       </section>
 
-      <section className="results-section">
-        <h2>How it did in testing</h2>
+      <section aria-labelledby="results" className="home-section">
+        <p className="eyebrow">Results</p>
+        <h2 id="results">How it did in testing</h2>
         <p className="muted">Measured on synthetic (made-up) employee data, on employees the model never saw in training.</p>
         <dl className="results">
           <div><dt>{trained ? facts.roc_auc.toFixed(2) : "–"}</dt>
@@ -110,12 +127,16 @@ export default function Home() {
           <div><dt>{trained ? facts.inputs : "–"}</dt>
             <dd>Inputs, all about performance and development: never gender, age, education, department or pay.</dd></div>
         </dl>
-        <p className="muted small"><ListChecks size={14} aria-hidden="true" style={{ verticalAlign: "-2px" }} /> The model never sees gender, age, education, department or pay.</p>
       </section>
 
-      <p className="closing">
-        Want to see it with your own questions? <Link to="/demo">Book a demo</Link>, or <Link to="/login">sign in</Link> if you have an account.
-      </p>
+      <section className="closing">
+        <h2>See it with your own questions</h2>
+        <p>Half an hour online, as each role sees it.</p>
+        <div className="intro-actions">
+          <Link className="btn btn-lg btn-on-dark" to="/demo">Book a demo</Link>
+          <Link className="btn btn-lg btn-outline-dark" to="/login">Sign in</Link>
+        </div>
+      </section>
     </>
   );
 }

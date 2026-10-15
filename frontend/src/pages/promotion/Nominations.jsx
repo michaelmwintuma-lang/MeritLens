@@ -1,9 +1,9 @@
 // Nominations. Managers see the ones they made; HR sees all of them and opens a waiting one to decide.
 import { useEffect, useState } from "react";
-import { ClipboardCheck } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
-import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
+import { Button, Callout, Card, LoadError, PageHeader, PageLoading } from "../../components/ui";
+import { useToast } from "../../components/Toast";
 import { useAction } from "../../useAction";
 import NominationsTable from "../../components/promotion/NominationsTable";
 
@@ -11,33 +11,35 @@ import NominationsTable from "../../components/promotion/NominationsTable";
 function PayPolicy() {
   const [policy, setPolicy] = useState(null);
   const [form, setForm] = useState({ min_raise: "", max_raise: "" });
-  const [message, setMessage] = useState({ text: "", ok: true });
+  const [error, setError] = useState("");
+  const toast = useToast();
   const [saving, withSaving] = useAction();
   useEffect(() => {
     api("/promotion/pay-policy").then((p) => { setPolicy(p); setForm({ min_raise: String(p.min_raise), max_raise: String(p.max_raise) }); })
-      .catch((err) => setMessage({ text: err.message, ok: false }));
+      .catch((err) => setError(err.message));
   }, []);
-  if (!policy) return null;
+  if (!policy) return error ? <Callout tone="error">{error}</Callout> : null;
 
   async function save(e) {
     e.preventDefault();
+    setError("");
     try {
       const saved = await api("/promotion/pay-policy", { method: "PUT", body: { min_raise: Number(form.min_raise), max_raise: Number(form.max_raise) } });
       setPolicy(saved);
-      setMessage({ text: "Saved. New recommendations must fall in this range.", ok: true });
+      toast("Pay policy saved. New recommendations must fall in this range.");
     } catch (err) {
-      setMessage({ text: err.message, ok: false });
+      setError(err.message);
     }
   }
 
   return (
-    <Card title="Promotion pay policy" subtitle="Managers propose within this range. Going outside it needs a written reason.">
-      <form onSubmit={(e) => withSaving(() => save(e))} className="row" style={{ alignItems: "flex-end", gap: 14 }}>
-        <label className="field" style={{ marginBottom: 0 }}>Lowest rise (%)<input type="number" min={0} max={100} step="0.5" value={form.min_raise} onChange={(e) => setForm({ ...form, min_raise: e.target.value })} required /></label>
-        <label className="field" style={{ marginBottom: 0 }}>Highest rise (%)<input type="number" min={0} max={100} step="0.5" value={form.max_raise} onChange={(e) => setForm({ ...form, max_raise: e.target.value })} required /></label>
-        <Button look="plain" busy={saving} busyText="Saving…">Save range</Button>
+    <Card id="pay-policy" title="Promotion pay policy" subtitle="The range promotion pay rises should fall in. Managers propose within it; going outside it needs a written reason.">
+      {error && <Callout tone="error">{error}</Callout>}
+      <form onSubmit={(e) => withSaving(() => save(e))} className="inline-form">
+        <label className="field">Lowest rise (%)<input type="number" min={0} max={100} step="0.5" value={form.min_raise} onChange={(e) => setForm({ ...form, min_raise: e.target.value })} required /></label>
+        <label className="field">Highest rise (%)<input type="number" min={0} max={100} step="0.5" value={form.max_raise} onChange={(e) => setForm({ ...form, max_raise: e.target.value })} required /></label>
+        <Button look="secondary" busy={saving} busyText="Saving…">Save range</Button>
       </form>
-      {message.text && <p className={`alert ${message.ok ? "alert-success" : "alert-error"}`} role="status" style={{ marginTop: 14 }}>{message.text}</p>}
     </Card>
   );
 }
@@ -52,10 +54,10 @@ export default function Nominations() {
 
   return (
     <>
-      <PageHeader icon={ClipboardCheck} title={isHr ? "Nominations" : "My nominations"}
-        subtitle={isHr ? undefined : "To recommend someone, open them from My team."} />
+      <PageHeader title={isHr ? "Nominations" : "My nominations"}
+        subtitle={isHr ? "Managers' recommendations, each with the model's view. Open a waiting one to decide." : "Your recommendations and where they stand. To recommend someone, open them from My team."} />
       {error && <LoadError message={error} onRetry={load} />}
-      {!list && !error && <Loading />}
+      {!list && !error && <PageLoading />}
       {list && <NominationsTable nominations={list} isHr={isHr} title="Recommendations" />}
       {isHr && <PayPolicy />}
     </>

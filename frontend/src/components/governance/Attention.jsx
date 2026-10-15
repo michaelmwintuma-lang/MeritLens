@@ -2,7 +2,7 @@
 // in words, with one link that goes straight to it. When nothing is waiting, it says so, so the page never looks
 // broken or empty.
 import { Link } from "react-router-dom";
-import { ArrowRight, BellRing, CheckCircle2 } from "lucide-react";
+import { ArrowRight, BellRing, CheckCircle2, CircleAlert, Info } from "lucide-react";
 
 /** items: [{ key, text, detail?, to, action, tone? ("warn" | "info") }]; empty rows are left out. */
 export default function Attention({ items }) {
@@ -19,15 +19,21 @@ export default function Attention({ items }) {
       </div>
       {rows.length > 0 && (
         <ul className="attention-list">
-          {rows.map((r) => (
-            <li key={r.key} className={r.tone ? `tone-${r.tone}` : ""}>
-              <div>
-                <div className="strong">{r.text}</div>
-                {r.detail && <div className="muted small">{r.detail}</div>}
-              </div>
-              <Link className="btn btn-plain" to={r.to}>{r.action} <ArrowRight size={16} aria-hidden="true" /></Link>
-            </li>
-          ))}
+          {rows.map((r) => {
+            const Icon = r.tone === "warn" ? CircleAlert : Info;
+            return (
+              <li key={r.key} className={r.tone ? `tone-${r.tone}` : ""}>
+                <div>
+                  <Icon size={18} aria-hidden="true" />
+                  <div>
+                    <div className="strong">{r.text}</div>
+                    {r.detail && <div className="muted">{r.detail}</div>}
+                  </div>
+                </div>
+                <Link className="btn btn-secondary btn-sm" to={r.to}>{r.action} <ArrowRight size={16} aria-hidden="true" /></Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

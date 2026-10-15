@@ -1,9 +1,10 @@
 // Pages and who may open them.
 import { Suspense, lazy } from "react";
+import { Loader2, Lock } from "lucide-react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { Loading } from "./components/ui";
+import { EmptyState } from "./components/ui";
 import PublicLayout from "./pages/public/PublicLayout";
 import PublicHome from "./pages/public/Home";
 import Login from "./pages/Login";
@@ -48,19 +49,24 @@ function AfterSignIn() {
 function OnlyFor({ roles, children }) {
   const { user } = useAuth();
   if (roles.includes(user.role)) return children;
-  return <div className="card"><h1>Not available</h1><p className="muted">Your role doesn't have access to this page.</p></div>;
+  return <div className="card"><EmptyState icon={Lock} title="Not available" text="Your role doesn't have access to this page." /></div>;
+}
+
+/** While the app itself loads (before the menu can be drawn). */
+function AppLoading() {
+  return <div className="center-page"><p className="loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" />Loading…</p></div>;
 }
 
 export default function App() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
-  if (loading) return <div className="center-page"><Loading /></div>;
+  if (loading) return <AppLoading />;
 
   // Not signed in: the public website (one page per menu item) and the sign-in page
   if (!user) {
     return (
       <ErrorBoundary resetKey={pathname}>
-      <Suspense fallback={<div className="center-page"><Loading /></div>}>
+      <Suspense fallback={<AppLoading />}>
       <Routes>
         <Route element={<PublicLayout />}>
           <Route index element={<PublicHome />} />
@@ -83,7 +89,7 @@ export default function App() {
   const viewAll = user.role === "admin" && user.can_view_employees ? ["hr", "admin"] : ["hr"];
 
   return (
-    <Suspense fallback={<div className="center-page"><Loading /></div>}>
+    <Suspense fallback={<AppLoading />}>
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Home />} />

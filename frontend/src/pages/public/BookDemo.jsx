@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { api } from "../../api";
 import { useAction } from "../../useAction";
-import { Button } from "../../components/ui";
+import { Button, Callout } from "../../components/ui";
 
 const EMPTY = { name: "", email: "", organisation: "", job_title: "", size: "", interest: "", message: "", website: "" };
 
@@ -43,20 +43,20 @@ export default function BookDemo() {
             <CheckCircle2 size={40} aria-hidden="true" />
             <h2>Request received</h2>
             <p>{done}</p>
-            <Link className="btn btn-plain" to="/">Back to the home page</Link>
+            <Link className="btn btn-secondary" to="/">Back to the home page</Link>
           </div>
         ) : (
           <form onSubmit={(e) => withSending(() => send(e))}>
             <h2>Your details</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>We only use these to contact you about the demo.</p>
-            {error && <p className="alert alert-error" role="alert">{error}</p>}
+            <p className="muted">We only use these to contact you about the demo.</p>
+            {error && <Callout tone="error">{error}</Callout>}
             <div className="form-row">
               <label className="field">Full name<input value={form.name} onChange={set("name")} required minLength={2} maxLength={120} autoComplete="name" /></label>
               <label className="field">Work email<input type="email" value={form.email} onChange={set("email")} required autoComplete="email" /></label>
             </div>
             <div className="form-row">
               <label className="field">Organisation<input value={form.organisation} onChange={set("organisation")} required minLength={2} maxLength={160} autoComplete="organization" /></label>
-              <label className="field"><span>Job title <span className="muted small">(optional)</span></span><input value={form.job_title} onChange={set("job_title")} maxLength={120} autoComplete="organization-title" /></label>
+              <label className="field"><span>Job title <span className="muted">(optional)</span></span><input value={form.job_title} onChange={set("job_title")} maxLength={120} autoComplete="organization-title" /></label>
             </div>
             <div className="form-row">
               <label className="field">Number of employees
@@ -72,7 +72,7 @@ export default function BookDemo() {
                 </select>
               </label>
             </div>
-            <label className="field"><span>Anything you'd like us to cover? <span className="muted small">(optional)</span></span>
+            <label className="field"><span>Anything you'd like us to cover? <span className="muted">(optional)</span></span>
               <textarea rows={4} value={form.message} onChange={set("message")} maxLength={1000} />
             </label>
             {/* Hidden from people; form-filling robots fill it in, and their requests are dropped */}

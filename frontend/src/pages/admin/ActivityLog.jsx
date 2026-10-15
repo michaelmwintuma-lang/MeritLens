@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { EyeOff, ScrollText } from "lucide-react";
 import { api } from "../../api";
-import { Card, EmptyState, LoadError, Loading, PageHeader } from "../../components/ui";
+import { Callout, Card, EmptyState, LoadError, Loading, PageHeader } from "../../components/ui";
 
 export default function ActivityLog() {
   const [data, setData] = useState(null);
@@ -20,12 +20,11 @@ export default function ActivityLog() {
 
   return (
     <>
-      <PageHeader icon={ScrollText} title="Activity log" subtitle="Recorded by day, not time." />
-      <p className="alert alert-info">
-        <EyeOff size={16} style={{ verticalAlign: "-3px" }} /> <strong>Only the day is kept, never the time</strong>: an
-        audit needs to know what happened and when, not people's working habits.
-      </p>
-      {error && <LoadError message={error} />}
+      <PageHeader title="Activity log" subtitle="Who did what, and on which day: sign-ins, account changes and every decision-relevant action." />
+      <Callout icon={EyeOff} title="Only the day is kept, never the time">
+        An audit needs to know what happened and when, not people's working habits.
+      </Callout>
+      {error && <LoadError message={error} onRetry={() => setSearch((s) => `${s}`)} />}
       <Card flush title="Entries" subtitle="Newest first (the latest 500)."
         actions={
           <div className="filters">
@@ -39,13 +38,13 @@ export default function ActivityLog() {
         {!data ? <Loading /> : data.entries.length === 0 ? (
           <EmptyState icon={ScrollText} title="Nothing found" text="Try another action or search." />
         ) : (
-          <div className="table-wrap" tabIndex={0}>
+          <div className="table-wrap" tabIndex={0} role="region" aria-label="Activity log entries">
             <table>
               <thead><tr><th>Date</th><th>Who</th><th>What</th><th>Details</th></tr></thead>
               <tbody>
                 {data.entries.map((e) => (
                   <tr key={e.id}>
-                    <td className="nowrap">{e.date}</td>
+                    <td className="nowrap num">{e.date}</td>
                     <td className="strong">{e.user}</td>
                     <td><span className={`tag ${e.action === "sign_in_failed" ? "tag-warn" : ""}`}>{e.action_label}</span></td>
                     <td className="muted">{e.details || "–"}</td>

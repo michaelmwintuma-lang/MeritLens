@@ -2,10 +2,10 @@
 // appear in HR's own records; the server checks them and turns them into the model's inputs.
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, UserPlus } from "lucide-react";
+import { Save } from "lucide-react";
 import { api } from "../../api";
 import { useAction } from "../../useAction";
-import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
+import { Button, Callout, Card, LoadError, Loading, PageHeader } from "../../components/ui";
 
 const GROUP_NOTES = {
   Performance: "From this year's review and KPI tracking.",
@@ -35,7 +35,7 @@ export default function EmployeeForm() {
       .catch((err) => setError(err.message));
   }, [id, editing]);
 
-  if (error && !setup) return <><PageHeader icon={UserPlus} title="Employee details" /><LoadError message={error} /></>;
+  if (error && !setup) return <><PageHeader title="Employee details" /><LoadError message={error} /></>;
   if (!setup || !form) return <Loading />;
 
   const setValue = (name) => (e) => setForm({ ...form, values: { ...form.values, [name]: e.target.value } });
@@ -62,10 +62,9 @@ export default function EmployeeForm() {
 
   return (
     <>
-      <Link to={editing ? `/employees/${id}` : "/employees"} className="back"><ArrowLeft size={16} />{editing ? "Back to their readiness" : "Back to all employees"}</Link>
-      <PageHeader icon={UserPlus} title={editing ? `Edit ${form.full_name}` : "Add an employee"}
+      <PageHeader title={editing ? `Edit ${form.full_name}` : "Add an employee"}
         subtitle={editing ? "Past decisions keep the score they were made with." : undefined} />
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      {error && <Callout tone="error">{error}</Callout>}
 
       <form onSubmit={(e) => withSaving(() => save(e))} noValidate>
         <Card title="Who they are" subtitle="Gender, age, education and pay are never asked for: the model doesn't use them.">
@@ -109,9 +108,9 @@ export default function EmployeeForm() {
           </Card>
         )}
 
-        <div className="row" style={{ gap: 10 }}>
+        <div className="form-actions">
           <Button icon={Save} busy={saving} busyText="Checking and saving…">{editing ? "Save changes" : "Add employee"}</Button>
-          <Link to={editing ? `/employees/${id}` : "/employees"} className="btn btn-plain">Cancel</Link>
+          <Link to={editing ? `/employees/${id}` : "/employees"} className="btn btn-secondary">Cancel</Link>
         </div>
       </form>
     </>

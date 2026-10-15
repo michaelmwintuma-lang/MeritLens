@@ -313,7 +313,7 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
 | Automated tests | `backend/tests/`, 322 tests | All passing |
-| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 6 checks passing; 0 accessibility findings on 15 pages |
+| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 7 checks passing; 0 accessibility findings on 39 pages |
 | Continuous integration | `.github/workflows/ci.yml` | Tests, build and browser checks on every push |
 
 Every number, with its source: **`docs/EVALUATION_RESULTS.md`**.
@@ -435,9 +435,10 @@ From the project folder, the browser checks and screenshots run against a throwa
 database:
 
 ```bash
-python scripts/browser_test.py                                        # 6 checks in headless Chrome
+python scripts/browser_test.py                                        # 7 checks in headless Chrome
 python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/latest   # screenshots + accessibility audit
 python scripts/browser_test.py scripts/capture_landing.js             # the website's screenshots
+python scripts/browser_test.py scripts/capture_thesis.js              # the thesis figures (docs/screenshots/thesis)
 ```
 
 ---
@@ -468,7 +469,8 @@ frontend/
   src/api.ts, auth.tsx   the typed API layer and sign-in (TypeScript)
   src/pages/             one file per page (promotion/, feedback/, governance/, admin/, finance/, public/)
   src/components/        shared parts: layout, explanation widgets, feedback panels, attention panel, dashboards
-  src/styles.css         the design system (Apple-style): white, one blue for actions, teal/orange only for the model's data
+  src/tokens.css         design tokens: colours (light and dark), type scale, spacing, radii, shadow
+  src/styles.css         the design system: navy for actions, teal/orange only for the model's data
 results/                 metrics, fairness, curves, proxy analysis and explanation evaluation for the thesis
 docs/                    how it works, evaluation results, thesis guide, data model, user test; future-work/
 scripts/                 browser checks, screenshots and accessibility audits (headless Chrome, no npm packages)

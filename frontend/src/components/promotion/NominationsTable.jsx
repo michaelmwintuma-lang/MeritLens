@@ -21,37 +21,37 @@ export default function NominationsTable({ nominations, isHr, title, subtitle })
 
   return (
     <Card flush title={title} subtitle={subtitle} actions={<Segmented label="Show" options={VIEWS} value={view} onChange={setView} />}>
-      <div className="table-wrap" tabIndex={0}>
+      {rows.length > 0 && <div className="table-wrap" tabIndex={0} role="region" aria-label={title}>
         <table>
           <thead>
-            <tr><th>Employee</th><th>Proposed</th><th>Nominated by</th><th>Model's view now</th><th>Status</th><th>Date</th><th style={{ textAlign: "right" }}>Actions</th></tr>
+            <tr><th>Employee</th><th>Proposed</th><th>Nominated by</th><th className="num">Model's view now</th><th>Status</th><th>Date</th><th className="num">Actions</th></tr>
           </thead>
           <tbody>
             {rows.map((n) => (
               <tr key={n.id}>
-                <td><span className="strong">{n.employee.full_name}</span><div className="muted small">{n.employee.department}</div></td>
+                <td><span className="strong">{n.employee.full_name}</span><div className="cell-sub">{n.employee.department}</div></td>
                 <td>{n.recommendation?.proposed_title
-                  ? <><span className="strong">{n.recommendation.proposed_title}</span><div className="muted small">
+                  ? <><span className="strong">{n.recommendation.proposed_title}</span><div className="cell-sub">
                       {n.decision?.approved_raise != null ? `${n.decision.approved_raise}% approved` : `${n.recommendation.proposed_raise}% proposed`}</div></>
                   : <span className="muted">–</span>}</td>
                 <td>{n.nominated_by}</td>
-                <td>{percent(n.model_now.score)} · {n.model_now.recommended ? "recommends" : "not yet"}</td>
-                <td><NominationStatus status={n.status} />{n.decision?.pay_status && <div style={{ marginTop: 4 }}><PayStatus status={n.decision.pay_status} /></div>}</td>
+                <td className="num"><span className="strong">{percent(n.model_now.score)}</span><div className="cell-sub">{n.model_now.recommended ? "Recommends" : "Not yet"}</div></td>
+                <td><div className="tag-stack"><NominationStatus status={n.status} />{n.decision?.pay_status && <PayStatus status={n.decision.pay_status} />}</div></td>
                 <td className="nowrap">{(n.decision?.decided_at || n.created_at).slice(0, 10)}</td>
-                <td style={{ textAlign: "right" }}>
+                <td className="num">
                   {isHr && (n.status === "pending" || n.decision?.pay_status === "returned")
-                    ? <Link className="btn btn-primary" to={`/nominations/${n.id}`}>{n.status === "pending" ? "Review" : "Revise pay"}</Link>
-                    : <Link className="btn btn-plain" to={`/employees/${n.employee.id}`}>View</Link>}
+                    ? <Link className="btn btn-primary btn-sm" to={`/nominations/${n.id}`}>{n.status === "pending" ? "Review" : "Revise pay"}<span className="visually-hidden"> {n.employee.full_name}</span></Link>
+                    : <Link className="btn btn-secondary btn-sm" to={`/employees/${n.employee.id}`}>View<span className="visually-hidden"> {n.employee.full_name}</span></Link>}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
       {rows.length === 0 && (
         <EmptyState icon={ClipboardCheck}
           title={view === "pending" ? "Nothing waiting for a decision" : "No nominations here yet"}
-          text={view === "pending" ? "New nominations from managers will appear here." : "Decided nominations will appear here."} />
+          text={view === "pending" ? (isHr ? "New nominations from managers will appear here." : "Open a team member from My team to recommend them.") : "Decided nominations will appear here."} />
       )}
     </Card>
   );

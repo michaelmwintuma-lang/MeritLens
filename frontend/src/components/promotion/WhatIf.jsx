@@ -1,8 +1,9 @@
 // What-if: move sliders for things a person can work on and see the new score. Nothing is saved.
 import { useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { api } from "../../api";
 import { formatValue, percent, stepFor } from "../../format";
-import { Button } from "../ui";
+import { Button, Callout } from "../ui";
 import { useAction } from "../../useAction";
 
 export default function WhatIf({ employeeId, options, score }) {
@@ -34,30 +35,31 @@ export default function WhatIf({ employeeId, options, score }) {
     <>
       <p className="muted">Only things a person can work on are listed. Department, time in role and personal characteristics can't be changed. Nothing is saved.</p>
       <div className="sliders">
-        {options.map((o) => (
-          <label key={o.feature} className="slider">
-            <span className="slider-head">
-              <span className="strong">{o.label}</span>
-              <span className={values[o.feature] !== o.value ? "changed" : "muted"}>{formatValue(o.unit, values[o.feature])}</span>
-            </span>
-            <input type="range" min={o.min} max={o.max} step={stepFor(o.unit, o.whole)} value={values[o.feature]}
-              onChange={(e) => { setValues({ ...values, [o.feature]: Number(e.target.value) }); setResult(null); }} />
-            <span className="muted small">Now: {formatValue(o.unit, o.value)}</span>
-          </label>
-        ))}
+        {options.map((o) => {
+          const changed = values[o.feature] !== o.value;
+          return (
+            <label key={o.feature} className={`slider ${changed ? "is-changed" : ""}`}>
+              <span className="slider-head">
+                <span>{o.label}</span>
+                <span className={`slider-value ${changed ? "changed" : "muted"}`}>{formatValue(o.unit, values[o.feature])}</span>
+              </span>
+              <input type="range" min={o.min} max={o.max} step={stepFor(o.unit, o.whole)} value={values[o.feature]}
+                onChange={(e) => { setValues({ ...values, [o.feature]: Number(e.target.value) }); setResult(null); }} />
+              {changed && <span className="muted">Now {formatValue(o.unit, o.value)}</span>}
+            </label>
+          );
+        })}
       </div>
-      <div className="row">
+      <div className="form-actions">
         <Button busy={working} busyText="Running the model…" onClick={() => withWorking(run)} disabled={!changedCount}>See the new score</Button>
-        <button className="btn btn-plain" onClick={reset} disabled={!changedCount && !result}>Reset</button>
-        <span className="muted small">{changedCount ? `${changedCount} changed` : "Move a slider to try a change."}</span>
+        <Button look="ghost" icon={RotateCcw} onClick={reset} disabled={!changedCount && !result}>Reset</Button>
+        <span className="muted" aria-live="polite">{changedCount ? `${changedCount} changed` : "Move a slider to try a change."}</span>
       </div>
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      {error && <Callout tone="error">{error}</Callout>}
       {result && (
-        <div className="alert alert-info">
-          <strong>Readiness would be {percent(result.score)}</strong> instead of {percent(score)}
-          {" "}({result.score >= score ? "+" : ""}{Math.round((result.score - score) * 100)} points), {result.recommended ? "above" : "still below"} the {percent(result.threshold)} threshold.
-          <div className="small" style={{ marginTop: 6 }}>{result.summary}</div>
-        </div>
+        <Callout tone="info" title={`Readiness would be ${percent(result.score)} instead of ${percent(score)}`} className="section-gap" role="status">
+          {result.score >= score ? "+" : ""}{Math.round((result.score - score) * 100)} points, {result.recommended ? "above" : "still below"} the {percent(result.threshold)} threshold. {result.summary}
+        </Callout>
       )}
     </>
   );

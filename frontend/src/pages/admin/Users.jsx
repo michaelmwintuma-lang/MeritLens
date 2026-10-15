@@ -4,12 +4,13 @@
 // - Employees: Employee and Manager accounts, linked to an employee record; managers get a team.
 // In both: create accounts (a welcome email goes out), edit, reset passwords and deactivate.
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Mail, Pencil, Trash2, UserCog } from "lucide-react";
+import { Eye, EyeOff, Mail, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
 import { ROLE_DESCRIPTIONS, ROLE_NAMES } from "../../roles";
 import TeamEditor from "../../components/admin/TeamEditor";
-import { Button, Card, PageHeader, Segmented } from "../../components/ui";
+import { Badge, Button, Callout, Card, PageHeader, Segmented } from "../../components/ui";
+import { useConfirm } from "../../components/Overlay";
 import { useAction } from "../../useAction";
 
 const TABS = {
@@ -21,16 +22,15 @@ const emptyForm = (role) => ({ username: "", full_name: "", email: "", role, job
 /** After creating an account or resetting a password: the details, and what happened to the email. */
 function SentDetails({ result, onDone }) {
   return (
-    <div className={`alert ${result.email_sent ? "alert-success" : "alert-warning"}`}>
-      <strong><Mail size={16} style={{ verticalAlign: "-3px" }} /> {result.email_sent ? "Welcome email sent" : "Email not sent"}</strong>
-      <span>{result.email_detail}</span>
-      <div className="mono" style={{ margin: "6px 0" }}>Username: {result.user.username}<br />Temporary password: {result.temporary_password}</div>
-      <span className="small">
+    <Callout tone={result.email_sent ? "success" : "warning"} icon={Mail} title={result.email_sent ? "Welcome email sent" : "Email not sent"}>
+      <p>{result.email_detail}</p>
+      <p className="mono">Username: {result.user.username}<br />Temporary password: {result.temporary_password}</p>
+      <p>
         {result.email_sent ? "You don't need to pass these on yourself. " : "Give these details to the person yourself. "}
         The password is shown only now: it is stored only as a hash. They will choose their own at first sign-in.
-      </span>
-      <button className="btn btn-plain" onClick={onDone}>Done</button>
-    </div>
+      </p>
+      <button type="button" className="btn btn-secondary btn-sm" onClick={onDone}>Done</button>
+    </Callout>
   );
 }
 
@@ -63,9 +63,9 @@ function EditRow({ account, onSaved, onCancel }) {
           <label className="field">Job title<input value={form.job_title} onChange={set("job_title")} maxLength={120} /></label>
           <div className="row">
             <Button busy={working} busyText="Saving…">Save</Button>
-            <button type="button" className="btn btn-plain" onClick={onCancel}>Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
           </div>
-          {error && <p className="alert alert-error" role="alert" style={{ gridColumn: "1 / -1" }}>{error}</p>}
+          {error && <Callout tone="error" className="full-row">{error}</Callout>}
         </form>
       </td>
     </tr>
@@ -82,6 +82,7 @@ export default function Users() {
   const [employees, setEmployees] = useState([]);
   const [teamFor, setTeamFor] = useState(null); // the manager whose team is being edited
   const [editing, setEditing] = useState(null); // the account being edited
+  const [confirm, dialog] = useConfirm();
 
   const load = () => Promise.all([api("/admin/users"), api("/admin/employees")])
     .then(([u, e]) => { setUsers(u); setEmployees(e); })
@@ -113,7 +114,8 @@ export default function Users() {
   }
 
   async function resetPassword(u) {
-    if (!window.confirm(`Give ${u.full_name} a new temporary password? Their current password stops working.`)) return;
+    if (!(await confirm({ title: "Reset the password?", action: "Reset password",
+      text: `Give ${u.full_name} a new temporary password? Their current password stops working.` }))) return;
     const result = await act(() => api(`/admin/users/${u.id}/reset-password`, { method: "POST" }), `reset-${u.id}`);
     if (result) { setSent(result); load(); }
   }
@@ -126,13 +128,14 @@ export default function Users() {
 
   async function togglePermission(u) {
     const giving = !u.can_view_employees;
-    if (giving && !window.confirm(`Let ${u.full_name} view every employee's record and readiness score (read-only)? They still can't see feedback, nominate or decide. This is recorded in the activity log.`)) return;
+    if (giving && !(await confirm({ title: "Allow employee data?", action: "Allow employee data",
+      text: `Let ${u.full_name} view every employee's record and readiness score (read-only)? They still can't see feedback, nominate or decide. This is recorded in the activity log.` }))) return;
     if (await act(() => api(`/admin/users/${u.id}/permissions`, { method: "PATCH", body: { can_view_employees: giving } }), `perm-${u.id}`)) load();
   }
 
   async function remove(u) {
-    if (!window.confirm(`Delete ${u.full_name}'s account (${u.username}) for good? This can't be undone. `
-      + "If you only want to stop them signing in, choose Deactivate instead.")) return;
+    if (!(await confirm({ title: "Delete this account?", action: "Delete account", danger: true,
+      text: `Delete ${u.full_name}'s account (${u.username}) for good? This can't be undone. If you only want to stop them signing in, choose Deactivate instead.` }))) return;
     if (await act(() => api(`/admin/users/${u.id}`, { method: "DELETE" }), `delete-${u.id}`)) load();
   }
 
@@ -142,11 +145,14 @@ export default function Users() {
 
   return (
     <>
-      <PageHeader icon={UserCog} title="Users"
-        subtitle="New users get a temporary password by email."
-        actions={<Segmented label="Account type" value={tab} onChange={switchTab} options={Object.entries(TABS).map(([value, t]) => (
-          { value, label: `${t.label} (${users.filter((u) => t.roles.includes(u.role)).length})` }))} />} />
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      <PageHeader title="Users"
+        subtitle="Create accounts, reset passwords and deactivate people. New users get a temporary password by email." />
+      <div className="tabs-bar">
+        <Segmented label="Account type" value={tab} onChange={switchTab} options={Object.entries(TABS).map(([value, t]) => (
+          { value, label: `${t.label} (${users.filter((u) => t.roles.includes(u.role)).length})` }))} />
+      </div>
+      {error && <Callout tone="error">{error}</Callout>}
+      {dialog}
       {sent && <SentDetails result={sent} onDone={() => setSent(null)} />}
 
       <Card title={`Create ${tab === "staff" ? "an administration" : "an employee"} account`} subtitle={`${TABS[tab].note} The welcome email goes to the address you enter, with the username and a temporary password.`}>
@@ -166,10 +172,10 @@ export default function Users() {
                 <option value="">Not linked</option>
                 {employees.filter((e) => !e.login).map((e) => <option key={e.id} value={e.id}>{e.full_name} · {e.department} · no. {e.id}</option>)}
               </select>
-              <span className="muted small" style={{ fontWeight: 400 }}>{form.role === "employee" ? "Needed, so they see their own readiness" : "Optional"}</span>
+              <span className="field-hint">{form.role === "employee" ? "Needed, so they see their own readiness" : "Optional"}</span>
             </label>}
           </div>
-          <p className="muted small">{ROLE_NAMES[form.role]}: {ROLE_DESCRIPTIONS[form.role]}</p>
+          <p className="muted">{ROLE_NAMES[form.role]}: {ROLE_DESCRIPTIONS[form.role]}</p>
           <Button icon={Mail} busy={busyKey === "create"} busyText="Creating account and sending email…">Create account and send welcome email</Button>
         </form>
       </Card>
@@ -182,33 +188,33 @@ export default function Users() {
       <Card flush title={`${TABS[tab].label} accounts`} subtitle={tab === "staff"
         ? undefined
         : "Managers are emailed when people join their team."}>
-        <div className="table-wrap" tabIndex={0}>
+        <div className="table-wrap" tabIndex={0} role="region" aria-label={`${TABS[tab].label} accounts`}>
           <table>
-            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th className="num">Actions</th></tr></thead>
             <tbody>
               {users.filter((u) => TABS[tab].roles.includes(u.role)).map((u) => editing === u.id ? (
                 <EditRow key={u.id} account={u} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
               ) : (
                 <tr key={u.id}>
-                  <td><span className="strong">{u.full_name}</span>{u.id === me.id && <span className="muted"> (you)</span>}<div className="muted small">{u.job_title ? `${u.job_title} · ` : ""}{u.email || "no email"}</div></td>
+                  <td><span className="strong">{u.full_name}</span>{u.id === me.id && <span className="muted"> (you)</span>}<div className="muted">{u.job_title ? `${u.job_title} · ` : ""}{u.email || "no email"}</div></td>
                   <td className="mono">{u.username}</td>
-                  <td><span className="tag">{ROLE_NAMES[u.role]}</span>
-                    {u.role === "admin" && u.can_view_employees && <div className="muted small"><Eye size={12} style={{ verticalAlign: "-1px" }} /> may view employee data</div>}
-                    {u.employee_id && <div className="muted small">employee no. {u.employee_id}</div>}</td>
-                  <td>{u.is_active ? "Active" : <span className="tag tag-off">Deactivated</span>}{u.must_change_password && <div className="muted small">must choose a password</div>}</td>
+                  <td><Badge>{ROLE_NAMES[u.role]}</Badge>
+                    {u.role === "admin" && u.can_view_employees && <div className="cell-sub row"><Eye size={14} aria-hidden="true" />may view employee data</div>}
+                    {u.employee_id && <div className="muted">employee no. {u.employee_id}</div>}</td>
+                  <td>{u.is_active ? <Badge tone="success">Active</Badge> : <Badge tone="danger">Deactivated</Badge>}{u.must_change_password && <div className="muted">must choose a password</div>}</td>
                   <td><div className="actions">
-                    <button className="btn btn-plain" onClick={() => setEditing(u.id)}><Pencil size={14} />Edit</button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(u.id)}><Pencil size={14} aria-hidden="true" />Edit</button>
                     {u.role === "manager" && (
-                      <button className="btn btn-plain" onClick={() => setTeamFor(u)}>Team ({employees.filter((e) => e.manager_user_id === u.id).length})</button>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTeamFor(u)}>Team ({employees.filter((e) => e.manager_user_id === u.id).length})</button>
                     )}
                     {u.role === "admin" && (
-                      <Button look="plain" icon={u.can_view_employees ? EyeOff : Eye} busy={busyKey === `perm-${u.id}`} busyText="Saving…" onClick={() => togglePermission(u)}>
+                      <Button look="ghost" size="sm" icon={u.can_view_employees ? EyeOff : Eye} busy={busyKey === `perm-${u.id}`} busyText="Saving…" onClick={() => togglePermission(u)}>
                         {u.can_view_employees ? "Remove employee data" : "Allow employee data"}
                       </Button>
                     )}
-                    <Button look="plain" busy={busyKey === `reset-${u.id}`} busyText="Resetting…" onClick={() => resetPassword(u)}>Reset password</Button>
-                    {u.id !== me.id && <Button look="plain" busy={busyKey === `active-${u.id}`} busyText="Saving…" onClick={() => toggleActive(u)}>{u.is_active ? "Deactivate" : "Reactivate"}</Button>}
-                    {u.id !== me.id && <Button look="plain" className="btn-danger" icon={Trash2} busy={busyKey === `delete-${u.id}`} busyText="Deleting…" onClick={() => remove(u)}>Delete</Button>}
+                    <Button look="ghost" size="sm" busy={busyKey === `reset-${u.id}`} busyText="Resetting…" onClick={() => resetPassword(u)}>Reset password</Button>
+                    {u.id !== me.id && <Button look="ghost" size="sm" busy={busyKey === `active-${u.id}`} busyText="Saving…" onClick={() => toggleActive(u)}>{u.is_active ? "Deactivate" : "Reactivate"}</Button>}
+                    {u.id !== me.id && <Button look="ghost" size="sm" className="danger-text" icon={Trash2} busy={busyKey === `delete-${u.id}`} busyText="Deleting…" onClick={() => remove(u)}>Delete</Button>}
                   </div></td>
                 </tr>
               ))}

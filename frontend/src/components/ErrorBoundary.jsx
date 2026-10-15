@@ -22,7 +22,7 @@ export default class ErrorBoundary extends Component {
         <p className="muted">Nothing was changed. Reload the page to try again, or go back to the overview.</p>
         <div className="row">
           <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>Reload the page</button>
-          <a className="btn btn-plain" href="/">Go to the overview</a>
+          <a className="btn btn-secondary" href="/">Go to the overview</a>
         </div>
       </div>
     );

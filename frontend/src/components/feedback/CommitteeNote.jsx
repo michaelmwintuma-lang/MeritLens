@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PauseCircle } from "lucide-react";
 import { api } from "../../api";
-import { Button } from "../ui";
+import { Button, Callout, Card } from "../ui";
 import { useAction } from "../../useAction";
 
 export default function CommitteeNote({ nominationId, pending, onChange }) {
@@ -25,33 +25,34 @@ export default function CommitteeNote({ nominationId, pending, onChange }) {
     catch (err) { setError(err.message); }
   }
 
-  if (error) return <p className="alert alert-error" role="alert">{error}</p>;
+  if (error) return <Callout tone="error">{error}</Callout>;
   if (!note || (!note.pending_corrections.length && !note.deferred)) return null;
   return (
-    <section className="card" aria-labelledby="committee-note">
-      <h2 id="committee-note"><PauseCircle size={20} aria-hidden="true" style={{ verticalAlign: "-4px" }} /> Committee note: a record correction is pending</h2>
+    <Card id="committee-note" tone="warn" icon={PauseCircle} title="Committee note: a record correction is pending">
       <p>The nominee has asked HR to correct their record. If it's confirmed, their score may change.</p>
       <ul className="plain-list">
         {note.pending_corrections.map((r) => (
-          <li key={r.id}>{r.label}: {r.current_display} in the record, {r.requested_display} asked for
-            <span className="muted small"> (since {r.created_at.slice(0, 10)})</span></li>
+          <li key={r.id}><strong>{r.label}</strong>: {r.current_display} in the record, {r.requested_display} asked for
+            <span className="muted"> (since {r.created_at.slice(0, 10)})</span></li>
         ))}
       </ul>
       {note.deferred ? (
-        <div className="alert alert-info">
-          <strong>The decision is on hold</strong> until the correction is resolved (held by {note.deferred_by} on {note.deferred_at.slice(0, 10)}).
-          It isn't a decision and isn't counted as an override; no decision can be recorded until the hold lifts.
-          <div className="row" style={{ marginTop: 10 }}>
+        <>
+          <p>
+            <strong>The decision is on hold</strong> until the correction is resolved (held by {note.deferred_by} on {note.deferred_at.slice(0, 10)}).
+            It isn't a decision and isn't counted as an override; no decision can be recorded until the hold lifts.
+          </p>
+          <div className="form-actions">
             <Link className="btn btn-primary" to="/corrections">Open the correction queue</Link>
-            <Button look="plain" busy={working} busyText="Resuming…" onClick={() => withWorking(() => act("resume"))}>Decide now anyway</Button>
+            <Button look="secondary" busy={working} busyText="Resuming…" onClick={() => withWorking(() => act("resume"))}>Decide now anyway</Button>
           </div>
-        </div>
+        </>
       ) : pending && (
-        <div className="row">
+        <div className="form-actions">
           <Button busy={working} busyText="Putting on hold…" onClick={() => withWorking(() => act("defer"))}>Hold the decision until it's resolved</Button>
-          <Link className="btn btn-plain" to="/corrections">Open the correction queue</Link>
+          <Link className="btn btn-secondary" to="/corrections">Open the correction queue</Link>
         </div>
       )}
-    </section>
+    </Card>
   );
 }

@@ -541,20 +541,107 @@ Steps 6 and 7 built anonymous reporting (the anonymiser, case keys, triage, the 
 HR's report inbox). It was removed from this version to keep the scope focused; see `docs/future-work/` and the
 git tag `with-anonymous-reporting`.
 
-## The interface design
+## Design system
 
-The website follows one consistent, calm style (`frontend/src/styles.css`, `frontend/src/components/ui.jsx`):
+Every page is built from one small design system, so the whole interface looks and behaves the same. It is a
+presentation layer only: no page's behaviour, permissions or API calls depend on it. (Overhauled in October 2026;
+before and after screenshots and the page-by-page changes are in `docs/UI_REVIEW.md`.)
 
-- **Layout:** a white sidebar with the platform's name, a menu with an icon for every page (the active page is a
-  dark pill), and the signed-in person at the bottom with their role, a light/dark switch and a sign-out button.
-- **Pages** start with a large title and icon, a one-line explanation of what the page is for, and a divider.
-- **Overview pages** show four "stat cards" (a small label, a big number, a short note), then the main list in a
-  white card. Lists use a switch such as **Waiting | Decided | All**, and a friendly message when empty.
-- **Light and dark mode** use the same colour names (defined once, at the top of the stylesheet), so every page
-  works in both. The choice is remembered in the browser.
-- **Accessibility:** status is always written in words (and arrows such as ▲ / ▼), never shown by colour alone;
-  icons are decorative, the text next to them carries the meaning.
-- Icons come from the open-source **Lucide** icon set; the font is **Plus Jakarta Sans**.
+Code: `frontend/src/tokens.css` (every colour, size, space, radius and shadow, for light and dark),
+`frontend/src/styles.css` (the components, styled once), `frontend/src/components/ui.jsx` (the shared React
+components), `components/Overlay.jsx` (modal, drawer, confirm dialog), `components/Toast.jsx` and
+`components/charts/BarList.jsx` (charts).
+
+### Fonts
+
+- **Montserrat** (variable), installed locally with `npm install @fontsource-variable/montserrat` and imported once
+  in `main.jsx`. Nothing is loaded from Google's servers, so the font works offline and no visitor's address is
+  sent to a third party. Fallbacks: `"Montserrat Variable", "Montserrat", system-ui, sans-serif`.
+- **Type scale:** 32 / 24 / 20 / 16 / 14 / 12 px. Weights: 700 page titles, 600 section headings, 500 labels and
+  buttons, 400 body. Line height 1.55 for text, 1.25 for headings.
+- Body text is never smaller than 14px. Only small uppercase labels (table headings, stat labels) use 12px, capitals
+  and +0.02em letter-spacing; there are no all-capital sentences.
+- Scores, percentages, tables and KPI tiles use **tabular figures** (`font-variant-numeric: tabular-nums`), so
+  numbers line up in columns.
+
+### Colours
+
+Defined once in `tokens.css`, with a light and a dark value for each name. The app follows the computer's light or
+dark setting until someone uses the toggle; that choice is then remembered in the browser.
+
+| Token | Light | Dark | Used for |
+|---|---|---|---|
+| `--primary` | `#1E3A5F` (navy) | `#3A73B5` | The one main action on a page; selected options |
+| `--sidebar` | `#0F2A44` | `#08131F` | The sidebar, in both themes |
+| `--link` | `#1D4F91` | `#8DBBF2` | Links and ghost buttons |
+| `--highlight`, `--focus` | `#0B7A6E` (teal) | `#3CC4B2` | The active-menu marker and focus rings only |
+| `--bg`, `--surface`, `--surface-sunken` | `#F4F6F9`, `#FFFFFF`, `#EEF1F5` | `#0B121C`, `#131E2B`, `#0F1823` | Page, cards, insets |
+| `--border`, `--border-strong` | `#DFE4EA`, `#7B8696` | `#263446`, `#6C7A8C` | Dividers; form fields (3:1) |
+| `--text`, `--text-muted` | `#17212E`, `#526072` | `#E6EBF2`, `#9BA9BA` | Text |
+| `--success`, `--warning`, `--danger`, `--info` | `#1E7038`, `#8A5300`, `#B42318`, `#1D4F91` | `#6FD08F`, `#F2BD5A`, `#FF8F86`, `#8DBBF2` | Status, each with a tinted background |
+| `--up`, `--down` | `#0B7A6E`, `#B8460B` | `#3CC4B2`, `#FF9A5C` | The model's view only: raises, lowers readiness |
+| `--chart-1` to `--chart-4` | `#2A78D6`, `#EB6834`, `#1BAF7A`, `#8A95A5` | `#3987E5`, `#D95926`, `#199E70`, `#6C7A8C` | Dashboard charts, in fixed order |
+
+Three rules keep colours meaningful:
+
+1. **Interface, data and status colours never mix.** Teal and orange mean "raises" and "lowers" the score, so they
+   are never used for a button or a link. "Not yet recommended" is neutral grey, never red.
+2. **Never colour alone.** Every status badge has a word and an icon; factor lists are headed "Raised the score"
+   and "Lowered the score"; every chart writes its values beside the marks and has a legend in words.
+3. **Contrast.** Every text and background pair meets WCAG AA (4.5:1; 3:1 for large text and for the edges of form
+   fields) in both themes. The palette was checked by script, and every page by axe-core in both themes. The chart
+   palette was also checked for colour-vision deficiency: adjacent colours stay distinguishable for protanopia,
+   deuteranopia and tritanopia.
+
+### Spacing, shape and depth
+
+- A **4px grid**: 4, 8, 12, 16, 24, 32, 48 (`--s-1` to `--s-12`). Cards have 24px padding and 24px between them.
+- **Corners:** 8px for cards, inputs and panels; 6px for buttons; badges are pills.
+- **One soft shadow** for raised cards, and one stronger one only for things floating above the page (menus,
+  modals, drawers, toasts).
+- **Motion** is subtle (150 to 200 ms fades and slides) and switched off entirely for people whose computer asks
+  for reduced motion.
+
+### Layout
+
+- **App shell:** a navy sidebar with the menu grouped per role (Lucide icons; the current page has a lighter row
+  and a teal bar), a top bar with the breadcrumb, the light/dark switch, the notification bell and a profile menu
+  (My profile, Sign out), and the page in a column up to 1280px wide.
+- **Widths:** from 1024px, the full sidebar (which can be collapsed to icons); from 640 to 1023px, an icon rail
+  with page names on hover or focus; under 640px, a drawer opened from the top bar. No page is wider than a 390px
+  phone screen; wide tables scroll inside their card.
+- **Every page** has a breadcrumb, a title with a one-line description, and at most one primary action.
+
+### Components
+
+All in `components/ui.jsx` unless noted, and used everywhere instead of one-off styles:
+
+| Component | What it is |
+|---|---|
+| `PageHeader` | Title, one-line description, the page's primary action, and an optional status beside the title |
+| `Card` | A panel with a title, description and actions; `flush` for tables; `tone` to highlight (the plain-language summary, the committee note) |
+| `StatCard` | A KPI tile: uppercase label, large tabular number, note |
+| `Badge` | Status in words with an icon (neutral, success, warning, danger, info, and "up" for the model's view) |
+| `Button` | `primary`, `secondary`, `ghost`, `danger`; `sm` and `lg` sizes; a busy state with a spinner. Disabled buttons stay readable |
+| Inputs, selects, textareas | One style; a visible 3:1 border; a teal focus ring; hints and problems under the field |
+| `Segmented` | Tabs: one row of toggle buttons, one chosen |
+| Tables | Sticky header, hover rows, right-aligned numbers (`.num`), `SortHeader` with sort arrows and `aria-sort`, `Pager` |
+| `Modal`, `Drawer`, `useConfirm` (`Overlay.jsx`) | Panels over the page: Escape closes them, Tab stays inside, focus returns to the opener. The confirm dialog replaces the browser's own box |
+| `useToast` (`Toast.jsx`) | A short confirmation in the corner after an action |
+| `Callout` | A message in the page (info, success, warning, error), always with an icon |
+| `EmptyState` | An icon, a title and what will appear here |
+| `Loading`, `PageLoading` | Skeleton placeholders while something loads, announced once to screen readers |
+| `LoadError` | What went wrong in plain words, with a "Try again" button |
+| `Gauge`, `Verdict` (`promotion/ScoreBar.jsx`) | The readiness score as a half-circle meter with the threshold marked, and "Recommended" or "Not yet recommended" |
+| `BarList`, `Meter`, `StackedBar` (`charts/BarList.jsx`) | Charts in one style: thin rounded bars, values written out, legends in words, no 3D |
+
+### Keyboard and screen readers
+
+- A visible focus ring on everything that can be focused, and a "Skip to the page" link first in the tab order.
+- Escape closes the profile menu, the notifications, modals, drawers and the phone menu; focus goes back to the
+  button that opened them.
+- Every icon-only button has an `aria-label`; decorative icons are hidden from screen readers.
+- Loading states are announced once (`role="status"`), errors immediately (`role="alert"`).
 
 ## Updates after step 7
 
@@ -772,20 +859,7 @@ model; it doesn't retrain it.
 
 ## Colours: navy and teal
 
-The whole product (public website, app and emails) uses one palette, defined once as colour names in
-`frontend/src/styles.css`, with a light and a dark version:
-
-| Role | Light | Dark | Used for |
-|---|---|---|---|
-| Navy | `#0F2A44` | `#E6EDF5` (inverted) | Headings' weight, primary buttons, the active menu item, dark bands |
-| Teal | `#0B7A6E` | `#2DD4BF` | Links, highlights, "Book a demo" buttons, factors that raise a score |
-| Orange | `#B14F0C` | `#F4A261` | Factors that lower a score (teal and orange stay distinct for colour-blind readers) |
-| Background | `#F5F8FA` | `#0B1622` | Page background |
-
-Why navy and teal: navy reads as trustworthy and serious, which matters for promotion decisions;
-teal is calm and positive without the alarm of red or the sameness of plain blue. Every text colour was checked
-against the WCAG AA contrast minimum (4.5:1) on the background it's used on. Status is still never shown by
-colour alone: there's always a word or an icon too.
+The palette is now part of the design system: see **Design system → Colours** above.
 
 ## Book a demo
 

@@ -3,10 +3,10 @@
 // rejects it with a reason the employee receives.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardPen, FileText } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardPen, FileText, XCircle } from "lucide-react";
 import { api, apiBlob } from "../../api";
 import { percent } from "../../format";
-import { Button, Card, EmptyState, Loading, PageHeader, Segmented } from "../../components/ui";
+import { Button, Callout, Card, EmptyState, LoadError, PageLoading, PageHeader, Segmented } from "../../components/ui";
 import CorrectionStatus from "../../components/feedback/CorrectionStatus";
 import { useAction } from "../../useAction";
 
@@ -40,11 +40,11 @@ function Decide({ request, onDone }) {
 
   return (
     <>
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      {error && <Callout tone="error">{error}</Callout>}
       <div className="queue-actions">
-        <form className="pay-box" onSubmit={(e) => withConfirming(() => act("confirm", { verified_value: Number(verified), note: note.trim() || null })(e))}>
-          <h3>Confirm</h3>
-          <p className="muted small">The record is corrected, the employee re-scored, and the change logged with both scores.</p>
+        <form className="pay-box confirm" onSubmit={(e) => withConfirming(() => act("confirm", { verified_value: Number(verified), note: note.trim() || null })(e))}>
+          <h3><CheckCircle2 size={18} aria-hidden="true" />Confirm</h3>
+          <p className="muted">The record is corrected, the employee re-scored, and the change logged with both scores.</p>
           <label className="field">Verified value{unit}
             <input type="number" step="any" value={verified} onChange={(e) => setVerified(e.target.value)} required />
           </label>
@@ -53,13 +53,13 @@ function Decide({ request, onDone }) {
           </label>
           <Button busy={confirming} busyText="Correcting…" disabled={verified === ""}>Confirm and correct</Button>
         </form>
-        <form className="pay-box" onSubmit={(e) => withRejecting(() => act("reject", { reason: reason.trim() })(e))}>
-          <h3>Reject</h3>
-          <p className="muted small">The record stays as it is. The employee receives your reason.</p>
-          <label className="field"><span>Reason <span className="small">(required, {reason.trim().length}/{MIN_REASON} characters)</span></span>
+        <form className="pay-box reject" onSubmit={(e) => withRejecting(() => act("reject", { reason: reason.trim() })(e))}>
+          <h3><XCircle size={18} aria-hidden="true" />Reject</h3>
+          <p className="muted">The record stays as it is. The employee receives your reason.</p>
+          <label className="field"><span>Reason <span className="muted">(required, {reason.trim().length}/{MIN_REASON} characters)</span></span>
             <textarea rows={3} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
           </label>
-          <Button look="plain" busy={rejecting} busyText="Rejecting…" disabled={reason.trim().length < MIN_REASON}>Reject the request</Button>
+          <Button look="secondary" busy={rejecting} busyText="Rejecting…" disabled={reason.trim().length < MIN_REASON}>Reject the request</Button>
         </form>
       </div>
     </>
@@ -72,23 +72,32 @@ function RequestCard({ request, onDone }) {
     <Card title={`${request.employee_name}: ${request.label}`}
       subtitle={`Asked by the employee on ${request.created_at.slice(0, 10)}`}
       actions={<CorrectionStatus request={request} />}>
-      <dl className="details-list">
-        <div><dt>In the record</dt><dd>{request.current_display}</dd></div>
-        <div><dt>Asked for</dt><dd><strong>{request.requested_display}</strong></dd></div>
-        {request.status === "confirmed" && <div><dt>Corrected to</dt><dd><strong>{request.verified_display}</strong></dd></div>}
-        {request.score_before != null && <div><dt>Readiness</dt><dd>{percent(request.score_before)} → <strong>{percent(request.score_after)}</strong></dd></div>}
-        {request.decided_by && <div><dt>Decided</dt><dd>{request.decided_by}, {request.decided_at.slice(0, 10)}</dd></div>}
-      </dl>
-      <p className="note-box">{request.note}</p>
+      <div className="change" role="group" aria-label="The change asked for">
+        <div className="change-value"><span className="label muted">In the record</span><strong>{request.current_display}</strong></div>
+        <ArrowRight size={20} aria-hidden="true" />
+        <div className="change-value asked"><span className="label muted">Asked for</span><strong>{request.requested_display}</strong></div>
+        {request.status === "confirmed" && <>
+          <ArrowRight size={20} aria-hidden="true" />
+          <div className="change-value"><span className="label muted">Corrected to</span><strong>{request.verified_display}</strong></div>
+        </>}
+      </div>
+      {(request.score_before != null || request.decided_by) && (
+        <dl className="details-list">
+          {request.score_before != null && <div><dt>Readiness</dt><dd>{percent(request.score_before)} → {percent(request.score_after)}</dd></div>}
+          {request.decided_by && <div><dt>Decided</dt><dd>{request.decided_by}, {request.decided_at.slice(0, 10)}</dd></div>}
+        </dl>
+      )}
+      <h3 className="form-subhead">The employee's evidence</h3>
+      <p className="quote">{request.note}</p>
       {request.has_evidence && (
-        <button type="button" className="btn btn-plain" onClick={() => openEvidence(request.id).catch((err) => setError(err.message))}>
+        <button type="button" className="btn btn-secondary" onClick={() => openEvidence(request.id).catch((err) => setError(err.message))}>
           <FileText size={16} aria-hidden="true" />Open the attached document
         </button>
       )}
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
-      {request.decision_reason && <p className="small"><span className="muted">{request.status === "rejected" ? "Reason given:" : "HR's note:"}</span> {request.decision_reason}</p>}
+      {error && <Callout tone="error" className="section-gap">{error}</Callout>}
+      {request.decision_reason && <p className="section-gap"><span className="muted">{request.status === "rejected" ? "Reason given:" : "HR's note:"}</span> {request.decision_reason}</p>}
       {request.status === "pending" && <Decide request={request} onDone={onDone} />}
-      <p className="small"><Link to={`/employees/${request.employee_id}`}>{request.employee_name}'s explanation and record history</Link></p>
+      <p className="section-gap"><Link className="text-link" to={`/employees/${request.employee_id}`}>{request.employee_name}'s explanation and record history <ArrowRight size={16} aria-hidden="true" /></Link></p>
     </Card>
   );
 }
@@ -97,7 +106,7 @@ export default function Corrections() {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
   const [view, setView] = useState("pending");
-  const load = () => api("/hr/feedback/corrections").then(setRows).catch((err) => setError(err.message));
+  const load = () => { setError(""); return api("/hr/feedback/corrections").then(setRows).catch((err) => setError(err.message)); };
   useEffect(() => { load(); }, []);
 
   const shown = rows?.filter((r) => (view === "pending" ? r.status === "pending" : r.status !== "pending")) || [];
@@ -105,19 +114,23 @@ export default function Corrections() {
 
   return (
     <>
-      <PageHeader icon={ClipboardPen} title="Record corrections"
+      <PageHeader title="Record corrections"
         subtitle="Employees' requests to correct a value in their work record. Nothing changes until you confirm it." />
-      {error && <p className="alert alert-error" role="alert">{error}</p>}
-      {!rows && !error && <Loading />}
+      {error && <LoadError message={error} onRetry={load} />}
+      {!rows && !error && <PageLoading />}
       {rows && (
         <>
-          <Segmented label="Which requests" value={view} onChange={setView}
-            options={[{ value: "pending", label: `Waiting (${waiting})` }, { value: "decided", label: `Decided (${rows.length - waiting})` }]} />
-          <div style={{ marginTop: 16 }}>
-            {shown.length === 0 && <EmptyState icon={ClipboardPen} title={view === "pending" ? "Nothing waiting" : "No decisions yet"}
-              text={view === "pending" ? "New requests appear here, oldest first." : undefined} />}
-            {shown.map((r) => <RequestCard key={r.id} request={r} onDone={load} />)}
+          <div className="tabs-bar">
+            <Segmented label="Which requests" value={view} onChange={setView}
+              options={[{ value: "pending", label: `Waiting (${waiting})` }, { value: "decided", label: `Decided (${rows.length - waiting})` }]} />
           </div>
+          {shown.length === 0 && (
+            <div className="card">
+              <EmptyState icon={ClipboardPen} title={view === "pending" ? "Nothing waiting" : "No decisions yet"}
+                text={view === "pending" ? "When an employee asks for a value in their record to be corrected, it appears here, oldest first." : "Requests you confirm or reject are kept here."} />
+            </div>
+          )}
+          {shown.map((r) => <RequestCard key={r.id} request={r} onDone={load} />)}
         </>
       )}
     </>

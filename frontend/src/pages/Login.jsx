@@ -1,10 +1,10 @@
-// Sign-in page.
+// Sign-in page: the wordmark, then a clean centred form.
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Lock, UserRound } from "lucide-react";
 import { useAuth } from "../auth";
-import { BrandMark, Button } from "../components/ui";
-import { BRAND } from "../brand";
+import { Button, Wordmark } from "../components/ui";
+import { BRAND, TAGLINE } from "../brand";
 import "./login.css";
 
 export default function Login() {
@@ -30,38 +30,40 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-lights" aria-hidden="true"><span /><span /><span /><span /></div>
       <Link to="/" className="login-back"><ArrowLeft size={16} aria-hidden="true" />Back to the website</Link>
 
-      <form className="login-box" onSubmit={submit}>
-        <div className="login-logo"><BrandMark /></div>
-        <h1>Welcome back</h1>
-        <p className="login-sub">Sign in to {BRAND}.</p>
+      <main className="login-main">
+        <div className="login-logo"><Wordmark /></div>
+        <form className="login-box" onSubmit={submit} aria-labelledby="login-title">
+          <h1 id="login-title">Sign in</h1>
+          <p className="login-sub">Welcome back to {BRAND}.</p>
 
-        {notice && !error && <p className="login-notice" role="status">{notice}</p>}
-        {error && <p className="login-error" role="alert">{error}</p>}
+          {notice && !error && <p className="login-notice" role="status">{notice}</p>}
+          {error && <p className="login-error" role="alert">{error}</p>}
 
-        <label className="login-field" htmlFor="login-username">Username</label>
-        <div className="login-input">
-          <UserRound size={18} aria-hidden="true" />
-          <input id="login-username" value={username} onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username" placeholder="e.g. jane.doe" required autoFocus />
-        </div>
+          <label className="login-field" htmlFor="login-username">Username</label>
+          <div className="login-input">
+            <UserRound size={18} aria-hidden="true" />
+            <input id="login-username" value={username} onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username" placeholder="e.g. jane.doe" required autoFocus />
+          </div>
 
-        <label className="login-field" htmlFor="login-password">Password</label>
-        <div className="login-input">
-          <Lock size={18} aria-hidden="true" />
-          <input id="login-password" type={showPassword ? "text" : "password"} value={password}
-            onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="••••••••" required />
-          <button type="button" className="login-eye" onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
+          <label className="login-field" htmlFor="login-password">Password</label>
+          <div className="login-input">
+            <Lock size={18} aria-hidden="true" />
+            <input id="login-password" type={showPassword ? "text" : "password"} value={password}
+              onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="••••••••" required />
+            <button type="button" className="login-eye" onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
+              {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            </button>
+          </div>
 
-        <Button busy={busy} busyText="Signing in…" className="login-btn">Sign in</Button>
-        <p className="login-foot">New to the platform? <Link to="/demo">Book a demo</Link></p>
-      </form>
+          <Button busy={busy} busyText="Signing in…" className="login-btn">Sign in</Button>
+          <p className="login-foot">New to the platform? <Link to="/demo">Book a demo</Link></p>
+        </form>
+        <p className="login-tagline">{TAGLINE}</p>
+      </main>
     </div>
   );
 }

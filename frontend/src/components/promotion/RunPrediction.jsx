@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Brain, CheckCircle2, Circle, Loader2, Play, RotateCcw, XCircle } from "lucide-react";
 import { api, apiWhenReady } from "../../api";
-import { Button } from "../ui";
+import { Button, Callout } from "../ui";
 
 const STEPS = [
   { key: "predict", label: "Scoring the record with the model", detail: "and working out each factor's exact contribution" },
@@ -79,17 +79,17 @@ export default function RunPrediction({ profile, onResult, autoRun = false, comp
   );
 
   if (compact) {
+    const working = running || (!steps && autoRun);
     return (
-      <section className="card run-compact" aria-busy={running}>
-        <p className="row spread" style={{ margin: 0 }}>
-          <span className="muted">
-            {running ? "Working out your readiness from your current work record…"
-              : `Worked out from your current work record by the ${profile.model} model. Nothing is saved, and the model only advises.`}
-          </span>
-          <Button look="plain" onClick={run} busy={running} busyText="Working…" icon={RotateCcw}>Work it out again</Button>
-        </p>
-        {error && <p className="alert alert-error" role="alert" style={{ marginTop: 14 }}>{error}</p>}
-        {steps && finished && <details className="details"><summary>How it was worked out</summary>{stepList}</details>}
+      <section className="run-compact" aria-busy={working} aria-label="How this was worked out">
+        <span>
+          {working ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <CheckCircle2 size={16} aria-hidden="true" className="step-done" />}
+          {working ? "Working out your readiness from your current work record…"
+            : "Worked out just now from your current work record. Nothing is saved, and the model only advises."}
+        </span>
+        <Button look="ghost" onClick={run} busy={running} busyText="Working…" icon={RotateCcw}>Work it out again</Button>
+        {error && <Callout tone="error">{error}</Callout>}
+        {steps && finished && <details className="details run-details"><summary>How it was worked out</summary>{stepList}</details>}
       </section>
     );
   }
@@ -97,20 +97,20 @@ export default function RunPrediction({ profile, onResult, autoRun = false, comp
   return (
     <section className="card run-card">
       <div className="run-head">
-        <div className="run-icon"><Brain size={22} aria-hidden="true" /></div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>{finished ? "Prediction complete" : "Run the readiness prediction"}</h2>
+        <div className="run-icon"><Brain size={20} aria-hidden="true" /></div>
+        <div>
+          <h2>{finished ? "Prediction complete" : "Predict and explain"}</h2>
           <p className="card-sub">
             The {profile.model} model (trained on {profile.trained_at.slice(0, 10)}) scores {profile.full_name}'s current
             work record and explains the result. Nothing is saved, and the model only advises.
           </p>
         </div>
-        <Button onClick={run} busy={running} busyText="Running…" icon={finished ? RotateCcw : Play}>
+        <Button onClick={run} busy={running} busyText="Running…" icon={finished ? RotateCcw : Play} look={finished ? "secondary" : "primary"}>
           {finished ? "Run again" : "Run prediction"}
         </Button>
       </div>
       {stepList}
-      {error && <p className="alert alert-error" role="alert" style={{ marginTop: 14 }}>{error}</p>}
+      {error && <Callout tone="error" className="section-gap">{error}</Callout>}
     </section>
   );
 }
