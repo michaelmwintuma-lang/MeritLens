@@ -733,3 +733,6 @@ th.wide-col { width: 30%; }
 .bell-item.unread { background: var(--selected); }
 .unread-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-right: var(--s-2); vertical-align: 1px; }
 [data-theme="dark"] .unread-dot { background: var(--link); }
+
+/* Doing several at once: the bar above a table when rows are ticked */
+.bulk-bar { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-2) var(--s-3); border-radius: var(--radius); background: var(--selected); }

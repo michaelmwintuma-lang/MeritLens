@@ -46,6 +46,7 @@ EVENTS = {
     "team_changed": "An employee's manager changed",
     "cover_arranged": "Cover arranged while a manager is away",
     "cover_ended": "Cover ended early",
+    "payroll_sent": "Finance handed signed-off pay rises to payroll",
 }
 
 

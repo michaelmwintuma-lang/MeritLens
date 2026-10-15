@@ -20,6 +20,7 @@ from app.accounts.models import User
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.database import Base
+from app.core.dates import working_days_between
 from app.core.roles import MANAGER
 from app.feedback.models import CorrectionRequest
 from app.promotion import cycles
@@ -36,15 +37,6 @@ class ReminderSent(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     key: Mapped[str] = mapped_column(String(80), unique=True)
     sent_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-
-def working_days_between(start: date, end: date) -> int:
-    """Monday-to-Friday days after `start`, up to and including `end`."""
-    days, current = 0, start
-    while current < end:
-        current += timedelta(days=1)
-        days += current.weekday() < 5
-    return days
 
 
 def first_time(db: Session, key: str) -> bool:

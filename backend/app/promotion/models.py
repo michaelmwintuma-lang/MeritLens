@@ -134,6 +134,9 @@ class Decision(Base):
     # Empty for rejections, and for approvals made before Finance sign-off existed.
     pay_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     cycle_id: Mapped[int | None] = mapped_column(ForeignKey("review_cycles.id"), nullable=True, index=True)  # its nomination's cycle
+    # Finance handed the signed-off pay rise to payroll (a CSV), so it is applied once and never forgotten
+    payroll_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    payroll_sent_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
 
 class PayReview(Base):

@@ -50,6 +50,7 @@ ACTIONS = {
     "team_assigned": "Changed who manages whom",
     "cover_arranged": "Arranged cover for a manager who is away",
     "cover_ended": "Ended a manager's cover",
+    "payroll_sent": "Handed signed-off pay rises to payroll",
 }
 
 

@@ -199,6 +199,40 @@ const CHECKS = {
     if (!(await waitFor(c, `document.querySelector(".pager").innerText.includes("51–100")`))) throw new Error("Next didn't show 51–100");
   },
 
+  /** Finance: tick a within-policy pay rise, sign it off with the others ticked, then hand it to payroll. */
+  async "finance signs off ticked pay rises and hands them to payroll"(c) {
+    const call = (path, method = "GET", body) => c.evaluate(`fetch("/api${path}", { method: ${JSON.stringify(method)},
+      headers: { "X-Requested-With": "MeritLens", "Content-Type": "application/json" },
+      body: ${body ? JSON.stringify(JSON.stringify(body)) : "undefined"} }).then((r) => r.json())`);
+    const click = (selector, text) => c.evaluate(`(() => { const el = [...document.querySelectorAll(${JSON.stringify(selector)})]
+      .find((e) => e.innerText.includes(${JSON.stringify(text)})); if (el) el.click(); return !!el; })()`);
+    // A promotion approved within the pay policy
+    await signIn(c, "manager");
+    const team = (await call("/promotion/employees")).employees;
+    const person = team[team.length - 1];
+    const nomination = await call("/promotion/nominations", "POST", {
+      employee_id: person.id, proposed_title: "Team Lead", proposed_start: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
+      criteria: Object.fromEntries(["performance", "leadership", "skills", "impact"].map((k) => [k, { rating: 4, example: `A clear example of ${k} this year.` }])),
+      reason: "Leads the team's weekly planning well.", model_disagreement: "Strong client feedback the data doesn't capture.", proposed_raise: 8 });
+    await signIn(c, "hr");
+    await call(`/promotion/nominations/${nomination.id}/decision`, "POST", { decision: "approve", reason: "A strong case from the manager.", approved_raise: 8 });
+
+    await signIn(c, "finance");
+    await goto(c, "/finance");
+    if (!(await waitFor(c, `document.querySelector('input[aria-label="Tick ${person.full_name}\\'s pay rise"]')`))) throw new Error("no tick box for the pay rise");
+    await c.evaluate(`document.querySelector('input[aria-label="Tick ${person.full_name}\\'s pay rise"]').click()`);
+    if (!(await waitFor(c, `document.body.innerText.includes("1 ticked")`))) throw new Error("ticking didn't show the bulk bar");
+    await click(".bulk-bar button", "Sign off 1");
+    if (!(await waitFor(c, `document.querySelector('[role="dialog"]')`))) throw new Error("no confirmation");
+    await click('[role="dialog"] button', "Sign off 1");
+    if (!(await waitFor(c, `document.body.innerText.includes("Signed off 1 pay rise")`))) throw new Error("the bulk sign-off wasn't confirmed");
+    if (!(await waitFor(c, `document.querySelector("#payroll").innerText.includes(${JSON.stringify(person.full_name)})`))) throw new Error("not waiting for payroll");
+    await click("#payroll button", "as sent to payroll");
+    await waitFor(c, `document.querySelector('[role="dialog"]')`);
+    await click('[role="dialog"] button', "Mark as sent");
+    if (!(await waitFor(c, `document.body.innerText.includes("marked as sent to payroll")`))) throw new Error("payroll hand-over wasn't confirmed");
+  },
+
   /** Teams: HR gives someone without a manager a manager, and they join that manager's team. */
   async "hr gives someone a manager from the teams page"(c) {
     await signIn(c, "hr");
