@@ -16,6 +16,7 @@ from app.feedback import dashboard as feedback_dashboard
 from app.governance import routes as governance_routes
 from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
+from app.core import notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
 from app.core.config import APP_NAME
 from app.core.database import (Base, SessionLocal, add_missing_columns, drop_removed_reporting, engine,
                                move_deferrals_to_holds)
@@ -36,11 +37,14 @@ async def lifespan(_app: FastAPI):
         seed_demo_employees(db)
         seed_demo_monitoring(db)
     ensure_live_registered()
+    scheduler.start()  # email retries, reminders and daily digests (not in tests)
     yield
+    scheduler.stop()
 
 
 app = FastAPI(title=APP_NAME, lifespan=lifespan)
 app.include_router(routes_auth.router)
+app.include_router(notifications.router)
 app.include_router(routes_admin.router)
 app.include_router(routes_admin.employees_router)
 app.include_router(routes_admin.activity_router)

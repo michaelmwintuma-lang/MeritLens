@@ -22,6 +22,7 @@ class UserOut(BaseModel):
     job_title: str | None = None
     photo: str | None = None
     can_view_employees: bool | None = False
+    email_mode: str | None = "instant"
     created_at: datetime | None = None
 
 

@@ -1,9 +1,11 @@
-// Admin: is email set up, send a test email, and read the emails saved in the outbox (when no server is set up).
+// Admin: is email set up, every email's delivery (with retries and resending), reminders, a test email, and the
+// emails saved in the outbox (when no server is set up).
 import { useEffect, useState } from "react";
 import { CheckCircle2, Inbox, Send, TriangleAlert } from "lucide-react";
 import { api } from "../../api";
 import { useAction } from "../../useAction";
 import { Button, Callout, Card, EmptyState, PageHeader } from "../../components/ui";
+import DeliveryLog from "../../components/admin/DeliveryLog";
 
 const EMAILS_SENT = [
   ["Welcome", "A new account's sign-in details", "the new person"],
@@ -13,6 +15,10 @@ const EMAILS_SENT = [
   ["Decision", "HR approved or rejected a nomination", "the manager (and the employee, if approved)"],
   ["Correction waiting", "An employee asked for a record correction", "every HR account"],
   ["Correction decided", "HR confirmed or rejected a record correction, with the reason", "the employee"],
+  ["Pay rise to sign off", "HR approved a promotion (or revised a pay rise)", "every Finance account"],
+  ["Review cycle open", "HR opened a review cycle", "every manager with a team"],
+  ["Reminders", "Nominations closing soon; pay rises waiting; a cycle ready to close; corrections waiting", "the person who needs to act, once each"],
+  ["Daily digest", "The day's routine emails in one, for people who chose that on My profile", "those people"],
 ];
 
 export default function Email() {
@@ -42,7 +48,7 @@ export default function Email() {
 
   return (
     <>
-      <PageHeader title="Email" subtitle="Delivery settings, a test email and the outbox." />
+      <PageHeader title="Email" subtitle="Delivery settings, every email's delivery, reminders, a test email and the outbox." />
       {error && <Callout tone="error">{error}</Callout>}
 
       {status && (status.configured ? (
@@ -58,6 +64,8 @@ export default function Email() {
           </ol>
         </Callout>
       ))}
+
+      <DeliveryLog />
 
       <div className="two-columns">
         <Card title="Send a test email">

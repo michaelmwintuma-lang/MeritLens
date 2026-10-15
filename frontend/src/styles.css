@@ -725,3 +725,11 @@ th.wide-col { width: 30%; }
 .org-name:not(.level-0)::before { content: "└"; color: var(--text-muted); margin-right: var(--s-1); }
 .cover-row { padding: var(--s-2) 0; border-bottom: 1px solid var(--border); }
 .cover-row:last-child { border-bottom: none; }
+
+/* Notification centre in the bell */
+.bell-panel { width: 340px; }
+.bell-section { padding: var(--s-2) var(--s-4) var(--s-1); color: var(--text-muted); background: var(--surface-sunken); }
+.bell-recent { max-height: 320px; overflow-y: auto; }
+.bell-item.unread { background: var(--selected); }
+.unread-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-right: var(--s-2); vertical-align: 1px; }
+[data-theme="dark"] .unread-dot { background: var(--link); }

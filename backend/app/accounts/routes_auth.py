@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -154,6 +155,19 @@ def update_profile(body: ProfileIn, background: BackgroundTasks, user: User = De
     if changed:
         record(db, user, "profile_updated", ", ".join(changed))
         db.commit()
+    return user
+
+
+class PreferencesIn(BaseModel):
+    email_mode: str = Field(pattern="^(instant|daily)$")
+
+
+@router.put("/preferences", response_model=UserOut)
+def set_preferences(body: PreferencesIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """How routine emails arrive: each as it happens, or one digest each morning. Account emails always come at once."""
+    user.email_mode = body.email_mode
+    record(db, user, "profile_updated", f"emails: {'one a day' if body.email_mode == 'daily' else 'as they happen'}")
+    db.commit()
     return user
 
 

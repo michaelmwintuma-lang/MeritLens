@@ -7,14 +7,54 @@ versions: a branded HTML one and a plain-text one for simple mail programs.
 With a mail server configured in backend/.env (for example Gmail with an app password), emails are sent. Without
 one, each email is saved in backend/instance/outbox/ instead, so nothing is lost and the admin is told which
 happened.
+
+Every email is recorded in the delivery log (EmailLog): who it went to, its subject, whether it was sent, and any
+error. One the mail server didn't accept is tried again later, waiting longer each time (RETRY_MINUTES), and the
+admin can resend it from the Email page. An email's content is kept only until it is delivered (it may hold a
+temporary password); after that only who, what subject and when remain.
+
+An email with a "notice" (email_templates.py) also adds a line to the recipient's notification bell, if they have
+an account, so the bell and the email come from the same event.
 """
 import html
+import json
 import smtplib
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import formataddr
 
+from sqlalchemy import DateTime, Integer, String, Text, func, select
+from sqlalchemy.orm import Mapped, Session, mapped_column
+
+from app.accounts.models import User
+from app.core import notifications
 from app.core.config import APP_NAME, APP_URL, OUTBOX_DIR, SMTP
+from app.core.database import Base, SessionLocal
+
+# After a failed attempt, wait this many minutes before the next; after the last, give up (the admin can resend)
+RETRY_MINUTES = [1, 5, 15, 60, 240]
+
+
+def now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+class EmailLog(Base):
+    __tablename__ = "email_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    to_address: Mapped[str] = mapped_column(String(200), index=True)
+    subject: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(20), default="routine")    # security or routine
+    # queued, sent, saved (no mail server: in the outbox folder), failed (will be tried again), gave_up,
+    # held (for the recipient's daily digest), in_digest (went out in a digest)
+    status: Mapped[str] = mapped_column(String(10), default="queued", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    mail_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # the content, until it is delivered
 
 
 def is_configured() -> bool:
@@ -79,20 +119,81 @@ def build(to: str, mail: dict) -> EmailMessage:
 
 
 def send(to: str, mail: dict) -> dict:
-    """Send one email (or save it in the outbox). Returns what happened, in words the admin can read."""
-    message = build(to, mail)
-    if is_configured():
-        try:
-            with smtplib.SMTP(SMTP["host"], SMTP["port"], timeout=20) as server:
-                server.starttls()
-                server.login(SMTP["user"], SMTP["password"])
-                server.send_message(message)
-            return {"sent": True, "detail": f"Emailed to {to}."}
-        except (smtplib.SMTPException, OSError) as error:
-            reason = ("the mail server refused the username or app password" if isinstance(error, smtplib.SMTPAuthenticationError)
-                      else f"the mail server couldn't be reached ({error.__class__.__name__})")
-            return {"sent": False, "detail": f"Not sent: {reason}. Saved to {_save(message)} instead."}
-    return {"sent": False, "detail": f"No mail server is set up, so the email was saved to {_save(message)}."}
+    """
+    Send one email (or save it in the outbox), record it in the delivery log, and add the recipient's bell
+    notification. Returns what happened, in words the admin can read. Called in the background after a request.
+    """
+    with SessionLocal() as db:
+        entry = EmailLog(to_address=to, subject=mail["subject"][:200], kind=mail.get("kind", "routine"),
+                         status="queued", attempts=0, mail_json=json.dumps(mail))
+        db.add(entry)
+        recipient = notify(db, to, mail)
+        if entry.kind == "routine" and recipient is not None and recipient.email_mode == "daily":
+            entry.status = "held"  # it goes out in tomorrow morning's digest (digests.py); the bell has it already
+            db.commit()
+            return {"sent": False, "detail": f"Held for {to}'s daily digest."}
+        result = deliver(entry)
+        db.commit()
+        return result
+
+
+def notify(db: Session, to: str, mail: dict) -> User | None:
+    """
+    The bell line for an email with a "notice", for the account with that address (if there is one). Returns that
+    account, so the caller knows how its owner wants emails.
+    """
+    user = db.scalar(select(User).where(func.lower(User.email) == to.lower(), User.is_active.is_(True)))
+    if user is not None and mail.get("notice"):
+        button = mail.get("button")
+        notifications.add(db, user.id, mail["notice"], button[1].removeprefix(APP_URL) if button else None)
+    return user
+
+
+def deliver(entry: EmailLog) -> dict:
+    """One attempt at delivering a logged email. Updates the entry; the caller commits."""
+    message = build(entry.to_address, json.loads(entry.mail_json))
+    entry.attempts += 1
+    if not is_configured():
+        entry.status, entry.next_attempt_at = "saved", None
+        return {"sent": False, "detail": f"No mail server is set up, so the email was saved to {_save(message)}."}
+    try:
+        with smtplib.SMTP(SMTP["host"], SMTP["port"], timeout=20) as server:
+            server.starttls()
+            server.login(SMTP["user"], SMTP["password"])
+            server.send_message(message)
+    except (smtplib.SMTPException, OSError) as error:
+        reason = ("the mail server refused the username or app password" if isinstance(error, smtplib.SMTPAuthenticationError)
+                  else f"the mail server couldn't be reached ({error.__class__.__name__})")
+        entry.last_error = reason
+        if entry.attempts <= len(RETRY_MINUTES):
+            entry.status = "failed"
+            entry.next_attempt_at = now() + timedelta(minutes=RETRY_MINUTES[entry.attempts - 1])
+        else:
+            entry.status, entry.next_attempt_at = "gave_up", None
+        saved = f" Saved to {_save(message)} too." if entry.attempts == 1 else ""
+        later = " It will be tried again automatically." if entry.status == "failed" else " No more attempts: resend it from the Email page."
+        return {"sent": False, "detail": f"Not sent: {reason}.{later}{saved}"}
+    entry.status, entry.sent_at, entry.next_attempt_at, entry.last_error = "sent", now(), None, None
+    entry.mail_json = None  # delivered: the content (which may hold a temporary password) is no longer kept
+    return {"sent": True, "detail": f"Emailed to {entry.to_address}."}
+
+
+def retry_due() -> int:
+    """Try again every failed email whose next attempt is due. Returns how many were tried (the scheduler calls it)."""
+    with SessionLocal() as db:
+        due = list(db.scalars(select(EmailLog).where(EmailLog.status == "failed", EmailLog.next_attempt_at <= now())))
+        for entry in due:
+            deliver(entry)
+        db.commit()
+        return len(due)
+
+
+def resend(db: Session, entry: EmailLog) -> dict:
+    """The admin resends a logged email (one not delivered: its content is still kept). The caller commits."""
+    if entry.mail_json is None:
+        raise ValueError("This email was delivered, so its content is no longer kept.")
+    entry.attempts = 0 if entry.status == "gave_up" else entry.attempts
+    return deliver(entry)
 
 
 def _save(message: EmailMessage) -> str:

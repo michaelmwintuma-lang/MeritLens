@@ -130,6 +130,26 @@ export interface paths {
         patch: operations["update_profile_api_auth_profile_patch"];
         trace?: never;
     };
+    "/api/auth/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Preferences
+         * @description How routine emails arrive: each as it happens, or one digest each morning. Account emails always come at once.
+         */
+        put: operations["set_preferences_api_auth_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/profile/photo": {
         parameters: {
             query?: never;
@@ -144,6 +164,46 @@ export interface paths {
          */
         put: operations["set_photo_api_auth_profile_photo_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mine
+         * @description Your most recent notifications, newest first, and how many are unread.
+         */
+        get: operations["mine_api_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Read
+         * @description Mark your notifications read (these ones, or all).
+         */
+        post: operations["mark_read_api_notifications_read_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -359,6 +419,66 @@ export interface paths {
          * @description Send a test email, to check the settings work. Waits for the answer, so the admin sees any problem.
          */
         post: operations["send_test_email_api_admin_email_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delivery Log
+         * @description The 100 most recent emails: to whom, the subject, whether they were delivered, attempts and any error.
+         */
+        get: operations["delivery_log_api_admin_email_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email/log/{email_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Email
+         * @description Try a failed (or only saved) email again now.
+         */
+        post: operations["resend_email_api_admin_email_log__email_id__resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email/reminders/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Reminders
+         * @description Send any reminders that are due now (the scheduler also does this every hour). Each goes out only once.
+         */
+        post: operations["run_reminders_api_admin_email_reminders_run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -627,13 +747,14 @@ export interface paths {
         };
         /**
          * List Nominations
-         * @description HR sees every nomination; a manager sees the ones they made. Newest first.
+         * @description HR sees every nomination; a manager sees the ones they made, and any made for their own team by a manager
+         *     covering for them. Newest first.
          */
         get: operations["list_nominations_api_promotion_nominations_get"];
         put?: never;
         /**
          * Nominate
-         * @description A manager recommends one of their own team members for promotion.
+         * @description A manager recommends one of their own team members (or of a team they're covering) for promotion.
          */
         post: operations["nominate_api_promotion_nominations_post"];
         delete?: never;
@@ -1044,6 +1165,110 @@ export interface paths {
         get: operations["score_trend_api_promotion_employees__employee_id__trend_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Overview
+         * @description Every manager (with who they report to, their team and any cover today), and everyone without a manager.
+         */
+        get: operations["overview_api_promotion_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/teams/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assign
+         * @description HR puts these employees under a manager (moving them from any other team), or under nobody.
+         */
+        put: operations["assign_api_promotion_teams_assign_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/teams/managers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Managers
+         * @description The active managers' names, to choose who covers (names only).
+         */
+        get: operations["list_managers_api_promotion_teams_managers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/teams/covers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Covers
+         * @description Covers now and coming up. A manager sees the ones they give or receive; HR sees all.
+         */
+        get: operations["list_covers_api_promotion_teams_covers_get"];
+        put?: never;
+        /**
+         * Arrange Cover
+         * @description While a manager is away, another manager sees and may nominate their team. At most 6 months; no overlaps.
+         */
+        post: operations["arrange_cover_api_promotion_teams_covers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/promotion/teams/covers/{cover_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End Cover
+         * @description End a cover early (or cancel one that hasn't started): the manager who is away, the cover, or HR.
+         */
+        post: operations["end_cover_api_promotion_teams_covers__cover_id__end_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1675,6 +1900,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssignIn */
+        AssignIn: {
+            /** Employee Ids */
+            employee_ids: number[];
+            /** Manager User Id */
+            manager_user_id?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
         /** AuditEventOut */
         AuditEventOut: {
             /** Id */
@@ -1758,6 +1992,25 @@ export interface components {
             requested_value: number;
             /** Note */
             note: string;
+        };
+        /** CoverIn */
+        CoverIn: {
+            /** Manager User Id */
+            manager_user_id?: number | null;
+            /** Cover User Id */
+            cover_user_id: number;
+            /**
+             * Starts
+             * Format: date
+             */
+            starts: string;
+            /**
+             * Ends
+             * Format: date
+             */
+            ends: string;
+            /** Note */
+            note?: string | null;
         };
         /**
          * CreateUserIn
@@ -2017,6 +2270,11 @@ export interface components {
             /** Photo */
             photo?: string | null;
         };
+        /** PreferencesIn */
+        PreferencesIn: {
+            /** Email Mode */
+            email_mode: string;
+        };
         /**
          * ProfileIn
          * @description What people may change about themselves. Anything left out stays as it is; an empty phone or title clears it.
@@ -2041,6 +2299,11 @@ export interface components {
             flagged?: components["schemas"]["FlagIn"][];
             /** Comment */
             comment?: string | null;
+        };
+        /** ReadIn */
+        ReadIn: {
+            /** Ids */
+            ids?: number[] | null;
         };
         /** RecordIn */
         RecordIn: {
@@ -2165,6 +2428,11 @@ export interface components {
              * @default false
              */
             can_view_employees: boolean | null;
+            /**
+             * Email Mode
+             * @default instant
+             */
+            email_mode: string | null;
             /** Created At */
             created_at?: string | null;
         };
@@ -2400,6 +2668,39 @@ export interface operations {
             };
         };
     };
+    set_preferences_api_auth_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferencesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_photo_api_auth_profile_photo_put: {
         parameters: {
             query?: never;
@@ -2420,6 +2721,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_notifications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    mark_read_api_notifications_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2789,6 +3143,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delivery_log_api_admin_email_log_get: {
+        parameters: {
+            query?: {
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_email_api_admin_email_log__email_id__resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_reminders_api_admin_email_reminders_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -3837,6 +4273,163 @@ export interface operations {
             header?: never;
             path: {
                 employee_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_promotion_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    assign_api_promotion_teams_assign_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_managers_api_promotion_teams_managers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_covers_api_promotion_teams_covers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    arrange_cover_api_promotion_teams_covers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoverIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_cover_api_promotion_teams_covers__cover_id__end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cover_id: number;
             };
             cookie?: never;
         };

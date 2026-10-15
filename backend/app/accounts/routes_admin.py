@@ -4,7 +4,7 @@ from email.policy import default as default_policy
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
@@ -262,6 +262,43 @@ class TestEmailIn(BaseModel):
 def send_test_email(body: TestEmailIn, admin: User = Depends(admin_only)):
     """Send a test email, to check the settings work. Waits for the answer, so the admin sees any problem."""
     return mailer.send(body.to.strip(), templates.test_email(admin.full_name))
+
+
+@email_router.get("/log")
+def delivery_log(status_filter: str | None = None, _: User = Depends(admin_only), db: Session = Depends(get_db)):
+    """The 100 most recent emails: to whom, the subject, whether they were delivered, attempts and any error."""
+    query = select(mailer.EmailLog).order_by(mailer.EmailLog.created_at.desc(), mailer.EmailLog.id.desc())
+    if status_filter:
+        query = query.where(mailer.EmailLog.status == status_filter)
+    counts = dict(db.execute(select(mailer.EmailLog.status, func.count()).group_by(mailer.EmailLog.status)).all())
+    return {"counts": counts, "items": [{
+        "id": e.id, "to": e.to_address, "subject": e.subject, "kind": e.kind, "status": e.status, "attempts": e.attempts,
+        "last_error": e.last_error, "created_at": e.created_at.isoformat(timespec="seconds"),
+        "sent_at": e.sent_at.isoformat(timespec="seconds") if e.sent_at else None,
+        "next_attempt_at": e.next_attempt_at.isoformat(timespec="seconds") if e.next_attempt_at else None,
+        "can_resend": e.mail_json is not None and e.status in ("failed", "gave_up", "saved"),
+    } for e in db.scalars(query.limit(100))]}
+
+
+@email_router.post("/log/{email_id}/resend")
+def resend_email(email_id: int, admin: User = Depends(admin_only), db: Session = Depends(get_db)):
+    """Try a failed (or only saved) email again now."""
+    entry = db.get(mailer.EmailLog, email_id)
+    if entry is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such email.")
+    try:
+        result = mailer.resend(db, entry)
+    except ValueError as error:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(error))
+    db.commit()
+    return result
+
+
+@email_router.post("/reminders/run")
+def run_reminders(_: User = Depends(admin_only), db: Session = Depends(get_db)):
+    """Send any reminders that are due now (the scheduler also does this every hour). Each goes out only once."""
+    from app.core import reminders
+    return {"sent": reminders.run_due(db)}
 
 
 @email_router.get("/outbox")

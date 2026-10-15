@@ -24,6 +24,9 @@ class User(Base):
     # Profile details the person keeps up to date themselves
     phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     job_title: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # How routine emails arrive: "instant" (each as it happens; the default) or "daily" (one digest each morning).
+    # Emails about the account itself (password, username, email address) always arrive at once.
+    email_mode: Mapped[str | None] = mapped_column(String(10), nullable=True, default="instant")
     photo: Mapped[str | None] = mapped_column(Text, nullable=True)  # a small picture, as a data URL (resized in the browser)
     # Admin accounts only: may view employees' records and scores (read-only). Granted by an admin, and logged.
     can_view_employees: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)

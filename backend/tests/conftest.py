@@ -19,6 +19,7 @@ shutil.copytree(_backend.parent / "results", _results)
 os.environ["MODELS_DIR"], os.environ["RESULTS_DIR"] = str(_models), str(_results)
 os.environ["MODEL_REGISTRY_DIR"] = str(_models / "registry")
 os.environ["WARM_EXPLANATIONS"] = "0"  # no background LIME after every record edit in tests
+os.environ["SCHEDULER"] = "0"          # no timer: tests run email retries, reminders and digests directly
 os.environ["DEMO_PASSWORD"] = "demo1234"
 os.environ["OUTBOX_DIR"] = os.path.join(_tmp, "outbox")   # welcome emails go to a temporary folder
 os.environ["SMTP_HOST"] = ""                              # and are never sent during tests

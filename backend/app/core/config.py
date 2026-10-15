@@ -84,6 +84,10 @@ SMTP = {
 # Where "Book a demo" requests are emailed (default: the Gmail address that sends the platform's emails)
 DEMO_INBOX = os.getenv("DEMO_INBOX", "") or os.getenv("SMTP_USER", "")
 OUTBOX_DIR = Path(os.getenv("OUTBOX_DIR", str(INSTANCE_DIR / "outbox")))
+# The timer (core/scheduler.py): email retries, reminders, and the daily digest at DIGEST_HOUR (local time, 0-23).
+# SCHEDULER=0 switches it off (the tests run each step directly).
+SCHEDULER_ON = os.getenv("SCHEDULER", "1") != "0"
+DIGEST_HOUR = int(os.getenv("DIGEST_HOUR", "9"))
 # Evidence employees attach to record-correction requests (PDF, JPEG, PNG). Never committed, never served directly:
 # only through the feedback API, to the employee who sent it and to HR.
 FEEDBACK_FILES_DIR = Path(os.getenv("FEEDBACK_FILES_DIR", str(INSTANCE_DIR / "correction_evidence")))

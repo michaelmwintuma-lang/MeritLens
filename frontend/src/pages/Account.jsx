@@ -2,12 +2,13 @@
 // your username and password. New accounts are sent here first, because their password came from the welcome email.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Lock, Trash2 } from "lucide-react";
+import { Bell, Camera, Lock, Trash2 } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { ROLE_NAMES } from "../roles";
 import { Button, Callout, Card, PageHeader } from "../components/ui";
 import { useAction } from "../useAction";
+import { useToast } from "../components/Toast";
 
 const PHOTO_SIZE = 256; // pixels: big enough for the sidebar and profile, small enough to store
 
@@ -170,6 +171,38 @@ function ChangeUsername() {
   );
 }
 
+/** Routine emails as they happen, or one digest each morning. Account emails always come at once. */
+function EmailPreference() {
+  const { user, setUser } = useAuth();
+  const [error, setError] = useState("");
+  const toast = useToast();
+  const mode = user.email_mode || "instant";
+
+  async function choose(next) {
+    setError("");
+    try {
+      setUser(await api("/auth/preferences", { method: "PUT", body: { email_mode: next } }));
+      toast(next === "daily" ? "You'll get one email a day, each morning." : "You'll get each email as it happens.");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <Card id="emails" icon={Bell} title="Emails" subtitle="Your notification bell always shows everything as it happens. Choose how emails arrive.">
+      {error && <Callout tone="error">{error}</Callout>}
+      <fieldset className="agree">
+        <legend className="visually-hidden">How emails arrive</legend>
+        <div className="choices">
+          <label className="check"><input type="radio" name="email_mode" checked={mode === "instant"} onChange={() => choose("instant")} /> Each email as it happens</label>
+          <label className="check"><input type="radio" name="email_mode" checked={mode === "daily"} onChange={() => choose("daily")} /> One digest each morning</label>
+        </div>
+      </fieldset>
+      <p className="muted">Emails about your account (sign-in details, password, username or email address changes) always arrive at once.</p>
+    </Card>
+  );
+}
+
 function ChangePassword() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
@@ -234,7 +267,10 @@ export default function Account() {
       <PageHeader title="My profile" subtitle="Your details, photo, password and username." />
       <div className="profile-grid">
         <ProfileDetails />
-        <WorkDetails />
+        <div className="stack">
+          <WorkDetails />
+          <EmailPreference />
+        </div>
       </div>
       <h2 className="section-title"><Lock size={18} aria-hidden="true" /> Sign-in and security</h2>
       <div className="two-columns">

@@ -263,6 +263,53 @@
         ]
       }
     },
+    "/api/auth/preferences": {
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Set Preferences",
+        "description": "How routine emails arrive: each as it happens, or one digest each morning. Account emails always come at once.",
+        "operationId": "set_preferences_api_auth_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/auth/profile/photo": {
       "put": {
         "tags": [
@@ -289,6 +336,76 @@
                 "schema": {
                   "$ref": "#/components/schemas/UserOut"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mine",
+        "description": "Your most recent notifications, newest first, and how many are unread.",
+        "operationId": "mine_api_notifications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/read": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Read",
+        "description": "Mark your notifications read (these ones, or all).",
+        "operationId": "mark_read_api_notifications_read_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -866,6 +983,130 @@
         ]
       }
     },
+    "/api/admin/email/log": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delivery Log",
+        "description": "The 100 most recent emails: to whom, the subject, whether they were delivered, attempts and any error.",
+        "operationId": "delivery_log_api_admin_email_log_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/email/log/{email_id}/resend": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Resend Email",
+        "description": "Try a failed (or only saved) email again now.",
+        "operationId": "resend_email_api_admin_email_log__email_id__resend_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Email Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/email/reminders/run": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Run Reminders",
+        "description": "Send any reminders that are due now (the scheduler also does this every hour). Each goes out only once.",
+        "operationId": "run_reminders_api_admin_email_reminders_run_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/email/outbox": {
       "get": {
         "tags": [
@@ -1394,7 +1635,7 @@
           "decisions"
         ],
         "summary": "List Nominations",
-        "description": "HR sees every nomination; a manager sees the ones they made. Newest first.",
+        "description": "HR sees every nomination; a manager sees the ones they made, and any made for their own team by a manager\ncovering for them. Newest first.",
         "operationId": "list_nominations_api_promotion_nominations_get",
         "responses": {
           "200": {
@@ -1417,7 +1658,7 @@
           "decisions"
         ],
         "summary": "Nominate",
-        "description": "A manager recommends one of their own team members for promotion.",
+        "description": "A manager recommends one of their own team members (or of a team they're covering) for promotion.",
         "operationId": "nominate_api_promotion_nominations_post",
         "requestBody": {
           "content": {
@@ -2366,6 +2607,215 @@
             "schema": {
               "type": "integer",
               "title": "Employee Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotion/teams": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Overview",
+        "description": "Every manager (with who they report to, their team and any cover today), and everyone without a manager.",
+        "operationId": "overview_api_promotion_teams_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/teams/assign": {
+      "put": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Assign",
+        "description": "HR puts these employees under a manager (moving them from any other team), or under nobody.",
+        "operationId": "assign_api_promotion_teams_assign_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/teams/managers": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "List Managers",
+        "description": "The active managers' names, to choose who covers (names only).",
+        "operationId": "list_managers_api_promotion_teams_managers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/teams/covers": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "List Covers",
+        "description": "Covers now and coming up. A manager sees the ones they give or receive; HR sees all.",
+        "operationId": "list_covers_api_promotion_teams_covers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Arrange Cover",
+        "description": "While a manager is away, another manager sees and may nominate their team. At most 6 months; no overlaps.",
+        "operationId": "arrange_cover_api_promotion_teams_covers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/promotion/teams/covers/{cover_id}/end": {
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "End Cover",
+        "description": "End a cover early (or cancel one that hasn't started): the manager who is away, the cover, or HR.",
+        "operationId": "end_cover_api_promotion_teams_covers__cover_id__end_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cover_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Cover Id"
             }
           }
         ],
@@ -3822,6 +4272,47 @@
   },
   "components": {
     "schemas": {
+      "AssignIn": {
+        "properties": {
+          "employee_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 5000,
+            "minItems": 1,
+            "title": "Employee Ids"
+          },
+          "manager_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager User Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "employee_ids"
+        ],
+        "title": "AssignIn"
+      },
       "AuditEventOut": {
         "properties": {
           "id": {
@@ -4056,6 +4547,54 @@
           "note"
         ],
         "title": "CorrectionIn"
+      },
+      "CoverIn": {
+        "properties": {
+          "manager_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager User Id"
+          },
+          "cover_user_id": {
+            "type": "integer",
+            "title": "Cover User Id"
+          },
+          "starts": {
+            "type": "string",
+            "format": "date",
+            "title": "Starts"
+          },
+          "ends": {
+            "type": "string",
+            "format": "date",
+            "title": "Ends"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cover_user_id",
+          "starts",
+          "ends"
+        ],
+        "title": "CoverIn"
       },
       "CreateUserIn": {
         "properties": {
@@ -4838,6 +5377,20 @@
         "title": "PhotoIn",
         "description": "A small profile picture as a data URL (the browser shrinks it first), or null to remove it."
       },
+      "PreferencesIn": {
+        "properties": {
+          "email_mode": {
+            "type": "string",
+            "pattern": "^(instant|daily)$",
+            "title": "Email Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email_mode"
+        ],
+        "title": "PreferencesIn"
+      },
       "ProfileIn": {
         "properties": {
           "full_name": {
@@ -4938,6 +5491,26 @@
           "usefulness"
         ],
         "title": "RatingIn"
+      },
+      "ReadIn": {
+        "properties": {
+          "ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          }
+        },
+        "type": "object",
+        "title": "ReadIn"
       },
       "RecordIn": {
         "properties": {
@@ -5323,6 +5896,18 @@
             ],
             "title": "Can View Employees",
             "default": false
+          },
+          "email_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Mode",
+            "default": "instant"
           },
           "created_at": {
             "anyOf": [
