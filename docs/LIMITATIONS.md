@@ -55,21 +55,42 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   organisation sees few numbers. This trades detail for privacy.
 - **Rating comments are free text.** They are never shown, not even in aggregate, but they are stored, and an
   employee could name someone in one.
-- **A hold on a decision is advisory.** The promotion code can't read the feedback tables (that is the isolation
-  rule), so it can't refuse a decision while a correction is pending. The page hides the decision form while a
-  decision is held, but the API would accept a decision.
+- **A hold is placed by HR, not automatically.** Since the redesign the server refuses a decision while it is on
+  hold (the hold lives in a neutral table the decision code may read). But a pending correction doesn't put a
+  nomination on hold by itself: HR chooses to, after reading the committee note.
+
+### Governance
+
+- **Live fairness needs equality-monitoring data.** It is filled in for the 120 demo employees from their rows of
+  the synthetic dataset; employees HR adds or imports have none, so they are left out (never guessed). A real
+  deployment would collect it voluntarily, with "prefer not to say", and explain its purpose.
+- **Live fairness on a small directory says little.** With 120 employees and a handful of decisions, most stages
+  show "not enough data yet". Groups under 5 are never shown, by design.
+- **One person releases a model.** A release needs a named HR person and a written note, but not a second
+  approver; the release, the note and the version it replaced are kept in the audit trail.
+- **The audit trail proves, it doesn't prevent.** Its hash chain shows that an event was changed or deleted, and
+  where; with SQLite, someone with access to the database file could still change it (the chain would show it).
+  With PostgreSQL, the app's roles can't change or delete events (`deploy/postgres/grants.sql`), though the
+  tables' owner could grant itself back that right.
+- **The background worker lives inside the API process.** LIME runs on one worker thread; its results are kept in
+  memory and are lost when the API restarts (they are simply worked out again). A larger deployment would use a
+  task queue such as Redis with RQ or Celery behind the same functions.
 
 ### The system
 
 - **A prototype, not a production service.** SQLite and a single server suit a demonstration, not many users at
-  once. There are no backups, no HTTPS set-up, and no protection against heavy automated traffic beyond simple
-  limits on the demo form.
+  once. PostgreSQL is supported, with database roles that enforce the isolation (`deploy/postgres/`), but that
+  path was written without a running PostgreSQL server to test it on: the test suite runs on SQLite. There are no
+  backups, no HTTPS set-up, and no protection against heavy automated traffic beyond simple limits on the demo form.
+- **Only the API layer is TypeScript.** Types are generated from the backend's OpenAPI contract and checked on every
+  build, but the pages are still JavaScript, so a page can still misuse an answer the API layer leaves loosely
+  typed (many older endpoints describe their answers only loosely).
 - **Emails go through one Gmail account** with an app password, which has daily sending limits.
 - **Windows Smart App Control** blocks parts of the machine-learning libraries on the development computer, so the
   backend runs in WSL (Ubuntu) there. On a normal Linux server this doesn't arise.
-- **Pay rises can't be checked for fairness across groups**, because protected characteristics are deliberately
-  not stored with employee records. Only percentages are kept, never salaries.
-- **Tested mostly by its developer.** 281 automated tests and 6 browser checks verify behaviour and privacy rules,
+- **Pay rises aren't checked for fairness across groups.** Live fairness covers recommendations, nominations and
+  approvals, not the size of pay rises. Only percentages are kept, never salaries.
+- **Tested mostly by its developer.** 315 automated tests and 6 browser checks verify behaviour and privacy rules,
   and an accessibility audit found nothing on 15 pages. But usability and perceived fairness with real users
   depend on the user test (`docs/USER_TEST.md`).
 - **CI hasn't run on GitHub yet.** The workflow is written and each of its steps passes locally, but the
@@ -86,7 +107,8 @@ adapted for the thesis's "Limitations" and "Future work" sections.
    feedback dashboard's measures from it.
 3. **Compare tasks and projects within each department**, so department doesn't come back into the scores through
    them (`results/proxy_analysis.json`).
-4. **Retrain on real data** with an organisation's consent, and extend the fairness checks: accuracy per group,
-   combinations of characteristics, and monitoring over time.
-5. **Production readiness**: PostgreSQL, HTTPS, backups, a transactional email service, and separate
+4. **Retrain on real data** with an organisation's consent (the data mapping in `backend/data/mappings/` is the
+   way in), and extend the fairness checks: accuracy per group, combinations of characteristics, and pay rises.
+5. **Production readiness**: test the PostgreSQL path on a running server, HTTPS, backups, a task queue for the
+   background work, a transactional email service, a second approver for model releases, and separate
    organisations (multi-tenancy).

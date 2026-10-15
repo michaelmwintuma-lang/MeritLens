@@ -164,7 +164,7 @@ numbers are to be collected during the usability study (section 5) and reported 
 
 | Check | Result | How |
 |---|---|---|
-| Backend tests | 281 passed | `cd backend && python -m pytest`, in about 3 minutes |
+| Backend tests | 315 passed | `cd backend && python -m pytest`, in about 5 minutes |
 | Browser checks: sessions, the feedback channel end to end, dashboards, landing page, pagination, every menu page for six roles (with no mention of the removed reporting) | 6 passed | `python scripts/browser_test.py`, against a throwaway copy of the app |
 | Accessibility: axe-core, WCAG 2.1 A/AA, 15 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
 | Pages wider than a phone screen (390 px) | none | same script |

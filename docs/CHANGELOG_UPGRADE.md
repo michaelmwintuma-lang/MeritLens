@@ -22,8 +22,31 @@ reporting, which was removed afterwards (see "Removal of anonymous reporting" at
 - **Security fixes:** sign-in lock-out; withdrawn tokens.
 - **Site:** a public landing page; one loading and error pattern; no accessibility findings (axe, light and dark);
   pages load on first use; batch scoring.
-- **Tests and docs:** 281 tests in about 3 minutes; 6 browser checks; CI; the evaluation results, thesis guide
+- **Tests and docs:** 315 tests in about 3 minutes; 6 browser checks; CI; the evaluation results, thesis guide
   and data model; a usability study kit with perceived-fairness items.
+- **Redesign (2026-10-15):** model registry with model cards and human release; hash-chained audit trail; live
+  fairness at three stages; enforced decision holds; background LIME; data mapping for other organisations;
+  PostgreSQL support with isolation enforced by database roles; httpOnly cookie sessions; a typed (TypeScript) API
+  layer; a clearer interface. Details in "Redesign" below.
+
+## Redesign (2026-10-15)
+
+Same purpose and the same cycle (predict → explain → respond, people decide). The model, its threshold and every
+published result are unchanged: retraining through the new data mapping reproduced them exactly (ROC-AUC 0.8833,
+PR-AUC 0.4736, threshold 0.2283, fairness ratios 0.982 / 0.963 / 0.887).
+
+| Change | Why |
+|---|---|
+| **Model registry and human release** (`app/governance/registry.py`, Model registry page). `train.py` registers a candidate with a model card; HR releases it with a note; blocked if it failed fairness; release an older version to roll back; the app switches without a restart. | A model went live the moment training finished. Now a named person approves every release, and every version stays inspectable. |
+| **Audit trail** (`app/core/audit.py`, Audit trail page). Append-only, SHA-256 hash-chained events for nominations, decisions (with the model's score, threshold, version and top factors), pay steps, record changes, corrections, holds and model releases; a chain check. | The auditor can rebuild what the model said and what each person did at any time, and prove the record wasn't altered. |
+| **Live fairness** (`app/governance/monitoring.py`, Live fairness page). Four-fifths rule on the model's recommendations, managers' nominations and HR's approvals; equality-monitoring data kept apart and never given to the model. | Fairness was checked only on the test set at training time; people can override the model. |
+| **Enforced holds** (`app/core/holds.py`). Holds moved from a feedback table to a neutral one; the decision API refuses a held nomination. | A hold was advisory: the API would accept a decision. |
+| **Background LIME** (`app/core/jobs.py`). Started, then polled; kept per model version and exact record; warmed after a record change. | LIME (2,000 model calls) held up requests. |
+| **Data mapping** (`app/promotion/mapping.py`, `data/mappings/`). `train.py --mapping`. | Retraining on another organisation's export needed code changes. |
+| **PostgreSQL** (`deploy/postgres/`). Optional; the promotion code can connect as a role with no access to feedback or equality-monitoring tables. | Many users at once, backups, and isolation enforced by the database too. Not tested against a running server. |
+| **Session cookie** (httpOnly, SameSite=Strict, plus a request header against cross-site forgery). The website never sees the token. | The token was in `localStorage`, readable by any script on the page. |
+| **TypeScript API layer** (`frontend/src/api.ts`, `auth.tsx`, types generated from `frontend/openapi.json`). `npm run build` type-checks. | Backend/frontend mismatches surface at build time. |
+| **Interface.** "Needs your attention" first on every overview; one diverging factor chart; dashed threshold; blue/orange reserved for the model's data, teal only for actions; "not yet recommended" and "not approved" neutral, never red; Inter with tabular numbers. | Clearer, calmer, colour-blind safe; data never looks clickable. |
 
 ## Model (before Phase 1, approved separately)
 
@@ -264,3 +287,16 @@ reporting is future work. So the feature was removed, and the system matches the
 - **Push to GitHub** so CI runs.
 - **Change `SMTP_SENDER_NAME`** in your private `backend/.env` to MeritLens if emails should carry the new name.
 - **Merge the branch** `remove-anonymous-reporting` into `main` once you've checked it.
+
+## Interface in the style of Apple's (2026-10-15)
+
+| Change | Why |
+|---|---|
+| **Type:** San Francisco on Apple devices, and Inter (variable, with its optical-size axis) elsewhere; iOS-like scale with large bold titles and tighter tracking. | A professional, highly legible typeface that matches the iOS look on every device. |
+| **Colour:** white surfaces; Apple's system palette, using its higher-contrast variants for text. One blue (#0071e3) for everything you can tap; teal and orange only for the model's data; green, amber and red only for status. Dark mode follows iOS (black page, grey surfaces). | Bright and clear, with no colour doing two jobs; every text colour meets WCAG AA. |
+| **Components:** iPadOS sidebar with a solid-blue selected row; app-icon tiles (blue-to-indigo gradient); capsule buttons; the iOS segmented control; soft cards without heavy outlines; frosted-glass bars (phone bar, tab bar, website header, notification panel, sign-in card). | The familiar iPhone feel the system was asked to have. |
+| **Hover and press:** no more buttons jumping up on hover; a quiet colour change on hover and a spring-like press-down. | Calmer, as on iOS. |
+| **No wrapped names:** names, buttons, menu items, role labels, table headers and the first column of every table stay on one line (tables scroll sideways on a phone). | Names were breaking across two lines on phones. |
+| **Sign-in page:** a frosted card with the app icon, and a blue capsule button. | Consistent with the rest of the app. |
+
+Checked: 18 pages, desktop and phone, light theme: 0 accessibility findings (axe); all 7 browser checks pass.

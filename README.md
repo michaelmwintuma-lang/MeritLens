@@ -84,30 +84,45 @@ check is enforced by the backend, not just hidden in the interface.
 ## 2. Architecture and technologies
 
 ```
- Browser (React single-page app)
-        │  JSON over HTTP, signed login token (JWT)
+            ┌──────────────── OFFLINE: the model's life cycle ─────────────────┐
+ HR export ─► data mapping ─► train.py: compare, common-sense ─► model registry ─► HR reads the
+ (CSV)        (data/mappings)  check, threshold, fairness gate    (version + model   model card and
+                                                                   card; blocked if   releases it
+                                                                   unfair)            (or rolls back)
+            └──────────────────────────────────────────────────────────┬──────┘
+                                                                       │ released version only
+ Browser (React app; API layer in TypeScript, typed from openapi.json) ▼
+        │  JSON over HTTP; sign-in in an httpOnly, SameSite=Strict session cookie
         ▼
- FastAPI backend ──────────────────────────────────────────────┐
-   ├─ accounts/   sign-in, roles, profiles, admin              │
-   ├─ promotion/  model, explanations, recommendations, pay    │  SQLite database
-   │      ▲ never imports feedback/ (checked)                  │
-   ├─ feedback/   ratings, corrections, dashboard ─────────────┤  (feedback tables are never read
-   │                                                           │   by promotion code)
-   ├─ public/     landing-page facts from results/             │
-   ├─ demo/       public "Book a demo" requests                │
-   └─ core/       settings, security, email, activity log      │
-        │                                                      │
-        ├─ models/model.joblib  (trained promotion model)      │
-        ├─ instance/correction_evidence/  (documents for corrections) ┘
+ FastAPI backend (one service, separate modules) ─────────────────────────────┐
+   ├─ accounts/    sign-in, roles, profiles, admin                             │
+   ├─ promotion/   model, explanations, recommendations, decisions, pay        │  SQLite (default)
+   │      ▲ never imports feedback/ or governance/ (checked)                   │  or PostgreSQL
+   │      └ reads only the neutral decision_holds table to refuse held decisions│  (promotion code can
+   ├─ feedback/    ratings, corrections, dashboard; places and lifts holds ────┤   use its own role with
+   ├─ governance/  model registry and release, live fairness, audit-trail API  │   no access to feedback)
+   ├─ core/        settings, security, email, activity log, holds,             │
+   │               audit trail (append-only, hash-chained), background jobs    │
+   ├─ public/      landing-page facts from results/                            │
+   └─ demo/        public "Book a demo" requests                               │
+        │  background worker: LIME second opinions, kept per model version + record
+        ├─ models/  the live model; models/registry/ every version with its card
         └─ Gmail SMTP, or an outbox folder when no mail server is set
 ```
 
 | Layer | Technologies |
 |---|---|
-| Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite, PyJWT |
+| Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite (default) or PostgreSQL, PyJWT |
 | Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest), XGBoost, LIME, pandas, NumPy, Matplotlib |
-| Frontend | React 19, React Router 7, Vite 7, lucide-react icons |
-| Testing | pytest (281 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
+| Frontend | React 19, React Router 7, Vite 7, TypeScript (API layer, generated from the backend's OpenAPI contract), lucide-react icons |
+| Testing | pytest (315 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
+
+**Why it is built this way.** One backend with clearly separated modules is right for one organisation's HR
+team: simpler to run, test and reason about than many services. The redesign keeps that, and adds what a
+professional deployment needs: a model goes live only through a named person (registry and release), every
+decision is in a tamper-evident trail, fairness is checked on live decisions too, slow work runs in the
+background, sign-in can't be stolen by page scripts, and a held decision is refused by the server, not just
+hidden. The database can enforce feedback isolation too (PostgreSQL roles: `deploy/postgres/`).
 
 ---
 
@@ -223,7 +238,8 @@ routes. Neither changes a score.
 | **Correct my record** | Pick a value from your own record, the value you believe is right, and evidence (a note, and optionally a PDF, JPEG or PNG). HR confirms with the verified value, or rejects with a reason you receive. Confirming corrects only that value, re-scores you, and logs who, old and new value, reason, readiness before and after, and the model version. You are told by email and in the notification bell. |
 
 - **Committee note:** while a correction is pending for a nominee, HR's review says so and HR can hold the decision
-  until it's resolved. A hold is not a decision and never counts as an override.
+  until it's resolved. A hold is not a decision and never counts as an override. While it holds, the server
+  refuses a decision; it lifts by itself when the correction is decided, or HR can take it off hold.
 - **Feedback dashboard** (HR and auditor):
   - clarity and usefulness rates;
   - contest share per factor;
@@ -236,8 +252,18 @@ routes. Neither changes a score.
   - `tests/test_isolation.py` records every prediction answer, adds ratings, corrections and a held decision, and
     checks every answer is byte-for-byte identical;
   - then a confirmed correction must change the prediction and be logged;
-  - a static check forbids the promotion code from importing or naming the feedback code;
-  - a run-time check records the SQL the prediction endpoints run.
+  - a static check forbids the promotion code from importing or naming the feedback code, or the
+    equality-monitoring data;
+  - a run-time check records the SQL the prediction endpoints run;
+  - with PostgreSQL, the promotion code's database role has no access to those tables at all.
+
+### Governance: model releases, the audit trail and live fairness
+
+| Feature | Who | What it does |
+|---|---|---|
+| **Model registry** | HR releases; admin and auditor read | `train.py` registers each trained model as a *candidate* with a **model card** (data and mapping, method, test results, fairness, intended use, limitations). It goes live only when an HR person reads the card and releases it with a written note; the app switches without a restart. A model that failed the fairness check is *blocked* and can never be released. Releasing an older version rolls back. |
+| **Audit trail** | Auditor and admin, read-only | Every nomination, decision (with the model's score, threshold, version and top factors at that moment), pay step, record change, correction, hold and model release. Append-only and **hash-chained**: "Check the chain" proves nothing was changed or deleted. Never copies what an employee wrote. |
+| **Live fairness** | HR, admin, auditor | The four-fifths rule on today's directory and decisions, at three stages: what the **model** recommends, whom **managers** nominate, whom **HR** approves. Shows where a gap appears. Uses equality-monitoring data kept apart from the directory, never given to the model; groups under 5 are never shown. |
 
 A confidential route for reporting an unfair assessment was built in an earlier version and removed to keep the
 scope focused. It is future work: see `docs/future-work/` and the git tag `with-anonymous-reporting`.
@@ -249,11 +275,14 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 - **The model advises and people decide.** Readiness is never an automatic decision. Disagreements between
   managers and the model must be explained in writing and are recorded.
 - **Data minimisation:**
-  - protected characteristics are not model inputs;
+  - protected characteristics are not model inputs. Gender, an age band (not an age) and education are kept in a
+    separate equality-monitoring table, used only for live fairness totals;
   - pay is recorded only as percentages;
-  - logs record dates, not times.
-- **Separation:** promotion code never reads feedback tables. Static, run-time and end-to-end tests check this
-  (`backend/tests/test_isolation.py`).
+  - the activity log records dates, not times (the audit trail keeps times for decisions, not for sign-ins).
+- **Separation:** promotion code never reads feedback or equality-monitoring tables. Static, run-time and
+  end-to-end tests check this (`backend/tests/test_isolation.py`); with PostgreSQL, so do database roles.
+- **Accountability:** a model goes live only when a named HR person releases it; every decision-relevant event is in
+  a hash-chained, append-only audit trail.
 - **Separation of duties:** HR decides on a promotion and Finance confirms its cost; neither can do the other's
   part, and Finance sees no model scores or performance ratings.
 - **Privacy of feedback:** ratings are seen only as totals, from 5 ratings up, and never by managers; correction
@@ -261,6 +290,8 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 - **Security:**
   - salted PBKDF2-SHA256 password hashing (200,000 rounds), and signed, expiring login tokens that stop working
     on a password change, a reset or signing out;
+  - the website's sign-in lives in an httpOnly, SameSite=Strict cookie that page scripts can't read, and
+    state-changing requests made with it must carry a header another site can't add (cross-site request forgery);
   - lock-out after 5 wrong passwords;
   - role checks on every request;
   - rate limits and a honeypot on the public form;
@@ -280,7 +311,7 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 | Explanations: exactness, common sense, LIME fit and agreement, tips | `results/explanation_evaluation.json` | Done |
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
-| Automated tests | `backend/tests/`, 281 tests | All passing |
+| Automated tests | `backend/tests/`, 315 tests | All passing |
 | Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 6 checks passing; 0 accessibility findings on 15 pages |
 | Continuous integration | `.github/workflows/ci.yml` | Tests, build and browser checks on every push |
 
@@ -379,13 +410,19 @@ SQLAlchemy is pinned to 2.0 because it falls back to pure Python when its compil
 All commands run from the `backend` folder (on Windows, use `.venv\Scripts\python`):
 
 ```bash
-python train.py                                  # trains, compares, tests once, fairness-checks; writes results/
+python train.py                                  # trains, compares, tests once, fairness-checks; registers a candidate
+python train.py --mapping data/mappings/X.json   # the same, on another organisation's export (see example_other_organisation.json)
 python -m evaluation.proxy_analysis              # proxies for gender, age, education, department; equal opportunity
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 281 automated tests, in about 3 minutes
+python -m pytest                                 # the 315 automated tests, in about 5 minutes
+python export_openapi.py                         # the API contract → frontend/openapi.json (then: npm run gen:api)
 ```
+
+`train.py` never changes the live model: it registers the new version in `backend/models/registry/`, and its
+results become `results/` only when HR releases it (Model registry page). The very first model, when none is live,
+goes live directly so the app can start.
 
 In WSL: `wsl --cd backend -- ~/venvs/hr-simple/bin/python -m pytest`.
 
@@ -409,22 +446,27 @@ python scripts/browser_test.py scripts/capture_landing.js             # the webs
 backend/
   app/
     main.py              starts the API and connects the parts
-    core/                settings, database, security, roles, emails, activity log
+    core/                settings, database, security, roles, emails, activity log, audit trail, holds, jobs
     accounts/            users, sign-in, profiles, permissions, admin
-    promotion/           features, training helpers, fairness, explanations, drift, recommendations, pay, records
+    promotion/           features, data mapping, training helpers, fairness, explanations, drift, decisions, pay
     feedback/            ratings, record corrections, committee note, feedback dashboard
+    governance/          model registry and release, live fairness (equality monitoring), audit-trail API
     public/              facts for the landing page, read from results/
     demo/                public "Book a demo" requests
-  train.py               trains, tests and fairness-checks the promotion model
+  train.py               trains, tests and fairness-checks a model, and registers it with its model card
+  export_openapi.py      writes the API contract the frontend's types come from
   evaluation/            explanation evaluation, proxy analysis, feedback export, user test
-  data/                  the synthetic employee dataset (100,000 rows)
-  models/                the live promotion model (created by train.py)
-  tests/                 281 automated tests
+  data/                  the synthetic employee dataset (100,000 rows); mappings/ for other organisations' data
+  models/                the live promotion model; registry/ every trained version (not committed)
+  tests/                 315 automated tests
   instance/              database, secret key, outbox, correction evidence (created automatically, never committed)
-frontend/src/
-  pages/                 one file per page (promotion/, feedback/, admin/, finance/, public/)
-  components/            shared parts: layout, explanation widgets, feedback panels, dashboards
-  styles.css             the design system (navy and teal, light and dark)
+deploy/postgres/         running on PostgreSQL, with database roles that enforce the isolation
+frontend/
+  openapi.json           the API contract (from export_openapi.py); src/api-types.ts is generated from it
+  src/api.ts, auth.tsx   the typed API layer and sign-in (TypeScript)
+  src/pages/             one file per page (promotion/, feedback/, governance/, admin/, finance/, public/)
+  src/components/        shared parts: layout, explanation widgets, feedback panels, attention panel, dashboards
+  src/styles.css         the design system (Apple-style): white, one blue for actions, teal/orange only for the model's data
 results/                 metrics, fairness, curves, proxy analysis and explanation evaluation for the thesis
 docs/                    how it works, evaluation results, thesis guide, data model, user test; future-work/
 scripts/                 browser checks, screenshots and accessibility audits (headless Chrome, no npm packages)
@@ -439,7 +481,8 @@ run.py                   starts everything
 Main limitations (full list: `docs/LIMITATIONS.md`):
 
 - **Synthetic data.** Real use would need retraining on an organisation's own promotion history, with consent.
-- **Prototype infrastructure.** It uses SQLite on a single server, with no HTTPS set-up and no backups.
+- **Prototype infrastructure.** It runs on SQLite by default, on a single server, with no HTTPS set-up and no
+  backups. PostgreSQL is supported (`deploy/postgres/`) but was not tested against a running server here.
 
 - **No real use yet.** The feedback channel's measures, usability and perceived fairness still have to be
   collected in the user study.
