@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.accounts.models import User
 from app.accounts.schemas import ChangePasswordIn, ChangeUsernameIn, LoginIn, LoginOut, PhotoIn, ProfileIn, UserOut
 from app.core.roles import MANAGER
-from app.promotion.models import Employee
+from app.promotion.models import Employee, current_employees
 from app.core.database import get_db
 from app.core.security import (CSRF_HEADER, CSRF_VALUE, LOCK_MINUTES, MAX_FAILED_LOGINS, clear_session_cookie,
                                create_token, get_current_user, hash_password, set_session_cookie, verify_password,
@@ -127,7 +127,7 @@ def profile(user: User = Depends(get_current_user), db: Session = Depends(get_db
         work = {"employee_id": employee.id, "department": employee.department,
                 "manager": manager.full_name if manager else None}
     if user.role == MANAGER:
-        work["team_size"] = len(db.scalars(select(Employee).where(Employee.manager_user_id == user.id)).all())
+        work["team_size"] = len(db.scalars(current_employees().where(Employee.manager_user_id == user.id)).all())
     return {"account": UserOut.model_validate(user), "work": work}
 
 

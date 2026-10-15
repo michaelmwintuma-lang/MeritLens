@@ -53,6 +53,8 @@ ACTIONS = {
     "payroll_sent": "Handed signed-off pay rises to payroll",
     "study_session_created": "Started a user-study session",
     "study_analysed": "Saved and analysed the user study",
+    "data_downloaded": "Downloaded a copy of their own data",
+    "employee_erased": "Erased the personal data of someone who has left",
 }
 
 

@@ -2,8 +2,8 @@
 // your username and password. New accounts are sent here first, because their password came from the welcome email.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Camera, Lock, Trash2 } from "lucide-react";
-import { api } from "../api";
+import { Bell, Camera, Download, Lock, ShieldCheck, Trash2 } from "lucide-react";
+import { api, apiBlob } from "../api";
 import { useAuth } from "../auth";
 import { ROLE_NAMES } from "../roles";
 import { Button, Callout, Card, PageHeader } from "../components/ui";
@@ -171,6 +171,37 @@ function ChangeUsername() {
   );
 }
 
+/** A copy of everything the platform holds about you, and what your rights are. */
+function YourData() {
+  const [error, setError] = useState("");
+  const [working, withWorking] = useAction();
+
+  async function download() {
+    setError("");
+    try {
+      const url = URL.createObjectURL(await apiBlob("/privacy/my-data"));
+      Object.assign(document.createElement("a"), { href: url, download: `meritlens-my-data-${new Date().toISOString().slice(0, 10)}.json` }).click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <Card id="your-data" icon={ShieldCheck} title="Your data"
+      subtitle="Download everything the platform holds about you: your account, your record and scores, your ratings and correction requests, and the decisions about you.">
+      {error && <Callout tone="error">{error}</Callout>}
+      <Button look="secondary" icon={Download} busy={working} busyText="Preparing…" onClick={() => withWorking(download)}>Download a copy of my data</Button>
+      <ul className="steps-list muted section-gap">
+        <li>The model only advises: a person makes every promotion decision, and each score comes with its reasons.</li>
+        <li>If something in your record is wrong, ask HR to correct it (on My growth, if you're an employee).</li>
+        <li>When you leave, HR erases your personal data; decisions about you stay in the log under a pseudonym.</li>
+        <li>Old comments, notifications and logs are removed automatically after set periods (see the website's privacy page).</li>
+      </ul>
+    </Card>
+  );
+}
+
 /** Routine emails as they happen, or one digest each morning. Account emails always come at once. */
 function EmailPreference() {
   const { user, setUser } = useAuth();
@@ -270,6 +301,7 @@ export default function Account() {
         <div className="stack">
           <WorkDetails />
           <EmailPreference />
+          <YourData />
         </div>
       </div>
       <h2 className="section-title"><Lock size={18} aria-hidden="true" /> Sign-in and security</h2>

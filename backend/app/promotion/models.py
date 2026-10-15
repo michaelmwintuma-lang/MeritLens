@@ -2,7 +2,7 @@
 import json
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -22,11 +22,19 @@ class Employee(Base):
     manager_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     # The model's inputs, stored as JSON text: {"performance_score": 81.2, ...}
     record_json: Mapped[str] = mapped_column(Text)
+    # Set when someone who has left is erased (app/privacy): their name and record are removed and they leave every
+    # list, score and check; past decisions about them stay in the log under this pseudonymous row
+    left_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     @property
     def record(self) -> dict:
         """The work record as a dictionary, including department."""
         return {**json.loads(self.record_json), "department": self.department}
+
+
+def current_employees():
+    """A query for everyone in the directory now (not people who have left and been erased)."""
+    return select(Employee).where(Employee.left_at.is_(None))
 
 
 class TeamCover(Base):

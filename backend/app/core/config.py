@@ -91,6 +91,13 @@ OUTBOX_DIR = Path(os.getenv("OUTBOX_DIR", str(INSTANCE_DIR / "outbox")))
 # SCHEDULER=0 switches it off (the tests run each step directly).
 SCHEDULER_ON = os.getenv("SCHEDULER", "1") != "0"
 DIGEST_HOUR = int(os.getenv("DIGEST_HOUR", "9"))
+# How long personal data is kept before it is removed automatically (days; app/privacy/retention.py)
+RETENTION_DAYS = {
+    "rating_comments": int(os.getenv("RETAIN_RATING_COMMENTS_DAYS", "730")),   # 2 years: the 1-5 answers stay
+    "notifications": int(os.getenv("RETAIN_NOTIFICATIONS_DAYS", "180")),       # 6 months
+    "email_log": int(os.getenv("RETAIN_EMAIL_LOG_DAYS", "365")),               # 1 year
+    "activity_log": int(os.getenv("RETAIN_ACTIVITY_LOG_DAYS", "1095")),        # 3 years
+}
 # Evidence employees attach to record-correction requests (PDF, JPEG, PNG). Never committed, never served directly:
 # only through the feedback API, to the employee who sent it and to HR.
 FEEDBACK_FILES_DIR = Path(os.getenv("FEEDBACK_FILES_DIR", str(INSTANCE_DIR / "correction_evidence")))

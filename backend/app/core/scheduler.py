@@ -3,7 +3,8 @@ Work done on a timer while the app runs, in one background thread:
 
 - every minute: try again any email the mail server didn't accept (mailer.retry_due)
 - every hour: send the reminders that are due (reminders.run_due), each only once
-- every morning at DIGEST_HOUR: send the daily digest to people who chose it (digests.send_due)
+- every morning at DIGEST_HOUR: send the daily digest to people who chose it (digests.send_due), and remove
+  personal data past its retention period (privacy/retention.py)
 
 Started with the app (main.py) unless SCHEDULER=0 (the tests run each step directly instead). A problem in one step
 is written to the log and never stops the others or the app.
@@ -39,6 +40,12 @@ def _digests():
         digests.send_due(db)
 
 
+def _retention():
+    from app.privacy import retention
+    with SessionLocal() as db:
+        retention.run(db)
+
+
 def _loop():
     from app.core import mailer
     last_hour, last_digest_day = None, None
@@ -51,6 +58,7 @@ def _loop():
         if current.hour >= DIGEST_HOUR and current.date() != last_digest_day:
             last_digest_day = current.date()
             _safely("daily digests", _digests)
+            _safely("retention", _retention)
         _stop.wait(60)
 
 

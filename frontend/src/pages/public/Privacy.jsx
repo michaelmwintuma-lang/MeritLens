@@ -1,5 +1,18 @@
-// What the system stores and what it doesn't.
+// What the system stores and what it doesn't, people's rights over it, and how long it is kept.
+import { useEffect, useState } from "react";
+import { api } from "../../api";
 import { PageIntro } from "./parts";
+
+const RIGHTS = [
+  ["See everything held about you", "Anyone signed in can download a copy of all their data (My profile → Your data): their record, scores, ratings, correction requests and the decisions about them."],
+  ["Have a wrong record corrected", "Ask HR to correct a value, with evidence; HR checks it and tells you the outcome, with a reason."],
+  ["An explanation, and a person deciding", "Every score comes with its reasons in plain words. The model only advises: every promotion decision is made by a person, and recorded with who made it."],
+  ["Be removed after you leave", "HR erases the personal data of someone who has left. Past decisions stay in the log under a pseudonym, as the record of who decided what."],
+];
+const PERIODS = { rating_comments: "Comments written when rating an explanation (the 1 to 5 answers stay, for totals)",
+  notifications: "Notifications in the bell", email_log: "The email delivery log (who, what subject, when)",
+  activity_log: "The activity log (who did what, by day)" };
+const span = (days) => (days % 365 === 0 ? `${days / 365} year${days === 365 ? "" : "s"}` : days % 30 === 0 ? `${days / 30} months` : `${days} days`);
 
 const RULES = [
   ["Only the day is kept", "The activity log stores dates, not times, and the server keeps no log of requests."],
@@ -13,6 +26,8 @@ const RULES = [
 ];
 
 export default function Privacy() {
+  const [periods, setPeriods] = useState(null);
+  useEffect(() => { api("/privacy/retention").then(setPeriods).catch(() => {}); }, []);
   return (
     <>
       <PageIntro title="What we store, and what we don't">
@@ -22,6 +37,21 @@ export default function Privacy() {
       <dl className="rules-list">
         {RULES.map(([rule, detail]) => <div key={rule}><dt>{rule}</dt><dd>{detail}</dd></div>)}
       </dl>
+
+      <h2>Your rights</h2>
+      <dl className="rules-list">
+        {RIGHTS.map(([rule, detail]) => <div key={rule}><dt>{rule}</dt><dd>{detail}</dd></div>)}
+      </dl>
+
+      {periods && (
+        <>
+          <h2>How long things are kept</h2>
+          <dl className="rules-list">
+            {Object.entries(PERIODS).map(([key, label]) => <div key={key}><dt>{span(periods[key])}</dt><dd>{label}, then removed automatically.</dd></div>)}
+            <div><dt>Kept</dt><dd>The audit trail of decisions is never pruned: it is the record of who decided what, and its tamper-evident chain must stay whole.</dd></div>
+          </dl>
+        </>
+      )}
 
       <section className="note-band">
         <h2>About the data in this demo</h2>

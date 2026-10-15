@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 from app.accounts.models import User
 from app.core import audit
 from app.core.holds import active_hold
-from app.promotion.models import CycleScore, Decision, Employee, Nomination, ReviewCycle
+from app.promotion.models import CycleScore, Decision, Employee, Nomination, ReviewCycle, current_employees
 
 # How many people "biggest movers since the last cycle" lists each way
 MOVERS = 5
@@ -68,7 +68,7 @@ def open_new(db: Session, live, user, name: str, nominations_close: date | None,
                         nominations_close=nominations_close, note=note, opened_by_name=user.full_name)
     db.add(cycle)
     db.flush()  # gives the cycle its id
-    employees = list(db.scalars(select(Employee).order_by(Employee.id)))
+    employees = list(db.scalars(current_employees().order_by(Employee.id)))
     for employee, score in zip(employees, live.scores([e.record for e in employees])):
         db.add(CycleScore(cycle_id=cycle.id, employee_id=employee.id, score=round(score, 4),
                           recommended=score >= live.threshold, record_json=json.dumps(employee.record, sort_keys=True),

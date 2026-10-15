@@ -46,7 +46,7 @@ def rate(part: int, whole: int, minimum: int = MIN_GROUP) -> float | None:
 
 def department_options(db: Session) -> list[str]:
     """Departments large enough to filter by."""
-    counts = db.execute(select(Employee.department, func.count()).group_by(Employee.department)).all()
+    counts = db.execute(select(Employee.department, func.count()).where(Employee.left_at.is_(None)).group_by(Employee.department)).all()
     return sorted(d for d, n in counts if n >= MIN_GROUP)
 
 

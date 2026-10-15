@@ -17,6 +17,7 @@ import Tips from "../../components/promotion/Tips";
 import NominateBox from "../../components/promotion/NominateBox";
 import RunPrediction from "../../components/promotion/RunPrediction";
 import RecordHistory from "../../components/promotion/RecordHistory";
+import EraseEmployee from "../../components/promotion/EraseEmployee";
 import RespondPanel from "../../components/feedback/RespondPanel";
 import TrendChart from "../../components/charts/TrendChart";
 
@@ -140,6 +141,7 @@ export default function Readiness() {
       )}
 
       {user.role === "hr" && <RecordHistory employeeId={profile.id} />}
+      {user.role === "hr" && <EraseEmployee employee={profile} />}
 
       {user.role === "manager" && profile.may_nominate && (
         <Card id="recommend" title="Recommend for promotion">

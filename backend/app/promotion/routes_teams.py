@@ -25,7 +25,7 @@ from app.core.database import get_promotion_db as get_db  # the promotion code's
 from app.core.roles import HR, MANAGER
 from app.core.security import require_roles
 from app.promotion import teams
-from app.promotion.models import Employee, TeamCover
+from app.promotion.models import Employee, TeamCover, current_employees
 
 router = APIRouter(prefix="/api/promotion/teams", tags=["teams"])
 
@@ -58,7 +58,7 @@ def overview(_: User = Depends(require_roles(HR)), db: Session = Depends(get_db)
             "direct": sum(1 for r in branch.values() if r == teams.DIRECT),
             "branch": sum(1 for r in branch.values() if r == teams.BRANCH),
             "team": [{"id": e.id, "full_name": e.full_name, "department": e.department}
-                     for e in db.scalars(select(Employee).where(Employee.manager_user_id == manager.id).order_by(Employee.full_name))],
+                     for e in db.scalars(current_employees().where(Employee.manager_user_id == manager.id).order_by(Employee.full_name))],
             "cover": cover_out(db, cover) if cover else None,
         })
     # Top of each reporting line first, then the managers under them, as an org chart reads
@@ -68,8 +68,8 @@ def overview(_: User = Depends(require_roles(HR)), db: Session = Depends(get_db)
         return [order[m]["full_name"] if m in order else "" for m in chain] + [row["full_name"]]
     rows.sort(key=path)
     unassigned = [{"id": e.id, "full_name": e.full_name, "department": e.department}
-                  for e in db.scalars(select(Employee).where(Employee.manager_user_id.is_(None)).order_by(Employee.department, Employee.full_name))]
-    total = len(db.scalars(select(Employee.id)).all())
+                  for e in db.scalars(current_employees().where(Employee.manager_user_id.is_(None)).order_by(Employee.department, Employee.full_name))]
+    total = len(db.scalars(current_employees()).all())
     return {"managers": rows, "unassigned": unassigned, "employees": total}
 
 

@@ -17,7 +17,7 @@ from app.core.security import hash_password, require_roles, temporary_password, 
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import ACTIONS, ActivityEntry, record
-from app.promotion.models import Decision, Employee, Nomination, TeamCover
+from app.promotion.models import Decision, Employee, Nomination, TeamCover, current_employees
 
 router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 employees_router = APIRouter(prefix="/api/admin/employees", tags=["admin"])
@@ -188,7 +188,7 @@ def list_employees_for_admin(db: Session = Depends(get_db), _: User = Depends(ad
     """
     linked = {u.employee_id: u.username for u in db.scalars(select(User).where(User.employee_id.is_not(None)))}
     return [{"id": e.id, "full_name": e.full_name, "department": e.department, "manager_user_id": e.manager_user_id,
-             "login": linked.get(e.id)} for e in db.scalars(select(Employee).order_by(Employee.full_name))]
+             "login": linked.get(e.id)} for e in db.scalars(current_employees().order_by(Employee.full_name))]
 
 
 class TeamIn(BaseModel):
@@ -365,7 +365,7 @@ def system(db: Session = Depends(get_db), _: User = Depends(admin_only)):
                         "trained_at": live.info["trained_at"], "threshold": live.threshold,
                         "inputs": len(live.info["features"]),
                         "test_prediction_ms": round((time.perf_counter() - started) * 1000, 1)}
-        records = [json.loads(e.record_json) for e in db.scalars(select(Employee))]
+        records = [json.loads(e.record_json) for e in db.scalars(current_employees())]
         drift = drift_report(live.background, records, live.info["features"])
 
     outbox = sorted(OUTBOX_DIR.glob("*.eml")) if OUTBOX_DIR.exists() else []

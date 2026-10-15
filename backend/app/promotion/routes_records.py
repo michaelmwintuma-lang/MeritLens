@@ -19,7 +19,7 @@ from app.core.database import get_promotion_db as get_db  # the promotion code's
 from app.core.roles import AUDITOR, HR, MANAGER
 from app.core.security import require_roles
 from app.promotion import cycles
-from app.promotion.models import Employee, RecordChange
+from app.promotion.models import Employee, RecordChange, current_employees
 from app.promotion.records import CSV_COLUMNS, GROUPS, field_list, read_csv, to_entry, to_record
 from app.promotion.routes import model, warm_explanation
 
@@ -51,7 +51,7 @@ def managers(db: Session) -> list[User]:
 
 def same_person_exists(db: Session, full_name: str, department: str, ignore_id: int | None = None) -> bool:
     """Someone with this name in this department already: most likely the same person entered twice."""
-    query = select(Employee).where(Employee.full_name == full_name, Employee.department == department)
+    query = current_employees().where(Employee.full_name == full_name, Employee.department == department)
     return any(e.id != ignore_id for e in db.scalars(query))
 
 

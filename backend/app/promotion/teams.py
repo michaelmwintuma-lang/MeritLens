@@ -20,14 +20,14 @@ from sqlalchemy.orm import Session
 
 from app.accounts.models import User
 from app.core.roles import MANAGER
-from app.promotion.models import Employee, TeamCover
+from app.promotion.models import Employee, TeamCover, current_employees
 
 DIRECT, COVER, BRANCH = "direct", "cover", "branch"
 MAY_NOMINATE = (DIRECT, COVER)
 
 
 def direct_reports(db: Session, manager_id: int) -> list[int]:
-    return list(db.scalars(select(Employee.id).where(Employee.manager_user_id == manager_id)))
+    return [e.id for e in db.scalars(current_employees().where(Employee.manager_user_id == manager_id))]
 
 
 def active_covers(db: Session, today: date | None = None):

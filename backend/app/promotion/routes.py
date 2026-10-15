@@ -30,7 +30,7 @@ from app.core.security import get_current_user
 from app.promotion import cycles, teams
 from app.promotion.explain import ModelNotTrained, get_model
 from app.promotion.features import EXCLUDED
-from app.promotion.models import Employee
+from app.promotion.models import Employee, current_employees
 
 router = APIRouter(prefix="/api/promotion", tags=["promotion"])
 
@@ -59,7 +59,7 @@ def can_see(user: User, employee: Employee, db: Session) -> bool:
 def visible_employee(employee_id: int, user: User, db: Session) -> Employee:
     """Load an employee the user may see, or refuse."""
     employee = db.get(Employee, employee_id)
-    if employee is None:
+    if employee is None or employee.left_at is not None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such employee.")
     if not can_see(user, employee, db):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only see your own record, or your team's if you're a manager.")
@@ -79,7 +79,7 @@ def scored_employees(user: User, db: Session) -> dict:
     The employees this user may see, each with their readiness score: the saved score when a review cycle is open
     (`cycle` says which), otherwise worked out by the live model now (everyone in one call).
     """
-    query = select(Employee).order_by(Employee.full_name)
+    query = current_employees().order_by(Employee.full_name)
     relation = {}
     if user.role == MANAGER:
         relation = teams.team_of(db, user)

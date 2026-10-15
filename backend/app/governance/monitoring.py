@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.governance.models import EqualityMonitoring
-from app.promotion.models import CycleScore, Decision, Employee, Nomination, ReviewCycle
+from app.promotion.models import CycleScore, Decision, Employee, Nomination, ReviewCycle, current_employees
 
 FOUR_FIFTHS = 0.8
 MIN_GROUP = 5
@@ -116,7 +116,7 @@ def report(db: Session, cycle: ReviewCycle | None = None) -> dict:
         nominations = nominations.where(Nomination.cycle_id == cycle.id)
         decisions = decisions.where(Decision.cycle_id == cycle.id)
     else:
-        employees = list(db.scalars(select(Employee)))
+        employees = list(db.scalars(current_employees()))
         try:
             live = get_model()
             recommended = {e.id: s >= live.threshold for e, s in zip(employees, live.scores([e.record for e in employees]))}
