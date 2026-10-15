@@ -1,0 +1,3 @@
+# Only for running on PostgreSQL (deploy/postgres/README.md); SQLite needs nothing extra.
+-r requirements.txt
+psycopg[binary]>=3.1

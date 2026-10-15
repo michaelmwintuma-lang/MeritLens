@@ -31,6 +31,19 @@ INSTANCE_DIR = BACKEND_DIR / "instance"
 INSTANCE_DIR.mkdir(exist_ok=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{(INSTANCE_DIR / 'app.db').as_posix()}")
+# PostgreSQL only: the promotion code's own, restricted database role (no access to feedback tables). Empty: the
+# promotion code shares DATABASE_URL. See deploy/postgres/README.md.
+PROMOTION_DATABASE_URL = os.getenv("PROMOTION_DATABASE_URL", "")
+
+# The trained model the app serves (model.joblib, model_info.json, background.csv), and the registry of every
+# trained version with its model card. Tests point these at a temporary copy.
+MODELS_DIR = Path(os.getenv("MODELS_DIR", str(BACKEND_DIR / "models")))
+MODEL_REGISTRY_DIR = Path(os.getenv("MODEL_REGISTRY_DIR", str(MODELS_DIR / "registry")))
+# The live model's published results (metrics, fairness, curves) that the landing page and the thesis use
+RESULTS_DIR = Path(os.getenv("RESULTS_DIR", str(BACKEND_DIR.parent / "results")))
+
+# Sign-in is kept in an httpOnly cookie that page scripts can't read (see core/security.py)
+SESSION_COOKIE = "meritlens_session"
 
 # How long a login lasts before the user must sign in again
 TOKEN_MINUTES = int(os.getenv("TOKEN_MINUTES", "480"))

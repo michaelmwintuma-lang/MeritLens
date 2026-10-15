@@ -10,16 +10,20 @@ Who sees what (checked here, on every request):
 - Auditor: no individual employees; the model's overall importance (and the decision log, in
   routes_decisions.py)
 """
+import hashlib
+import json
+import os
 import time
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
-from app.core.database import get_db
+from app.core import jobs
+from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
 from app.core.roles import ADMIN, AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import get_current_user
 from app.promotion.explain import ModelNotTrained, get_model
@@ -100,10 +104,17 @@ def predict_all(user: User = Depends(promotion_roles), db: Session = Depends(get
 
 @router.get("/employees/{employee_id}")
 def explain_employee(employee_id: int, user: User = Depends(promotion_roles), db: Session = Depends(get_db)):
-    """Score, exact contributions (SHAP), LIME rules, plain-language summary and the what-if options."""
+    """
+    Score, exact contributions (SHAP), plain-language summary and the what-if options, at once. LIME's rules are
+    included when they're already worked out for this record; otherwise "lime" is empty (start it with
+    POST /employees/{id}/lime).
+    """
     employee = visible_employee(employee_id, user, db)
+    live = model()
+    state = jobs.state(lime_key(live.version, employee.record)) or {}
     return {"id": employee.id, "full_name": employee.full_name, "department": employee.department,
-            **model().explain(employee.record)}
+            **live.explain(employee.record, with_lime=False),
+            "lime": state.get("result") if state.get("status") == "done" else None}
 
 
 class WhatIfIn(BaseModel):
@@ -133,13 +144,60 @@ def predict(employee_id: int, user: User = Depends(promotion_roles), db: Session
             "trained_at": live.info["trained_at"], "duration_ms": round((time.perf_counter() - started) * 1000)}
 
 
+# ─── LIME, in the background ──────────────────────────────────────────────────
+# LIME asks the model 2,000 times per employee, so it runs as a background job (app/core/jobs.py) instead of
+# holding up the request. A result is kept under the model version and the exact record, so a corrected record or
+# a newly released model never gets an old answer.
+def lime_key(version: str, record: dict) -> str:
+    fingerprint = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()[:24]
+    return f"lime:{version}:{fingerprint}"
+
+
+def start_lime(live, record: dict) -> dict:
+    def work():
+        started = time.perf_counter()
+        return {**live.lime(record), "duration_ms": round((time.perf_counter() - started) * 1000)}
+    return jobs.submit(lime_key(live.version, record), work)
+
+
+def warm_explanation(record: dict) -> None:
+    """Start working out a changed record's second opinion now, so it's ready when someone opens the page."""
+    if os.getenv("WARM_EXPLANATIONS", "1") == "1":
+        try:
+            start_lime(get_model(), record)
+        except ModelNotTrained:
+            pass
+
+
+def lime_answer(state: dict | None, response: Response) -> dict:
+    """Done: 200 with the result. Still working: 202 (ask again shortly). Failed: 500 with the reason."""
+    if state is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "LIME hasn't been started for this record yet.")
+    if state["status"] == "done":
+        return {"status": "done", **state["result"]}
+    if state["status"] == "error":
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"LIME failed: {state['error']}")
+    response.status_code = status.HTTP_202_ACCEPTED
+    return {"status": "running"}
+
+
 @router.post("/employees/{employee_id}/lime")
-def lime(employee_id: int, user: User = Depends(promotion_roles), db: Session = Depends(get_db)):
-    """The second opinion: LIME's rules and fit for this employee."""
+def lime(employee_id: int, response: Response, user: User = Depends(promotion_roles), db: Session = Depends(get_db)):
+    """
+    The second opinion: start LIME for this employee (or get the result if it's already worked out). 200 with the
+    rules and fit when ready; 202 while it runs; then ask again with GET.
+    """
     employee = visible_employee(employee_id, user, db)
-    started = time.perf_counter()
-    result = model().lime(employee.record)
-    return {**result, "duration_ms": round((time.perf_counter() - started) * 1000)}
+    return lime_answer(start_lime(model(), employee.record), response)
+
+
+@router.get("/employees/{employee_id}/lime")
+def lime_result(employee_id: int, response: Response, user: User = Depends(promotion_roles),
+                db: Session = Depends(get_db)):
+    """LIME's result for this employee's current record and the live model: 200 when ready, 202 while it runs."""
+    employee = visible_employee(employee_id, user, db)
+    live = model()
+    return lime_answer(jobs.state(lime_key(live.version, employee.record)), response)
 
 
 @router.post("/employees/{employee_id}/what-if")

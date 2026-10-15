@@ -44,6 +44,7 @@ ACTIONS = {
     "correction_rejected": "Rejected a record correction",
     "nomination_deferred": "Put a promotion decision on hold for a correction",
     "nomination_resumed": "Took a promotion decision off hold",
+    "model_released": "Released a model version (made it live)",
 }
 
 

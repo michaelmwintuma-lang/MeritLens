@@ -5,8 +5,12 @@ Isolation: feedback never changes a prediction. Only HR confirming a record corr
    pending, one rejected) and a decision held for a correction are added; the prediction and explanation must be
    byte-for-byte identical. Then HR confirms a correction: the prediction must change, and the change must be
    logged.
-2. Static: no file in the promotion code imports, or even names, the feedback code and tables.
-3. At run time: the prediction endpoints run no SQL that touches a feedback table.
+2. Static: no file in the promotion code imports, or even names, the feedback code and tables, or the
+   equality-monitoring data (gender, age band, education) kept for the fairness monitor.
+3. At run time: the prediction endpoints run no SQL that touches a feedback or equality-monitoring table.
+
+A held decision is stored in the neutral decision_holds table (app/core/holds.py), which the promotion code may read:
+it says only that a nomination is held, never anything an employee wrote.
 """
 import ast
 from pathlib import Path
@@ -15,10 +19,12 @@ import pytest
 from sqlalchemy import event
 
 from app.core.database import engine
-from tests.conftest import login, recommendation
+from tests.conftest import login, recommendation, wait_for_lime
 
 PROMOTION = Path(__file__).resolve().parents[1] / "app" / "promotion"
-FEEDBACK_TABLES = {"explanation_ratings", "correction_requests", "nomination_deferrals"}
+FEEDBACK_TABLES = {"explanation_ratings", "correction_requests"}
+PROTECTED_TABLES = {"equality_monitoring"}  # for the fairness monitor only, never for the model
+FORBIDDEN_TABLES = FEEDBACK_TABLES | PROTECTED_TABLES
 
 
 def employee_id(client):
@@ -28,6 +34,7 @@ def employee_id(client):
 def prediction_bytes(client, person: int) -> dict:
     """Every prediction endpoint's exact answer for one employee, as HR, their manager and they see it."""
     hr, manager, employee = login(client, "hr"), login(client, "manager"), login(client, "employee")
+    wait_for_lime(client, person, hr)  # the explanation includes LIME once it's ready: compare finished answers
     return {
         "explanation (HR)": client.get(f"/api/promotion/employees/{person}", headers=hr).content,
         "explanation (manager)": client.get(f"/api/promotion/employees/{person}", headers=manager).content,
@@ -82,27 +89,42 @@ def test_feedback_never_changes_a_prediction_but_a_confirmed_correction_does(cli
 
 
 def test_the_promotion_code_never_imports_or_names_feedback():
-    """A static check over every file in app/promotion: imports, table names and model names."""
-    forbidden_names = FEEDBACK_TABLES | {"ExplanationRating", "CorrectionRequest", "NominationDeferral"}
+    """
+    A static check over every file in app/promotion: imports, table names and model names. Neither the feedback
+    code nor the governance code (which holds the equality-monitoring data) may be imported.
+    """
+    forbidden_names = FORBIDDEN_TABLES | {"ExplanationRating", "CorrectionRequest", "EqualityMonitoring"}
+    forbidden_modules = ("app.feedback", "app.governance")
     for file in PROMOTION.glob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                assert not (node.module or "").startswith("app.feedback"), f"{file.name}: {node.module}"
+                assert not (node.module or "").startswith(forbidden_modules), f"{file.name}: {node.module}"
             elif isinstance(node, ast.Import):
-                assert not any(a.name.startswith("app.feedback") for a in node.names), file.name
+                assert not any(a.name.startswith(forbidden_modules) for a in node.names), file.name
             elif isinstance(node, ast.Name) and node.id in forbidden_names:
                 pytest.fail(f"{file.name} uses {node.id}")
             elif isinstance(node, ast.Constant) and isinstance(node.value, str):
                 words = set(node.value.replace('"', " ").replace("'", " ").split())
-                assert not words & FEEDBACK_TABLES, f"{file.name} names a feedback table"
+                assert not words & FORBIDDEN_TABLES, f"{file.name} names a feedback or equality-monitoring table"
 
 
 def test_the_tables_checked_are_all_the_feedback_tables():
-    """If a new feedback table is added, the checks above must know about it."""
-    from app.feedback import models
-    owned = {obj.__tablename__ for obj in vars(models).values() if isinstance(obj, type) and "__tablename__" in vars(obj)}
-    assert owned == FEEDBACK_TABLES
+    """If a new feedback or equality-monitoring table is added, the checks above must know about it."""
+    from app.feedback import models as feedback
+    from app.governance import models as governance
+
+    def owned(module):
+        return {obj.__tablename__ for obj in vars(module).values() if isinstance(obj, type) and "__tablename__" in vars(obj)}
+    assert owned(feedback) == FEEDBACK_TABLES
+    assert owned(governance) - {"model_releases"} == PROTECTED_TABLES
+
+
+def test_the_hold_table_says_nothing_an_employee_wrote():
+    """The promotion code may read decision holds, so they may only hold the fact of the hold."""
+    from app.core.holds import DecisionHold
+    assert {c.name for c in DecisionHold.__table__.columns} == {
+        "id", "nomination_id", "reason", "placed_by_name", "placed_at", "lifted_at", "lifted_because"}
 
 
 def test_the_prediction_endpoints_run_no_sql_on_feedback_tables(client):
@@ -116,9 +138,10 @@ def test_the_prediction_endpoints_run_no_sql_on_feedback_tables(client):
         hr = login(client, "hr")
         client.post(f"/api/promotion/employees/{person}/predict", headers=hr)
         client.post(f"/api/promotion/employees/{person}/lime", headers=hr)
+        client.get(f"/api/promotion/employees/{person}/lime", headers=hr)
     finally:
         event.remove(engine, "before_cursor_execute", listener)
     assert statements, "no SQL was captured"
     for statement in statements:
-        for table in FEEDBACK_TABLES:
+        for table in FORBIDDEN_TABLES:
             assert f" {table}" not in statement and f'"{table}"' not in statement, statement[:120]

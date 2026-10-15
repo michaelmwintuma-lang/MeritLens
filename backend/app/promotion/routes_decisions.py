@@ -26,10 +26,12 @@ from sqlalchemy.orm import Session
 
 from app.accounts.contacts import finance_contacts, hr_contacts, login_for_employee
 from app.accounts.models import User
+from app.core import audit
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
-from app.core.database import get_db
+from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
+from app.core.holds import REASONS, active_hold
 from app.core.roles import AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import require_roles
 from app.promotion.models import Decision, Employee, Nomination, PayPolicy, PayReview
@@ -148,6 +150,11 @@ def nominate(body: NominationIn, background: BackgroundTasks, user: User = Depen
         proposed_raise=round(body.proposed_raise, 1))
     db.add(nomination)
     record(db, user, "nomination_made", f"{employee.full_name} → {nomination.proposed_title}")
+    db.flush()  # gives the nomination its id
+    audit.append(db, "nomination_made", user, "nomination", nomination.id, {
+        "employee_id": employee.id, "proposed_title": nomination.proposed_title,
+        "proposed_raise": nomination.proposed_raise, "model_recommended": recommended,
+        "disagrees_with_model": not recommended}, model_version=live.version)
     db.commit()
     for email, hr_name in hr_contacts(db):
         background.add_task(mailer.send, email, templates.nomination_received(hr_name, employee.full_name, user.full_name,
@@ -243,9 +250,16 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
         raise HTTPException(status.HTTP_409_CONFLICT, "This nomination has already been decided.")
     approved = body.decision == "approve"
 
+    hold = active_hold(db, nomination.id)
+    if hold is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"This decision is on hold: {REASONS[hold.reason]}. Take it off hold first, or wait for "
+                            "the correction to be decided.")
+
     # What the model says right now, recorded with the decision
     live = model()
-    score = live.score(db.get(Employee, nomination.employee_id).record)
+    record_now = db.get(Employee, nomination.employee_id).record
+    score = live.score(record_now)
     recommended = score >= live.threshold
     agrees = approved == recommended
     reason = (body.reason or "").strip() or None
@@ -273,10 +287,19 @@ def decide(nomination_id: int, body: DecisionIn, background: BackgroundTasks, us
     db.add(decision)
     employee_name = db.get(Employee, nomination.employee_id).full_name
     record(db, user, "decision_made", f"{nomination.status}: {employee_name}{'' if agrees else ' (differs from the model)'}")
+    db.flush()  # gives the decision its id
+    # The audit trail keeps what the model said and why (its strongest factors), exactly as HR saw it
+    audit.append(db, "decision_made", user, "decision", decision.id, {
+        "nomination_id": nomination.id, "employee_id": nomination.employee_id, "decision": body.decision,
+        "score": round(score, 4), "threshold": live.threshold, "model_recommended": recommended,
+        "agrees_with_model": agrees, "reason_given": reason is not None, "approved_raise": raise_percent,
+        "top_factors": [{"feature": c["feature"], "contribution": c["contribution"]}
+                        for c in live.contributions(record_now)[:5]],
+    }, model_version=live.version)
     if approved:
-        db.flush()  # gives the decision its id
         db.add(PayReview(decision_id=decision.id, action="submitted", by_user=user.id, by_name=user.full_name,
                          raise_percent=raise_percent, note=raise_reason))
+        audit.append(db, "pay_submitted", user, "decision", decision.id, {"raise_percent": raise_percent})
     db.commit()
 
     if approved:  # nobody is told until Finance signs off the pay rise
@@ -345,6 +368,7 @@ def resubmit(decision_id: int, body: ResubmitIn, background: BackgroundTasks, us
     decision.approved_raise, decision.raise_reason, decision.pay_status = raise_percent, raise_reason, "awaiting_finance"
     db.add(PayReview(decision_id=decision.id, action="resubmitted", by_user=user.id, by_name=user.full_name,
                      raise_percent=raise_percent, note=body.note.strip()))
+    audit.append(db, "pay_resubmitted", user, "decision", decision.id, {"raise_percent": raise_percent})
     employee_name = db.get(Employee, decision.employee_id).full_name
     record(db, user, "pay_resubmitted", f"{employee_name}: {raise_percent:g}%")
     db.commit()

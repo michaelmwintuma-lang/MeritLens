@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.accounts.models import User
 from app.accounts.contacts import notify_new_team_members
 from app.accounts.schemas import CreateUserIn, CreateUserOut, EditUserIn, PermissionIn, SetActiveIn, UserOut
-from app.core.config import OUTBOX_DIR, SMTP
+from app.core.config import OUTBOX_DIR, RESULTS_DIR, SMTP
 from app.core.database import get_db
 from app.core.roles import ADMIN, AUDITOR, FINANCE, HR, MANAGER
 from app.core.security import hash_password, require_roles, temporary_password, withdraw_tokens
@@ -291,7 +291,6 @@ def system(db: Session = Depends(get_db), _: User = Depends(admin_only)):
     import time
     from collections import Counter
     from datetime import datetime, timezone
-    from pathlib import Path
 
     from app.core.roles import ALL_ROLES
     from app.promotion.drift import drift_report
@@ -308,9 +307,8 @@ def system(db: Session = Depends(get_db), _: User = Depends(admin_only)):
     activity = [{"date": e.on_date.isoformat(), "user": e.user_name, "action": ACTIONS[e.action], "details": e.details}
                 for e in recent]
 
-    results = Path(__file__).resolve().parents[3] / "results"
     try:
-        fairness = json.loads((results / "fairness.json").read_text())
+        fairness = json.loads((RESULTS_DIR / "fairness.json").read_text())
         fairness_gate = {"passes": fairness["passes"], "rule": fairness["rule"],
                          "ratios": {name: check["ratio"] for name, check in fairness["checks"].items()}}
     except (OSError, ValueError, KeyError):

@@ -1,7 +1,7 @@
 """Sign in, see who you are, update your profile, change your password or username."""
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,8 +10,9 @@ from app.accounts.schemas import ChangePasswordIn, ChangeUsernameIn, LoginIn, Lo
 from app.core.roles import MANAGER
 from app.promotion.models import Employee
 from app.core.database import get_db
-from app.core.security import (LOCK_MINUTES, MAX_FAILED_LOGINS, create_token, get_current_user, hash_password,
-                               verify_password, withdraw_tokens)
+from app.core.security import (CSRF_HEADER, CSRF_VALUE, LOCK_MINUTES, MAX_FAILED_LOGINS, clear_session_cookie,
+                               create_token, get_current_user, hash_password, set_session_cookie, verify_password,
+                               withdraw_tokens)
 from app.core.activity import record
 from app.core import email_templates as templates
 from app.core import mailer
@@ -26,11 +27,22 @@ SIGN_IN_FAILED = (f"Wrong username or password. After {MAX_FAILED_LOGINS} wrong 
 _DUMMY_HASH = hash_password("not-a-real-password")
 
 
-@router.post("/login", response_model=LoginOut)
-def login(body: LoginIn, db: Session = Depends(get_db)):
+def signed_in(request: Request, response: Response, user: User) -> LoginOut:
     """
-    Check the username and password and return a login token. After MAX_FAILED_LOGINS wrong passwords in a row,
-    the account is locked for LOCK_MINUTES: even the right password is refused until then.
+    Start a session: the token goes into the httpOnly session cookie. The website (which sends X-Requested-With)
+    never sees the token itself; API clients get it in the answer, to send as "Authorization: Bearer".
+    """
+    token = create_token(user)
+    set_session_cookie(response, token)
+    from_website = request.headers.get(CSRF_HEADER) == CSRF_VALUE
+    return LoginOut(access_token=None if from_website else token, user=UserOut.model_validate(user))
+
+
+@router.post("/login", response_model=LoginOut)
+def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    """
+    Check the username and password and start a session. After MAX_FAILED_LOGINS wrong passwords in a row, the
+    account is locked for LOCK_MINUTES: even the right password is refused until then.
     """
     user = db.scalar(select(User).where(User.username == body.username.strip().lower()))
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -50,14 +62,15 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
     user.failed_logins, user.locked_until = 0, None
     record(db, user, "sign_in")
     db.commit()
-    return LoginOut(access_token=create_token(user), user=UserOut.model_validate(user))
+    return signed_in(request, response, user)
 
 
 @router.post("/logout")
-def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Sign out everywhere: every login token this account has stops working."""
+def logout(response: Response, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Sign out everywhere: every login token this account has stops working, and this browser's cookie is removed."""
     withdraw_tokens(user)
     db.commit()
+    clear_session_cookie(response)
     return {"signed_out": True}
 
 
@@ -68,11 +81,11 @@ def me(user: User = Depends(get_current_user)):
 
 
 @router.post("/change-password", response_model=LoginOut)
-def change_password(body: ChangePasswordIn, background: BackgroundTasks, user: User = Depends(get_current_user),
-                    db: Session = Depends(get_db)):
+def change_password(body: ChangePasswordIn, background: BackgroundTasks, request: Request, response: Response,
+                    user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Replace your password. You must know the current one. Every other device is signed out; this one gets a new
-    login token in the answer.
+    session.
     """
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Your current password is wrong.")
@@ -83,7 +96,7 @@ def change_password(body: ChangePasswordIn, background: BackgroundTasks, user: U
     db.commit()
     if user.email:  # a security alert, so the person notices if it wasn't them
         background.add_task(mailer.send, user.email, templates.password_changed(user.full_name))
-    return LoginOut(access_token=create_token(user), user=UserOut.model_validate(user))
+    return signed_in(request, response, user)
 
 
 @router.post("/change-username", response_model=UserOut)

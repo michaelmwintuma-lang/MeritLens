@@ -1,0 +1,34 @@
+{
+  "name": "Employee Promotion Prediction Dataset (Rohit Kumar, Kaggle, CC0): 100,000 synthetic employees",
+  "source": "employee_promotion_dataset_100000.csv",
+  "id_column": "employee_id",
+  "target": {"column": "promoted", "positive": [1]},
+  "department": {"column": "department"},
+  "fairness": {
+    "gender": {"column": "gender"},
+    "age": {"column": "age"},
+    "education_level": {"column": "education_level"}
+  },
+  "inputs": {
+    "performance_score": {"column": "performance_score"},
+    "performance_change": {"difference": ["performance_score", "performance_last_year"]},
+    "manager_rating": {"column": "manager_rating"},
+    "peer_feedback_score": {"column": "peer_feedback_score"},
+    "kpi_achievement_percent": {"column": "kpi_achievement_percent"},
+    "projects_completed": {"column": "projects_completed"},
+    "tasks_completed": {"column": "tasks_completed"},
+    "deadline_adherence_rate": {"column": "deadline_adherence_rate"},
+    "innovation_score": {"column": "innovation_score"},
+    "leadership_score": {"column": "leadership_score"},
+    "problem_solving_score": {"column": "problem_solving_score"},
+    "skill_assessment_score": {"column": "skill_assessment_score"},
+    "training_hours_last_year": {"column": "training_hours_last_year"},
+    "certifications_count": {"column": "certifications_count"},
+    "cross_department_projects": {"column": "cross_department_projects"},
+    "mentoring_sessions": {"column": "mentoring_sessions"},
+    "attendance_rate": {"column": "attendance_rate"},
+    "late_days": {"column": "late_days"},
+    "years_since_last_promotion": {"column": "years_since_last_promotion"},
+    "years_in_current_role": {"column": "years_in_current_role"}
+  }
+}

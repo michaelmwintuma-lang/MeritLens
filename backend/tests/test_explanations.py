@@ -7,7 +7,7 @@ import pytest
 from app.promotion.explain import get_model, logit
 from app.promotion.labels import FEATURE_INFO, IMPROVABLE, UPPER_LIMIT
 from app.promotion.seed import TEAM_SIZE
-from tests.conftest import login
+from tests.conftest import login, wait_for_lime
 
 pytestmark = pytest.mark.skipif(not (Path(__file__).resolve().parents[1] / "models" / "model.joblib").exists(),
                                 reason="run train.py first")
@@ -48,10 +48,18 @@ def test_average_employee_is_the_reference_point():
 
 # ─── LIME and the summary ─────────────────────────────────────────────────────
 def test_lime_gives_rules_a_fit_score_and_a_note_when_the_fit_is_low(client):
-    x = client.get(f"/api/promotion/employees/{employees(client)[0]['id']}", headers=login(client, "hr")).json()
-    lime = x["lime"]
+    lime = wait_for_lime(client, employees(client)[0]["id"], login(client, "hr"))
     assert 1 <= len(lime["rules"]) <= 5 and isinstance(lime["fit_r2"], float)
     assert (lime["note"] is not None) == (lime["fit_r2"] < 0.5)
+
+
+def test_the_full_explanation_includes_lime_once_it_is_ready_without_waiting_for_it(client):
+    hr, person = login(client, "hr"), employees(client)[2]["id"]
+    first = client.get(f"/api/promotion/employees/{person}", headers=hr).json()
+    assert first["score"] is not None and first["lime"] is None  # answered at once; LIME not started yet
+    lime = wait_for_lime(client, person, hr)
+    later = client.get(f"/api/promotion/employees/{person}", headers=hr).json()
+    assert later["lime"]["rules"] == lime["rules"]
 
 
 def test_summary_states_the_score_and_the_threshold(client):
@@ -173,18 +181,30 @@ def test_running_a_prediction_in_steps_gives_the_same_answer(client):
     profile = client.get(f"/api/promotion/employees/{employee_id}/profile", headers=hr).json()
     assert "score" not in profile and profile["model"]  # opening the page doesn't run the model
     run = client.post(f"/api/promotion/employees/{employee_id}/predict", headers=hr).json()
+    assert run["lime"] is None and run["duration_ms"] >= 0
+    second = wait_for_lime(client, employee_id, hr)
     full = client.get(f"/api/promotion/employees/{employee_id}", headers=hr).json()
     assert run["score"] == full["score"] and run["contributions"] == full["contributions"]
-    assert run["lime"] is None and run["duration_ms"] >= 0
-    second = client.post(f"/api/promotion/employees/{employee_id}/lime", headers=hr).json()
     assert second["rules"] == full["lime"]["rules"]
+
+
+def test_lime_runs_in_the_background_and_is_kept_for_the_same_record(client):
+    hr = login(client, "hr")
+    employee_id = employees(client)[1]["id"]
+    assert client.get(f"/api/promotion/employees/{employee_id}/lime", headers=hr).status_code == 404  # not started
+    started = client.post(f"/api/promotion/employees/{employee_id}/lime", headers=hr)
+    assert started.status_code in (200, 202)  # 202: working on it; 200 if it finished at once
+    first = wait_for_lime(client, employee_id, hr)
+    assert first["status"] == "done" and 0 <= first["fit_r2"] <= 1
+    again = client.post(f"/api/promotion/employees/{employee_id}/lime", headers=hr)
+    assert again.status_code == 200 and again.json() == first  # worked out once, then kept
 
 
 def test_the_steps_follow_the_same_access_rules(client):
     team_ids = {e["id"] for e in employees(client, "manager")}
     outsider = next(e["id"] for e in employees(client) if e["id"] not in team_ids)
     manager = login(client, "manager")
-    for path in ["profile"]:
+    for path in ["profile", "lime"]:
         assert client.get(f"/api/promotion/employees/{outsider}/{path}", headers=manager).status_code == 403
     for path in ["predict", "lime"]:
         assert client.post(f"/api/promotion/employees/{outsider}/{path}", headers=manager).status_code == 403

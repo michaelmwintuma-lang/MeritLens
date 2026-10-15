@@ -14,7 +14,6 @@ average employee. The contributions add up exactly to the prediction, so nothing
 import json
 import math
 from functools import cached_property, lru_cache
-from pathlib import Path
 
 import joblib
 import numpy as np
@@ -23,10 +22,11 @@ from lime.lime_tabular import LimeTabularExplainer
 from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 
+from app.core.config import MODELS_DIR
 from app.promotion.features import MODEL_FEATURES
 from app.promotion.labels import FEATURE_INFO, IMPROVABLE, UPPER_LIMIT, format_value, label
 
-MODELS = Path(__file__).resolve().parents[2] / "models"
+MODELS = MODELS_DIR  # the live model; versions are released into it from the registry (app/governance/registry.py)
 LOW_LIME_FIT = 0.5  # below this R², LIME's simple local model copies the real one poorly
 TIPS_MARGIN = 0.01  # log-odds
 TIP_STEPS = 20      # how finely the tips try out improvements of an input that isn't counted in whole numbers
@@ -34,6 +34,14 @@ TIP_STEPS = 20      # how finely the tips try out improvements of an input that 
 
 class ModelNotTrained(Exception):
     """Raised when train.py has not produced a live model yet."""
+
+
+def version_of(info: dict) -> str:
+    """
+    A trained model's short name, stored with every score that is recorded (e.g. "v20261008222710"). Models trained
+    before it was written into model_info.json get the same name from their training time.
+    """
+    return info.get("version") or "v" + "".join(ch for ch in info["trained_at"] if ch.isdigit())[:14]
 
 
 def sigmoid(x: float) -> float:
@@ -53,8 +61,7 @@ class PromotionModel:
         self.pipeline = joblib.load(MODELS / "model.joblib")
         self.info = json.loads((MODELS / "model_info.json").read_text())
         self.threshold = self.info["threshold"]
-        # A short name for this trained model, stored with every score that is recorded (e.g. "v20261008222710")
-        self.version = self.info.get("version") or "v" + "".join(ch for ch in self.info["trained_at"] if ch.isdigit())[:14]
+        self.version = version_of(self.info)
         self.stats = self.info["feature_stats"]
         self.background = pd.read_csv(MODELS / "background.csv")
 
@@ -310,5 +317,10 @@ def join(parts) -> str:
 
 @lru_cache(maxsize=1)
 def get_model() -> PromotionModel:
-    """The live model, loaded once. Restart the API after retraining to load a new one."""
+    """The live model, loaded once, and again after a different version is released (reload_model)."""
     return PromotionModel()
+
+
+def reload_model() -> None:
+    """A different version was released into the live folder: load it on the next request."""
+    get_model.cache_clear()

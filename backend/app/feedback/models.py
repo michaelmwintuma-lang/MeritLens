@@ -5,10 +5,11 @@ The feedback channel's tables: how employees respond to their explanation.
   "seems unfair". Seen by HR and the auditor only in aggregate, never by managers. Ratings never reach the model.
 - CorrectionRequest: an employee asks HR to correct a value in their work record, with evidence. Only when HR
   confirms it is the record changed (and the employee re-scored, logged in promotion.RecordChange).
-- NominationDeferral: HR puts a promotion decision on hold until a pending correction is resolved. Not a decision,
-  so never counted as agreeing or disagreeing with the model.
+HR can also put a promotion decision on hold until a pending correction is resolved. That hold lives in the neutral
+decision_holds table (app/core/holds.py), not here, so the decision code can enforce it without reading feedback.
 
-The promotion code never reads these tables (tests/test_isolation.py checks this).
+The promotion code never reads these tables (tests/test_isolation.py checks this; with PostgreSQL, its database
+role can't either).
 """
 from datetime import datetime, timezone
 
@@ -63,15 +64,3 @@ class CorrectionRequest(Base):
     score_before: Mapped[float | None] = mapped_column(Float, nullable=True)
     score_after: Mapped[float | None] = mapped_column(Float, nullable=True)
     employee_seen: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)  # outcome seen
-
-
-class NominationDeferral(Base):
-    """A promotion decision put on hold while a record correction is pending."""
-    __tablename__ = "nomination_deferrals"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    nomination_id: Mapped[int] = mapped_column(ForeignKey("nominations.id"), index=True)
-    deferred_by_name: Mapped[str] = mapped_column(String(120))
-    deferred_at: Mapped[datetime] = mapped_column(DateTime, default=now)
-    lifted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    lifted_because: Mapped[str | None] = mapped_column(String(40), nullable=True)  # resolved or resumed by HR

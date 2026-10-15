@@ -13,13 +13,14 @@ from sqlalchemy.orm import Session
 
 from app.accounts.contacts import notify_new_team_members
 from app.accounts.models import User
+from app.core import audit
 from app.core.activity import record as log
-from app.core.database import get_db
+from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
 from app.core.roles import AUDITOR, HR, MANAGER
 from app.core.security import require_roles
 from app.promotion.models import Employee, RecordChange
 from app.promotion.records import CSV_COLUMNS, GROUPS, field_list, read_csv, to_entry, to_record
-from app.promotion.routes import model
+from app.promotion.routes import model, warm_explanation
 
 router = APIRouter(prefix="/api/promotion/records", tags=["employee records"])
 hr_only = require_roles(HR)
@@ -134,6 +135,11 @@ def record_history(db: Session, employee: Employee, old: dict, new: dict, user: 
                          score_before=round(live.score(old), 4), score_after=round(live.score(new), 4),
                          model_version=live.version)
     db.add(entry)
+    db.flush()  # gives the change its id
+    audit.append(db, "record_changed", user, "employee", employee.id,
+                 {"source": source, "record_change_id": entry.id, "changes": changes,
+                  "score_before": entry.score_before, "score_after": entry.score_after}, model_version=live.version)
+    warm_explanation(new)  # the re-scored employee's second opinion is ready before anyone opens their page
     return entry
 
 

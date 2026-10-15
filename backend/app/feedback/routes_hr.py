@@ -20,14 +20,16 @@ from sqlalchemy.orm import Session
 
 from app.accounts.contacts import login_for_employee
 from app.accounts.models import User
+from app.core import audit
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
 from app.core.database import get_db
+from app.core.holds import active_hold, lift_hold, place_hold
 from app.core.roles import AUDITOR, HR
 from app.core.security import require_roles
 from app.feedback import corrections
-from app.feedback.models import CorrectionRequest, ExplanationRating, NominationDeferral
+from app.feedback.models import CorrectionRequest, ExplanationRating
 from app.feedback.routes import evidence_file
 from app.promotion.features import MODEL_FEATURES
 from app.promotion.labels import label
@@ -120,7 +122,11 @@ def confirm(request_id: int, body: ConfirmIn, background: BackgroundTasks, db: S
     request.record_change_id, request.score_before, request.score_after = change.id, change.score_before, change.score_after
     request.employee_seen = False
     db.flush()  # the session doesn't flush by itself, and the check below must see this request as decided
-    corrections.lift_deferrals_if_resolved(db, employee.id)
+    audit.append(db, "correction_confirmed", user, "correction", request.id,
+                 {"employee_id": employee.id, "field": request.field, "requested": request.requested_value,
+                  "verified": value, "score_before": change.score_before, "score_after": change.score_after,
+                  "record_change_id": change.id}, model_version=change.model_version)
+    corrections.lift_holds_if_resolved(db, employee.id, user)
     record(db, user, "correction_confirmed", f"{employee.full_name}: {corrections.field_label(request.field)}")
     db.commit()
     tell_employee(background, db, request)
@@ -144,7 +150,9 @@ def reject(request_id: int, body: RejectIn, background: BackgroundTasks, db: Ses
     request.decided_at = datetime.now(timezone.utc)
     request.employee_seen = False
     db.flush()  # the session doesn't flush by itself, and the check below must see this request as decided
-    corrections.lift_deferrals_if_resolved(db, request.employee_id)
+    audit.append(db, "correction_rejected", user, "correction", request.id,
+                 {"employee_id": request.employee_id, "field": request.field, "requested": request.requested_value})
+    corrections.lift_holds_if_resolved(db, request.employee_id, user)
     employee_name = name_of(db, request.employee_id)
     record(db, user, "correction_rejected", f"{employee_name}: {corrections.field_label(request.field)}")
     db.commit()
@@ -160,21 +168,19 @@ def get_nomination(db: Session, nomination_id: int) -> Nomination:
     return nomination
 
 
-def active_deferral(db: Session, nomination_id: int) -> NominationDeferral | None:
-    return db.scalar(select(NominationDeferral).where(NominationDeferral.nomination_id == nomination_id,
-                                                      NominationDeferral.lifted_at.is_(None)))
-
-
 @router.get("/nominations/{nomination_id}/note")
 def committee_note(nomination_id: int, db: Session = Depends(get_db), _: User = Depends(hr_only)):
-    """Pending corrections to the nominee's record (the score may change), and whether the decision is on hold."""
+    """
+    Pending corrections to the nominee's record (the score may change), and whether the decision is on hold. While
+    it is, the decision API refuses a decision (app/promotion/routes_decisions.py).
+    """
     nomination = get_nomination(db, nomination_id)
     pending = corrections.pending_for(db, nomination.employee_id)
-    deferral = active_deferral(db, nomination.id)
+    hold = active_hold(db, nomination.id)
     return {"pending_corrections": [corrections.describe(r) for r in pending],
-            "deferred": bool(deferral),
-            "deferred_by": deferral.deferred_by_name if deferral else None,
-            "deferred_at": deferral.deferred_at.isoformat(timespec="seconds") if deferral else None}
+            "deferred": bool(hold),
+            "deferred_by": hold.placed_by_name if hold else None,
+            "deferred_at": hold.placed_at.isoformat(timespec="seconds") if hold else None}
 
 
 @router.post("/nominations/{nomination_id}/defer")
@@ -185,8 +191,9 @@ def defer(nomination_id: int, db: Session = Depends(get_db), user: User = Depend
         raise HTTPException(status.HTTP_409_CONFLICT, "This nomination has already been decided.")
     if not corrections.pending_for(db, nomination.employee_id):
         raise HTTPException(status.HTTP_409_CONFLICT, "No correction is pending for this person, so there is nothing to wait for.")
-    if active_deferral(db, nomination.id) is None:
-        db.add(NominationDeferral(nomination_id=nomination.id, deferred_by_name=user.full_name))
+    if active_hold(db, nomination.id) is None:
+        place_hold(db, nomination.id, user.full_name)
+        audit.append(db, "hold_placed", user, "nomination", nomination.id, {"reason": "correction_pending"})
         record(db, user, "nomination_deferred", name_of(db, nomination.employee_id))
         db.commit()
     return committee_note(nomination.id, db)
@@ -196,8 +203,8 @@ def defer(nomination_id: int, db: Session = Depends(get_db), user: User = Depend
 def resume(nomination_id: int, db: Session = Depends(get_db), user: User = Depends(hr_only)):
     """Take the decision off hold without waiting for the correction."""
     nomination = get_nomination(db, nomination_id)
-    if (deferral := active_deferral(db, nomination.id)) is not None:
-        deferral.lifted_at, deferral.lifted_because = datetime.now(timezone.utc), "resumed"
+    if lift_hold(db, nomination.id, "resumed") is not None:
+        audit.append(db, "hold_lifted", user, "nomination", nomination.id, {"because": "resumed"})
         record(db, user, "nomination_resumed", name_of(db, nomination.employee_id))
         db.commit()
     return committee_note(nomination.id, db)

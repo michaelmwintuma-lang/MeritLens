@@ -31,7 +31,8 @@ class LoginIn(BaseModel):
 
 
 class LoginOut(BaseModel):
-    access_token: str
+    # For API clients only. The website gets None: its sign-in travels in an httpOnly cookie that scripts can't read.
+    access_token: str | None = None
     token_type: str = "bearer"
     user: UserOut
 

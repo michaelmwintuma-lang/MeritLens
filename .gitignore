@@ -2,6 +2,8 @@
 backend/instance/
 backend/.env
 backend/.venv/
+# Trained model versions waiting for (or after) release: local artifacts; the live model in backend/models/ is kept
+backend/models/registry/
 __pycache__/
 .pytest_cache/
 

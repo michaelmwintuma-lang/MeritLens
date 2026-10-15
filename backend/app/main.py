@@ -13,19 +13,29 @@ from app.demo import routes as demo_routes
 from app.feedback import routes as feedback_routes
 from app.feedback import routes_hr as feedback_hr_routes
 from app.feedback import dashboard as feedback_dashboard
+from app.governance import routes as governance_routes
+from app.governance.monitoring import seed_demo_monitoring
+from app.governance.registry import ensure_live_registered
 from app.core.config import APP_NAME
-from app.core.database import Base, SessionLocal, add_missing_columns, drop_removed_reporting, engine
+from app.core.database import (Base, SessionLocal, add_missing_columns, drop_removed_reporting, engine,
+                               move_deferrals_to_holds)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """On start-up: create any missing tables, then add demo accounts and employees to an empty database."""
+    """
+    On start-up: create any missing tables and bring an older database up to date, add demo accounts and employees
+    to an empty database, and make sure the live model is in the model registry.
+    """
     Base.metadata.create_all(engine)
     add_missing_columns()
     drop_removed_reporting()
+    move_deferrals_to_holds()
     with SessionLocal() as db:
         seed_demo_accounts(db)
         seed_demo_employees(db)
+        seed_demo_monitoring(db)
+    ensure_live_registered()
     yield
 
 
@@ -45,6 +55,7 @@ app.include_router(feedback_routes.router)
 app.include_router(feedback_hr_routes.router)
 app.include_router(feedback_hr_routes.ratings_router)
 app.include_router(feedback_dashboard.router)
+app.include_router(governance_routes.router)
 app.include_router(demo_routes.router)
 app.include_router(demo_routes.admin_router)
 

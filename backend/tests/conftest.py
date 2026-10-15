@@ -1,10 +1,24 @@
 """Shared test setup: every test runs against its own fresh, temporary database."""
+import json
 import os
+import shutil
 import tempfile
+from pathlib import Path
 
 # Point the app at a throwaway database BEFORE the app is imported, so tests never touch instance/app.db
 _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_tmp, 'test.db')}"
+# ...and at a copy of the live model and its results, so releasing a model in a test never changes the real ones
+_backend = Path(__file__).resolve().parents[1]
+_models, _results = Path(_tmp) / "models", Path(_tmp) / "results"
+_models.mkdir()
+for _name in ("model.joblib", "model_info.json", "background.csv"):
+    if (_backend / "models" / _name).exists():
+        shutil.copy2(_backend / "models" / _name, _models / _name)
+shutil.copytree(_backend.parent / "results", _results)
+os.environ["MODELS_DIR"], os.environ["RESULTS_DIR"] = str(_models), str(_results)
+os.environ["MODEL_REGISTRY_DIR"] = str(_models / "registry")
+os.environ["WARM_EXPLANATIONS"] = "0"  # no background LIME after every record edit in tests
 os.environ["DEMO_PASSWORD"] = "demo1234"
 os.environ["OUTBOX_DIR"] = os.path.join(_tmp, "outbox")   # welcome emails go to a temporary folder
 os.environ["SMTP_HOST"] = ""                              # and are never sent during tests
@@ -19,19 +33,60 @@ from app.core.database import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
 
+from app.promotion.explain import version_of  # noqa: E402
+
+_LIVE_VERSION = version_of(json.loads((_models / "model_info.json").read_text())) if (_models / "model_info.json").exists() else None
+
+
+def restore_live_model():
+    """Undo a test's model release: the original live model, its results, and only its entry in the registry."""
+    from app.promotion.explain import reload_model
+    registry = _models / "registry"
+    if registry.exists():
+        for folder in registry.iterdir():
+            if folder.name != _LIVE_VERSION:
+                shutil.rmtree(folder)
+    info = _models / "model_info.json"
+    if info.exists() and version_of(json.loads(info.read_text())) != _LIVE_VERSION:
+        for name in ("model.joblib", "model_info.json", "background.csv"):
+            shutil.copy2(_backend / "models" / name, _models / name)
+        shutil.rmtree(_results)
+        shutil.copytree(_backend.parent / "results", _results)
+        reload_model()
+
+
 @pytest.fixture
 def client():
     """A test client on an empty database; start-up then adds the demo accounts (one per role)."""
+    from app.core import jobs
+    restore_live_model()
+    jobs.clear()  # no background results carried over from another test
     Base.metadata.drop_all(engine)
     with TestClient(app) as c:
         yield c
 
 
 def login(client, username, password="demo1234"):
-    """Sign in and return the Authorization header for later requests."""
+    """
+    Sign in and return the Authorization header for later requests. The session cookie that sign-in also sets is
+    dropped, so each request is made exactly as the header says (tests/test_sessions.py tests the cookie itself).
+    """
     res = client.post("/api/auth/login", json={"username": username, "password": password})
     assert res.status_code == 200, res.text
+    client.cookies.clear()
     return {"Authorization": f"Bearer {res.json()['access_token']}"}
+
+
+def wait_for_lime(client, employee_id, headers, seconds=60):
+    """Start LIME for an employee (a background job) and wait for its result, as the page does."""
+    import time
+    res = client.post(f"/api/promotion/employees/{employee_id}/lime", headers=headers)
+    deadline = time.monotonic() + seconds
+    while res.status_code == 202 and time.monotonic() < deadline:
+        time.sleep(0.1)
+        res = client.get(f"/api/promotion/employees/{employee_id}/lime", headers=headers)
+    assert res.status_code == 200, res.text
+    return res.json()
 
 
 def emails_to(address):

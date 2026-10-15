@@ -8,9 +8,9 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from app.core.config import MODELS_DIR as MODELS, RESULTS_DIR as RESULTS
+
 router = APIRouter(prefix="/api/public", tags=["public"])
-RESULTS = Path(__file__).resolve().parents[3] / "results"
-MODELS = Path(__file__).resolve().parents[2] / "models"
 
 
 def read(path: Path) -> dict | None:

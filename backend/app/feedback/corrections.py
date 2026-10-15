@@ -2,20 +2,21 @@
 Record corrections: what can be corrected, checking a value, applying a confirmed correction, and evidence files.
 
 Only values from the employee's own work record can be corrected (the fields HR types in), never anything the
-model doesn't use and never protected characteristics, which the platform doesn't even store. Values are in the
+model doesn't use and never protected characteristics (kept apart, for fairness monitoring only). Values are in the
 units HR types in (93 for 93% attendance), exactly like the employee form.
 """
 import json
 import secrets
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import audit
 from app.core.config import FEEDBACK_FILES_DIR
-from app.feedback.models import CorrectionRequest, NominationDeferral
+from app.core.holds import lift_hold
+from app.feedback.models import CorrectionRequest
 from app.promotion.models import Employee, Nomination
 from app.promotion.records import ENTRY_FIELDS, LABELS, SCALE, to_entry
 
@@ -81,14 +82,13 @@ def pending_for(db: Session, employee_id: int) -> list[CorrectionRequest]:
                            .order_by(CorrectionRequest.created_at)))
 
 
-def lift_deferrals_if_resolved(db: Session, employee_id: int) -> None:
+def lift_holds_if_resolved(db: Session, employee_id: int, user) -> None:
     """Once no correction is pending for the employee, their promotion decisions are no longer on hold."""
     if pending_for(db, employee_id):
         return
-    nominations = select(Nomination.id).where(Nomination.employee_id == employee_id)
-    for deferral in db.scalars(select(NominationDeferral).where(NominationDeferral.nomination_id.in_(nominations),
-                                                                NominationDeferral.lifted_at.is_(None))):
-        deferral.lifted_at, deferral.lifted_because = datetime.now(timezone.utc), "resolved"
+    for nomination_id in db.scalars(select(Nomination.id).where(Nomination.employee_id == employee_id)):
+        if lift_hold(db, nomination_id, "resolved") is not None:
+            audit.append(db, "hold_lifted", user, "nomination", nomination_id, {"because": "resolved"})
 
 
 # ─── Evidence files ───────────────────────────────────────────────────────────

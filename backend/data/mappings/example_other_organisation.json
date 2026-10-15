@@ -1,0 +1,35 @@
+{
+  "_help": "A template for retraining on your own HR export. Copy it, point 'source' at your CSV (in backend/data or a full path), and write your column names. Then: python train.py --mapping data/mappings/your_copy.json. Rules: {column}, {column, from_range, to_range} for another rating scale, {column, scale, offset}, or {difference: [a, b]}. Units the model expects: attendance and deadline adherence as fractions (0.93), KPI achievement as a percentage (93), ratings 1-5, scores 0-100. The result is registered as a candidate; HR releases it in the app after reading its model card.",
+  "name": "Example Ltd: HR export 2021-2025",
+  "source": "my_hr_export.csv",
+  "id_column": "staff_number",
+  "target": {"column": "promoted_next_cycle", "positive": ["Y", "yes", 1]},
+  "department": {"column": "business_unit"},
+  "fairness": {
+    "gender": {"column": "sex"},
+    "age": {"column": "age_years"},
+    "education_level": {"column": "highest_qualification"}
+  },
+  "inputs": {
+    "performance_score": {"column": "appraisal_score_0_100"},
+    "performance_change": {"difference": ["appraisal_score_0_100", "appraisal_score_last_year"]},
+    "manager_rating": {"column": "manager_rating_1_to_4", "from_range": [1, 4], "to_range": [1, 5]},
+    "peer_feedback_score": {"column": "peer_360_average", "from_range": [1, 4], "to_range": [1, 5]},
+    "kpi_achievement_percent": {"column": "objectives_met_share", "scale": 100},
+    "projects_completed": {"column": "projects_delivered"},
+    "tasks_completed": {"column": "tickets_closed"},
+    "deadline_adherence_rate": {"column": "on_time_percent", "scale": 0.01},
+    "innovation_score": {"column": "innovation_rating_0_100"},
+    "leadership_score": {"column": "leadership_rating_0_100"},
+    "problem_solving_score": {"column": "problem_solving_0_100"},
+    "skill_assessment_score": {"column": "skills_test_0_100"},
+    "training_hours_last_year": {"column": "training_hours"},
+    "certifications_count": {"column": "certifications"},
+    "cross_department_projects": {"column": "cross_team_projects"},
+    "mentoring_sessions": {"column": "mentoring_sessions"},
+    "attendance_rate": {"column": "attendance_share"},
+    "late_days": {"column": "late_arrivals"},
+    "years_since_last_promotion": {"column": "years_since_promotion"},
+    "years_in_current_role": {"column": "years_in_role"}
+  }
+}

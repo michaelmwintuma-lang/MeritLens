@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.contacts import hr_contacts
 from app.accounts.models import User
+from app.core import audit
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
@@ -129,6 +130,9 @@ def request_correction(body: CorrectionIn, background: BackgroundTasks, user: Us
     request = CorrectionRequest(employee_id=employee.id, source="employee", requested_by=user.id, field=body.field,
                                 current_value=current, requested_value=value, note=body.note.strip())
     db.add(request)
+    db.flush()  # gives the request its id, for the audit trail (which never copies the employee's note)
+    audit.append(db, "correction_requested", user, "correction", request.id,
+                 {"employee_id": employee.id, "field": body.field, "current": current, "requested": value})
     record(db, user, "correction_requested", corrections.field_label(body.field))
     db.commit()
     for email, hr_name in hr_contacts(db):

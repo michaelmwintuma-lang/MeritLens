@@ -19,10 +19,11 @@ from sqlalchemy.orm import Session
 
 from app.accounts.contacts import hr_contacts
 from app.accounts.models import User
+from app.core import audit
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
-from app.core.database import get_db
+from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
 from app.core.roles import FINANCE
 from app.core.security import require_roles
 from app.promotion.models import Decision, Employee, Nomination, PayReview
@@ -110,6 +111,7 @@ def sign_off(decision_id: int, body: SignOffIn, background: BackgroundTasks, db:
     decision.pay_status = "signed_off"
     db.add(PayReview(decision_id=decision.id, action="signed_off", by_user=user.id, by_name=user.full_name,
                      raise_percent=decision.approved_raise, note=(body.note or "").strip() or None))
+    audit.append(db, "pay_signed_off", user, "decision", decision.id, {"raise_percent": decision.approved_raise})
     employee_name = db.get(Employee, decision.employee_id).full_name
     record(db, user, "pay_signed_off", f"{employee_name}: {decision.approved_raise:g}%")
     db.commit()
@@ -129,6 +131,7 @@ def send_back(decision_id: int, body: ReturnIn, background: BackgroundTasks, db:
     decision.pay_status = "returned"
     db.add(PayReview(decision_id=decision.id, action="returned", by_user=user.id, by_name=user.full_name,
                      raise_percent=decision.approved_raise, note=note))
+    audit.append(db, "pay_returned", user, "decision", decision.id, {"raise_percent": decision.approved_raise})
     employee_name = db.get(Employee, decision.employee_id).full_name
     record(db, user, "pay_returned", employee_name)
     db.commit()

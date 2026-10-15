@@ -6,12 +6,12 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
-from app.core.config import SECRET_KEY, TOKEN_MINUTES
+from app.core.config import APP_URL, SECRET_KEY, SESSION_COOKIE, TOKEN_MINUTES
 from app.core.database import get_db
 
 # Rounds of hashing for new passwords. Each stored hash records its own count, so changing this
@@ -62,16 +62,38 @@ def withdraw_tokens(user) -> None:
 bearer = HTTPBearer(auto_error=False)
 NOT_SIGNED_IN = HTTPException(status.HTTP_401_UNAUTHORIZED, "Please sign in.", headers={"WWW-Authenticate": "Bearer"})
 
+# ─── Session cookie ───────────────────────────────────────────────────────────
+# The website keeps the login token in an httpOnly cookie: page scripts can't read it, so even a script injected
+# into the page couldn't steal it. SameSite=Strict keeps other sites from sending it, and every state-changing
+# request that relies on the cookie must also carry the X-Requested-With header, which another site's form can't
+# add (a second guard against cross-site request forgery). API clients and the tests send "Authorization: Bearer".
+CSRF_HEADER, CSRF_VALUE = "X-Requested-With", "MeritLens"
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
-def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)):
+
+def set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(SESSION_COOKIE, token, max_age=TOKEN_MINUTES * 60, httponly=True, samesite="strict",
+                        secure=APP_URL.startswith("https://"), path="/api")
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(SESSION_COOKIE, path="/api", httponly=True, samesite="strict",
+                           secure=APP_URL.startswith("https://"))
+
+
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+                     db: Session = Depends(get_db)):
     """
     The signed-in user, read fresh from the database on every request. The token only says *who* the user is;
     their role and active status come from the database, so a deactivation or role change applies at once.
     """
-    if credentials is None:
+    token = credentials.credentials if credentials is not None else request.cookies.get(SESSION_COOKIE)
+    if not token:
         raise NOT_SIGNED_IN
+    if credentials is None and request.method not in SAFE_METHODS and request.headers.get(CSRF_HEADER) != CSRF_VALUE:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This request didn't come from the MeritLens website.")
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id, version = int(payload["sub"]), int(payload.get("ver", 0))
     except (jwt.PyJWTError, KeyError, ValueError, TypeError):
         raise NOT_SIGNED_IN
