@@ -23,12 +23,15 @@ class UserOut(BaseModel):
     photo: str | None = None
     can_view_employees: bool | None = False
     email_mode: str | None = "instant"
+    totp_enabled: bool | None = False
+    must_set_up_2fa: bool = False
     created_at: datetime | None = None
 
 
 class LoginIn(BaseModel):
     username: str
     password: str
+    code: str | None = None  # the six-digit code, for accounts with two-factor sign-in
 
 
 class LoginOut(BaseModel):

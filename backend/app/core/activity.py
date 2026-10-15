@@ -55,6 +55,7 @@ ACTIONS = {
     "study_analysed": "Saved and analysed the user study",
     "data_downloaded": "Downloaded a copy of their own data",
     "employee_erased": "Erased the personal data of someone who has left",
+    "two_factor_changed": "Turned two-factor sign-in on or off",
 }
 
 

@@ -19,6 +19,7 @@ const WEBSITE = { "X-Requested-With": "MeritLens" };
 export interface ApiError extends Error {
   status?: number;
   fields: Record<string, string>; // per-field problems, so a form can show each next to its box
+  codeRequired?: boolean;         // sign-in: the password is right; now the two-factor code
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -70,6 +71,7 @@ function toError(data: any, status: number, fallback: string): ApiError {
   const error = new Error(messageFrom(data) || fallback) as ApiError;
   error.status = status;
   error.fields = data?.detail?.fields || {};
+  error.codeRequired = Boolean(data?.detail?.code_required);
   return error;
 }
 

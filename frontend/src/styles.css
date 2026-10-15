@@ -745,3 +745,4 @@ th.wide-col { width: 30%; }
 .study-clock { font-size: var(--text-24); font-weight: 700; min-width: 80px; }
 .study-link { word-break: break-all; padding: var(--s-2) var(--s-3); background: var(--surface-sunken); border-radius: var(--radius); }
 .study-report { white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; font-size: 13px; margin: 0; max-height: 640px; overflow: auto; }
+.qr { display: block; border: 1px solid var(--border); border-radius: var(--radius); background: #ffffff; padding: var(--s-2); margin-top: var(--s-3); }

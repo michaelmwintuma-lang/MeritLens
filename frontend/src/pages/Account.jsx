@@ -2,7 +2,8 @@
 // your username and password. New accounts are sent here first, because their password came from the welcome email.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Camera, Download, Lock, ShieldCheck, Trash2 } from "lucide-react";
+import { Bell, Camera, Download, KeyRound, Lock, ShieldCheck, Trash2 } from "lucide-react";
+import QRCode from "qrcode";
 import { api, apiBlob } from "../api";
 import { useAuth } from "../auth";
 import { ROLE_NAMES } from "../roles";
@@ -171,6 +172,89 @@ function ChangeUsername() {
   );
 }
 
+/** Two-factor sign-in with an authenticator app: set up (scan, confirm with a code) or turn off. */
+function TwoFactor() {
+  const { user, setUser } = useAuth();
+  const [setup, setSetup] = useState(null); // { secret, link, qr }
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [working, withWorking] = useAction();
+  const toast = useToast();
+
+  async function start() {
+    setError("");
+    try {
+      const res = await api("/auth/2fa/setup", { method: "POST" });
+      setSetup({ ...res, qr: await QRCode.toDataURL(res.link, { margin: 1, width: 200 }) });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function confirm(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      setUser(await api("/auth/2fa/enable", { method: "POST", body: { code } }));
+      setSetup(null);
+      setCode("");
+      toast("Two-factor sign-in is on. You'll need a code from the app each time you sign in.");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function turnOff(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      setUser(await api("/auth/2fa/disable", { method: "POST", body: { code, password } }));
+      setCode("");
+      setPassword("");
+      toast("Two-factor sign-in is off.");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <Card id="two-factor" icon={KeyRound} title="Two-factor sign-in"
+      subtitle="Sign in with your password and a code from an authenticator app on your phone, so a stolen password alone isn't enough.">
+      {user.must_set_up_2fa && <Callout tone="warning" title="Your role must use two-factor sign-in">Set it up to continue using MeritLens.</Callout>}
+      {error && <Callout tone="error">{error}</Callout>}
+      {user.totp_enabled ? (
+        <form onSubmit={(e) => withWorking(() => turnOff(e))}>
+          <p><strong>On.</strong> Each sign-in asks for a code from your authenticator app.</p>
+          <div className="form-row">
+            <label className="field">Your password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></label>
+            <label className="field">A current code<input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" required /></label>
+          </div>
+          <Button look="secondary" busy={working} busyText="Turning off…">Turn off two-factor sign-in</Button>
+        </form>
+      ) : setup ? (
+        <form onSubmit={(e) => withWorking(() => confirm(e))}>
+          <ol className="steps-list">
+            <li>Open an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…) and scan this code.</li>
+            <li>Or type this key into the app: <span className="mono">{setup.secret.match(/.{1,4}/g).join(" ")}</span></li>
+            <li>Enter the six-digit code the app shows for MeritLens.</li>
+          </ol>
+          <img className="qr" src={setup.qr} alt="QR code to add MeritLens to an authenticator app" width="200" height="200" />
+          <label className="field section-gap">Code from the app
+            <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" required />
+          </label>
+          <Button busy={working} busyText="Checking…">Turn on two-factor sign-in</Button>
+        </form>
+      ) : (
+        <>
+          <p className="muted"><strong>Off.</strong> Recommended for HR, Finance and Admin accounts.</p>
+          <Button look="secondary" icon={KeyRound} busy={working} busyText="Preparing…" onClick={() => withWorking(start)}>Set up two-factor sign-in</Button>
+        </>
+      )}
+    </Card>
+  );
+}
+
 /** A copy of everything the platform holds about you, and what your rights are. */
 function YourData() {
   const [error, setError] = useState("");
@@ -305,6 +389,7 @@ export default function Account() {
         </div>
       </div>
       <h2 className="section-title"><Lock size={18} aria-hidden="true" /> Sign-in and security</h2>
+      <TwoFactor />
       <div className="two-columns">
         <ChangePassword />
         <ChangeUsername />

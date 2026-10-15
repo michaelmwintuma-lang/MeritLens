@@ -47,6 +47,8 @@ SESSION_COOKIE = "meritlens_session"
 
 # How long a login lasts before the user must sign in again
 TOKEN_MINUTES = int(os.getenv("TOKEN_MINUTES", "480"))
+# Roles that must use two-factor sign-in (an authenticator app), e.g. "hr,finance,admin". Empty: anyone may choose to.
+REQUIRE_2FA_ROLES = {r.strip() for r in os.getenv("REQUIRE_2FA_ROLES", "").split(",") if r.strip()}
 
 # Password for the fictional demo accounts created on first start
 DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "demo1234")

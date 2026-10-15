@@ -65,6 +65,18 @@ def username_changed(full_name: str, old: str, new: str, by_admin: bool) -> dict
     }
 
 
+def two_factor_off(full_name: str) -> dict:
+    return {
+        "subject": "Two-factor sign-in was turned off",
+        "kind": "security",
+        "heading": "Two-factor sign-in was turned off",
+        "greeting": f"Hello {full_name},",
+        "paragraphs": ["Two-factor sign-in has just been turned off for your account, so signing in now needs only your password."],
+        "button": ("Open my profile", link("/account")),
+        "note": "If this wasn't you, change your password and tell your administrator straight away.",
+    }
+
+
 def nomination_received(hr_name: str, employee_name: str, manager_name: str, title: str | None = None) -> dict:
     return {
         "subject": f"New nomination: {employee_name}",

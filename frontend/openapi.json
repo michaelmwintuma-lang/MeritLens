@@ -47,6 +47,125 @@
         }
       }
     },
+    "/api/auth/2fa/setup": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Setup 2Fa",
+        "description": "Start setting up two-factor sign-in: a new secret for the authenticator app (not in use until confirmed).",
+        "operationId": "setup_2fa_api_auth_2fa_setup_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/2fa/enable": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Enable 2Fa",
+        "description": "Confirm with a code from the app: from now on, signing in needs the password and a code.",
+        "operationId": "enable_2fa_api_auth_2fa_enable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/2fa/disable": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Disable 2Fa",
+        "description": "Turn two-factor sign-in off, with your password and a current code (not allowed where your role requires it).",
+        "operationId": "disable_2fa_api_auth_2fa_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/auth/logout": {
       "post": {
         "tags": [
@@ -4276,6 +4395,362 @@
         ]
       }
     },
+    "/api/study/sessions": {
+      "get": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "Sessions",
+        "operationId": "sessions_api_study_sessions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "New Session",
+        "description": "A new participant: their code, and the facilitator's link (shown once; only its hash is kept).",
+        "operationId": "new_session_api_study_sessions_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/study/analyse": {
+      "post": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "Analyse",
+        "description": "Save every finished session to the evaluation files (replacing them) and run evaluation/user_test.py. Returns the\nreport it writes (results/user_test.md).",
+        "operationId": "analyse_api_study_analyse_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/study/run/{token}": {
+      "get": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "Protocol",
+        "description": "The session's code, what's done so far, and the protocol: consent, tasks and questionnaire.",
+        "operationId": "protocol_api_study_run__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/study/run/{token}/consent": {
+      "post": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "Consent",
+        "operationId": "consent_api_study_run__token__consent_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/study/run/{token}/tasks": {
+      "post": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "Save Task",
+        "description": "One task's outcome and time (saving it again replaces it).",
+        "operationId": "save_task_api_study_run__token__tasks_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/study/run/{token}/finish": {
+      "post": {
+        "tags": [
+          "user study"
+        ],
+        "summary": "Finish",
+        "description": "The participant's questionnaire. Every statement needs an answer from 1 to 5; then the link stops working.",
+        "operationId": "finish_api_study_run__token__finish_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinishIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/privacy/retention": {
+      "get": {
+        "tags": [
+          "privacy"
+        ],
+        "summary": "Retention Periods",
+        "description": "How long each kind of personal data is kept (public: shown on the privacy page).",
+        "operationId": "retention_periods_api_privacy_retention_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/privacy/my-data": {
+      "get": {
+        "tags": [
+          "privacy"
+        ],
+        "summary": "My Data",
+        "description": "Everything the platform holds about you, as one JSON file (to keep, or to ask questions about).",
+        "operationId": "my_data_api_privacy_my_data_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/privacy/employees/{employee_id}/erase": {
+      "post": {
+        "tags": [
+          "privacy"
+        ],
+        "summary": "Erase",
+        "description": "HR erases someone who has left (see this module's notes for what is removed and what stays, pseudonymised).",
+        "operationId": "erase_api_privacy_employees__employee_id__erase_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Employee Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/public/demo-requests": {
       "post": {
         "tags": [
@@ -4662,6 +5137,32 @@
           "stages"
         ],
         "title": "CharacteristicOut"
+      },
+      "CodeIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 7,
+            "minLength": 6,
+            "title": "Code"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "CodeIn"
       },
       "ConfirmIn": {
         "properties": {
@@ -5079,6 +5580,21 @@
         "title": "EditUserIn",
         "description": "What an admin may change about an account. Anything left out stays as it is."
       },
+      "EraseIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "EraseIn"
+      },
       "FairnessOut": {
         "properties": {
           "rule": {
@@ -5131,6 +5647,41 @@
           "checks"
         ],
         "title": "FairnessOut"
+      },
+      "FinishIn": {
+        "properties": {
+          "answers": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Answers"
+          },
+          "roles_played": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Roles Played"
+          },
+          "comments": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answers",
+          "roles_played"
+        ],
+        "title": "FinishIn"
       },
       "FlagIn": {
         "properties": {
@@ -5247,6 +5798,17 @@
           "password": {
             "type": "string",
             "title": "Password"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           }
         },
         "type": "object",
@@ -5985,6 +6547,45 @@
         ],
         "title": "StageOut"
       },
+      "TaskIn": {
+        "properties": {
+          "task": {
+            "type": "string",
+            "pattern": "^T(1[01]|[1-9])$",
+            "title": "Task"
+          },
+          "completed": {
+            "type": "string",
+            "pattern": "^(yes|help|no)$",
+            "title": "Completed"
+          },
+          "seconds": {
+            "type": "integer",
+            "maximum": 3600.0,
+            "minimum": 0.0,
+            "title": "Seconds"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task",
+          "completed",
+          "seconds"
+        ],
+        "title": "TaskIn"
+      },
       "TeamIn": {
         "properties": {
           "employee_ids": {
@@ -6121,6 +6722,23 @@
             ],
             "title": "Email Mode",
             "default": "instant"
+          },
+          "totp_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totp Enabled",
+            "default": false
+          },
+          "must_set_up_2fa": {
+            "type": "boolean",
+            "title": "Must Set Up 2Fa",
+            "default": false
           },
           "created_at": {
             "anyOf": [

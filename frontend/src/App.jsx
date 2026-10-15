@@ -93,6 +93,8 @@ export default function App() {
   }
   // Accounts with a temporary password must choose their own before using anything else
   if (user.must_change_password && pathname !== "/account") return <Navigate to="/account" replace />;
+  // A role that must use two-factor sign-in (REQUIRE_2FA_ROLES) sets it up first
+  if (user.must_set_up_2fa && pathname !== "/account") return <Navigate to="/account" replace />;
 
   // HR sees every employee; so do admins who were given "can view employee data" (read-only)
   const viewAll = user.role === "admin" && user.can_view_employees ? ["hr", "admin"] : ["hr"];

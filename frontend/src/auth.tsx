@@ -7,7 +7,7 @@ interface AuthState {
   user: User | null;
   setUser: (user: User | null) => void;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, code?: string) => Promise<void>;
   logout: () => void;
   notice: string; // why the user was signed out, shown on the sign-in page
 }
@@ -38,8 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     auth.me().then(setUser).catch(() => setUser(null)).finally(() => setLoading(false));
   }, []);
 
-  async function login(username: string, password: string) {
-    const res = await auth.login({ username, password });
+  async function login(username: string, password: string, code?: string) {
+    const res = await auth.login({ username, password, code: code || null });
     setNotice("");
     setUser(res.user);
   }

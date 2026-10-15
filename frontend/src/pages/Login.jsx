@@ -1,7 +1,7 @@
 // Sign-in page: the wordmark, then a clean centred form.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Lock, UserRound } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "../auth";
 import { Button, Wordmark } from "../components/ui";
 import { BRAND, TAGLINE } from "../brand";
@@ -12,6 +12,8 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [code, setCode] = useState("");
+  const [needsCode, setNeedsCode] = useState(false); // two-factor sign-in: the password was right
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -20,8 +22,12 @@ export default function Login() {
     setBusy(true);
     setError("");
     try {
-      await login(username, password);  // the app then moves on from /login (App.jsx: AfterSignIn)
+      await login(username, password, needsCode ? code : undefined);  // the app then moves on from /login (App.jsx: AfterSignIn)
     } catch (err) {
+      if (err.codeRequired && !needsCode) {
+        setNeedsCode(true);  // not an error: the next step
+        return;
+      }
       setError(err.message);
     } finally {
       setBusy(false);
@@ -59,7 +65,17 @@ export default function Login() {
             </button>
           </div>
 
-          <Button busy={busy} busyText="Signing in…" className="login-btn">Sign in</Button>
+          {needsCode && (
+          <>
+            <label className="login-field" htmlFor="login-code">Code from your authenticator app</label>
+            <div className="login-input">
+              <ShieldCheck size={18} aria-hidden="true" />
+              <input id="login-code" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric"
+                autoComplete="one-time-code" pattern="[0-9 ]{6,7}" placeholder="123 456" required autoFocus />
+            </div>
+          </>
+        )}
+        <Button busy={busy} busyText="Signing in…" className="login-btn">{needsCode ? "Confirm and sign in" : "Sign in"}</Button>
           <p className="login-foot">New to the platform? <Link to="/demo">Book a demo</Link></p>
         </form>
         <p className="login-tagline">{TAGLINE}</p>

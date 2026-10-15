@@ -27,6 +27,15 @@ class User(Base):
     # How routine emails arrive: "instant" (each as it happens; the default) or "daily" (one digest each morning).
     # Emails about the account itself (password, username, email address) always arrive at once.
     email_mode: Mapped[str | None] = mapped_column(String(10), nullable=True, default="instant")
+    # Two-factor sign-in (core/totp.py): the shared secret, and whether it has been confirmed and is in use
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    totp_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
+
+    @property
+    def must_set_up_2fa(self) -> bool:
+        """This role must use two-factor sign-in (REQUIRE_2FA_ROLES) and this person hasn't set it up yet."""
+        from app.core.config import REQUIRE_2FA_ROLES
+        return self.role in REQUIRE_2FA_ROLES and not self.totp_enabled
     photo: Mapped[str | None] = mapped_column(Text, nullable=True)  # a small picture, as a data URL (resized in the browser)
     # Admin accounts only: may view employees' records and scores (read-only). Granted by an admin, and logged.
     can_view_employees: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)

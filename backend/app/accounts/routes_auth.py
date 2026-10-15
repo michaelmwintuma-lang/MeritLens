@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.core.security import (CSRF_HEADER, CSRF_VALUE, LOCK_MINUTES, MAX_FAILED_LOGINS, clear_session_cookie,
                                create_token, get_current_user, hash_password, set_session_cookie, verify_password,
                                withdraw_tokens)
+from app.core import throttle, totp
 from app.core.activity import record
 from app.core import email_templates as templates
 from app.core import mailer
@@ -45,25 +46,80 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
     Check the username and password and start a session. After MAX_FAILED_LOGINS wrong passwords in a row, the
     account is locked for LOCK_MINUTES: even the right password is refused until then.
     """
+    address = request.client.host if request.client else "unknown"
+    if throttle.blocked(address):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS,
+                            f"Too many failed sign-ins from here. Please wait {throttle.WINDOW_MINUTES} minutes and try again.")
     user = db.scalar(select(User).where(User.username == body.username.strip().lower()))
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     if user is None:
         verify_password(body.password, _DUMMY_HASH)  # take as long as a real check
+        throttle.failed(address)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
     if user.locked_until and user.locked_until > now:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
-    if not user.is_active or not verify_password(body.password, user.password_hash):
+    password_ok = user.is_active and verify_password(body.password, user.password_hash)
+    if password_ok and user.totp_enabled and not body.code:
+        # The password is right; now the code from the authenticator app (nothing counted against the account yet)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, {"message": "Enter the six-digit code from your authenticator app.",
+                                                            "code_required": True})
+    if not password_ok or (user.totp_enabled and not totp.verify(user.totp_secret, body.code)):
         user.failed_logins = (user.failed_logins or 0) + 1
-        record(db, user, "sign_in_failed")  # a wrong password on a real account is worth knowing about
+        record(db, user, "sign_in_failed")  # a wrong password (or code) on a real account is worth knowing about
         if user.failed_logins >= MAX_FAILED_LOGINS:
             user.locked_until, user.failed_logins = now + timedelta(minutes=LOCK_MINUTES), 0
             record(db, user, "account_locked")
         db.commit()
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
+        throttle.failed(address)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED if not password_ok else
+                            {"message": "That code isn't right. Check your authenticator app and try again.", "code_required": True})
     user.failed_logins, user.locked_until = 0, None
     record(db, user, "sign_in")
     db.commit()
     return signed_in(request, response, user)
+
+
+# ─── Two-factor sign-in ───────────────────────────────────────────────────────
+@router.post("/2fa/setup")
+def setup_2fa(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Start setting up two-factor sign-in: a new secret for the authenticator app (not in use until confirmed)."""
+    if user.totp_enabled:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Two-factor sign-in is already on.")
+    user.totp_secret = totp.new_secret()
+    db.commit()
+    return {"secret": user.totp_secret, "link": totp.setup_link(user.totp_secret, user.username)}
+
+
+class CodeIn(BaseModel):
+    code: str = Field(min_length=6, max_length=7)
+    password: str | None = None
+
+
+@router.post("/2fa/enable", response_model=UserOut)
+def enable_2fa(body: CodeIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Confirm with a code from the app: from now on, signing in needs the password and a code."""
+    if not user.totp_secret or not totp.verify(user.totp_secret, body.code):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That code isn't right. Check the app shows MeritLens, and try the newest code.")
+    user.totp_enabled = True
+    record(db, user, "two_factor_changed", "on")
+    db.commit()
+    return user
+
+
+@router.post("/2fa/disable", response_model=UserOut)
+def disable_2fa(body: CodeIn, background: BackgroundTasks, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Turn two-factor sign-in off, with your password and a current code (not allowed where your role requires it)."""
+    from app.core.config import REQUIRE_2FA_ROLES
+    if user.role in REQUIRE_2FA_ROLES:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Your role must use two-factor sign-in.")
+    if not body.password or not verify_password(body.password, user.password_hash) or not totp.verify(user.totp_secret or "", body.code):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Your password or code isn't right.")
+    user.totp_enabled, user.totp_secret = False, None
+    record(db, user, "two_factor_changed", "off")
+    db.commit()
+    if user.email:
+        background.add_task(mailer.send, user.email, templates.two_factor_off(user.full_name))
+    return user
 
 
 @router.post("/logout")

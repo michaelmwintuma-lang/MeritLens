@@ -19,7 +19,7 @@ from app.privacy import routes as privacy_routes
 from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
 from app.core import notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
-from app.core.config import APP_NAME
+from app.core.config import APP_NAME, APP_URL
 from app.core.database import (Base, SessionLocal, add_missing_columns, drop_removed_reporting, engine,
                                move_deferrals_to_holds)
 
@@ -46,6 +46,25 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title=APP_NAME, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    """
+    Headers that close common holes: no sniffing content types, no showing the API inside another site's frame, no
+    leaking addresses to other sites, no caching of personal data, and (over HTTPS) HTTPS only. The website's own
+    headers, including its Content-Security-Policy, are set where it is served (vite.config.js, deploy/Caddyfile).
+    """
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    if APP_URL.startswith("https://"):
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
 app.include_router(routes_auth.router)
 app.include_router(notifications.router)
 app.include_router(routes_admin.router)

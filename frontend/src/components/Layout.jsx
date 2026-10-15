@@ -12,6 +12,7 @@ import { BrandMark, PageLoading, ThemeToggle, Wordmark } from "./ui";
 import { useFocusTrap } from "./Overlay";
 import NotificationBell from "./NotificationBell";
 import ErrorBoundary from "./ErrorBoundary";
+import IdleSignOut from "./IdleSignOut";
 
 const RAIL_KEY = "sidebar-narrow";
 function readRail() {
@@ -149,6 +150,7 @@ export default function Layout() {
   return (
     <div className={`app-shell ${rail ? "is-rail" : ""}`}>
       <a className="skip-link" href="#main">Skip to the page</a>
+      <IdleSignOut />
       {phone && drawerOpen && <div className="scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
       <aside ref={sidebar} className={`sidebar ${drawerOpen ? "open" : ""}`} aria-label="Menu">
         <div className="sidebar-inner">

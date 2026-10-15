@@ -25,6 +25,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/2fa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Setup 2Fa
+         * @description Start setting up two-factor sign-in: a new secret for the authenticator app (not in use until confirmed).
+         */
+        post: operations["setup_2fa_api_auth_2fa_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable 2Fa
+         * @description Confirm with a code from the app: from now on, signing in needs the password and a code.
+         */
+        post: operations["enable_2fa_api_auth_2fa_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable 2Fa
+         * @description Turn two-factor sign-in off, with your password and a current code (not allowed where your role requires it).
+         */
+        post: operations["disable_2fa_api_auth_2fa_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/logout": {
         parameters: {
             query?: never;
@@ -1858,6 +1918,185 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/study/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions */
+        get: operations["sessions_api_study_sessions_get"];
+        put?: never;
+        /**
+         * New Session
+         * @description A new participant: their code, and the facilitator's link (shown once; only its hash is kept).
+         */
+        post: operations["new_session_api_study_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/study/analyse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyse
+         * @description Save every finished session to the evaluation files (replacing them) and run evaluation/user_test.py. Returns the
+         *     report it writes (results/user_test.md).
+         */
+        post: operations["analyse_api_study_analyse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/study/run/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Protocol
+         * @description The session's code, what's done so far, and the protocol: consent, tasks and questionnaire.
+         */
+        get: operations["protocol_api_study_run__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/study/run/{token}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consent */
+        post: operations["consent_api_study_run__token__consent_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/study/run/{token}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save Task
+         * @description One task's outcome and time (saving it again replaces it).
+         */
+        post: operations["save_task_api_study_run__token__tasks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/study/run/{token}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish
+         * @description The participant's questionnaire. Every statement needs an answer from 1 to 5; then the link stops working.
+         */
+        post: operations["finish_api_study_run__token__finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/privacy/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retention Periods
+         * @description How long each kind of personal data is kept (public: shown on the privacy page).
+         */
+        get: operations["retention_periods_api_privacy_retention_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/privacy/my-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Data
+         * @description Everything the platform holds about you, as one JSON file (to keep, or to ask questions about).
+         */
+        get: operations["my_data_api_privacy_my_data_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/privacy/employees/{employee_id}/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase
+         * @description HR erases someone who has left (see this module's notes for what is removed and what stays, pseudonymised).
+         */
+        post: operations["erase_api_privacy_employees__employee_id__erase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/demo-requests": {
         parameters: {
             query?: never;
@@ -2039,6 +2278,13 @@ export interface components {
             /** Stages */
             stages: components["schemas"]["StageOut"][];
         };
+        /** CodeIn */
+        CodeIn: {
+            /** Code */
+            code: string;
+            /** Password */
+            password?: string | null;
+        };
         /** ConfirmIn */
         ConfirmIn: {
             /** Verified Value */
@@ -2174,6 +2420,11 @@ export interface components {
             /** Job Title */
             job_title?: string | null;
         };
+        /** EraseIn */
+        EraseIn: {
+            /** Reason */
+            reason: string;
+        };
         /** FairnessOut */
         FairnessOut: {
             /** Rule */
@@ -2190,6 +2441,17 @@ export interface components {
             overall: string;
             /** Checks */
             checks: components["schemas"]["CharacteristicOut"][];
+        };
+        /** FinishIn */
+        FinishIn: {
+            /** Answers */
+            answers: {
+                [key: string]: number;
+            };
+            /** Roles Played */
+            roles_played: string;
+            /** Comments */
+            comments?: string | null;
         };
         /** FlagIn */
         FlagIn: {
@@ -2235,6 +2497,8 @@ export interface components {
             username: string;
             /** Password */
             password: string;
+            /** Code */
+            code?: string | null;
         };
         /** LoginOut */
         LoginOut: {
@@ -2460,6 +2724,17 @@ export interface components {
              */
             status: string;
         };
+        /** TaskIn */
+        TaskIn: {
+            /** Task */
+            task: string;
+            /** Completed */
+            completed: string;
+            /** Seconds */
+            seconds: number;
+            /** Notes */
+            notes?: string | null;
+        };
         /** TeamIn */
         TeamIn: {
             /** Employee Ids */
@@ -2507,6 +2782,16 @@ export interface components {
              * @default instant
              */
             email_mode: string | null;
+            /**
+             * Totp Enabled
+             * @default false
+             */
+            totp_enabled: boolean | null;
+            /**
+             * Must Set Up 2Fa
+             * @default false
+             */
+            must_set_up_2fa: boolean;
             /** Created At */
             created_at?: string | null;
         };
@@ -2570,6 +2855,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoginOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    setup_2fa_api_auth_2fa_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    enable_2fa_api_auth_2fa_enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_2fa_api_auth_2fa_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
                 };
             };
             /** @description Validation Error */
@@ -5400,6 +5771,273 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerifyOut"];
+                };
+            };
+        };
+    };
+    sessions_api_study_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    new_session_api_study_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    analyse_api_study_analyse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    protocol_api_study_run__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    consent_api_study_run__token__consent_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_task_api_study_run__token__tasks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finish_api_study_run__token__finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retention_periods_api_privacy_retention_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    my_data_api_privacy_my_data_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    erase_api_privacy_employees__employee_id__erase_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EraseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
