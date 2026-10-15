@@ -9,7 +9,7 @@ On another organisation's data:   python train.py --mapping data/mappings/my_map
 3. Choose one: only models with no common-sense violations are eligible; among them, the easiest to explain whose
    validation PR-AUC is within 0.01 of the best.
 4. Choose the decision threshold with the best F1 on the validation set.
-5. Test the chosen model once on the test set.
+5. Test the chosen model once on the test set, including its calibration (does a score of 30% mean about 30%?).
 6. Check fairness (four-fifths rule).
 7. Register the result in the model registry (models/registry/<version>/) with its model card. It does NOT go live:
    a named HR person reads the card and releases it in the app (Model registry). A model that failed the fairness
@@ -30,6 +30,7 @@ from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay, average_pre
 
 from app.core.config import MODELS_DIR
 from app.governance import registry
+from app.promotion.calibration import calibration_report, save_calibration_plot
 from app.promotion.fairness import fairness_report
 from app.promotion.features import MODEL_FEATURES, NUMERIC_FEATURES, TARGET, split_data
 from app.promotion.mapping import DEFAULT_MAPPING, load_mapped, load_mapping
@@ -138,6 +139,10 @@ def main():
     print(f"   accuracy {metrics['accuracy']} | precision {metrics['precision']} | recall {metrics['recall']} | "
           f"F1 {metrics['f1']} | ROC-AUC {metrics['roc_auc']} | PR-AUC {metrics['pr_auc']} (random {metrics['pr_auc_baseline']})")
 
+    calibration = calibration_report(test[TARGET], test_scores)
+    print(f"   calibration: ECE {calibration['ece']} | slope {calibration['slope']} | Brier {calibration['brier']} "
+          f"(guessing the base rate: {calibration['brier_baseline']}) -> {calibration['verdict']}")
+
     print("6. Fairness check (four-fifths rule) on the test set")
     fairness = fairness_report(test, test_scores >= threshold)
     for attribute, check in fairness["checks"].items():
@@ -151,7 +156,7 @@ def main():
             **reference_statistics(train)}
     card = registry.make_card(info, metrics, fairness, comparison_doc,
                               {"rows": len(data), "train": len(train), "validation": len(val), "test": len(test),
-                               "promotion_rate": round(float(data[TARGET].mean()), 4)}, mapping)
+                               "promotion_rate": round(float(data[TARGET].mean()), 4)}, mapping, calibration)
     with tempfile.TemporaryDirectory() as staging:
         staging = Path(staging)
         (staging / "results").mkdir()
@@ -162,7 +167,10 @@ def main():
         save_json(staging / "results" / "metrics.json", metrics)
         save_json(staging / "results" / "fairness.json", fairness)
         save_json(staging / "results" / "model_comparison.json", comparison_doc)
+        save_json(staging / "results" / "calibration.json",
+                  {"model": chosen, "model_version": info["version"], **calibration})
         save_curves(test[TARGET], test_scores, chosen, staging / "results")
+        save_calibration_plot(calibration, staging / "results" / "calibration_curve.png", chosen)
         folder = registry.register(staging, staging / "results", card)
     print(f"   registered {info['version']} in {folder.relative_to(BACKEND).as_posix()}/")
 

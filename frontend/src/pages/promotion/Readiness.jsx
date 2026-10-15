@@ -75,8 +75,9 @@ export default function Readiness() {
             <p className="summary">{data.summary}</p>
             <p className="muted small helper">
               {own ? "Your readiness is compared with an average employee. " : "Readiness is compared with an average employee. "}
-              It ranks readiness against the {percent(data.threshold)} threshold; it isn't a chance of promotion. The model
-              only advises: people make the decision.
+              Scores match past promotions closely: of employees scoring around {percent(data.threshold)}, about{" "}
+              {Math.round(data.threshold * 100)} in 100 were promoted. It describes past decisions, so it isn't a promise:
+              the model only advises, and people make the decision.
             </p>
           </section>
 

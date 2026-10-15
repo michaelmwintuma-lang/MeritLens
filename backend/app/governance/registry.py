@@ -29,7 +29,8 @@ from app.governance.models import ModelRelease
 from app.promotion.explain import reload_model, version_of
 
 MODEL_FILES = ("model.joblib", "model_info.json", "background.csv")
-RESULT_FILES = ("metrics.json", "fairness.json", "model_comparison.json", "roc_curve.png", "pr_curve.png")
+RESULT_FILES = ("metrics.json", "fairness.json", "model_comparison.json", "calibration.json", "roc_curve.png",
+                "pr_curve.png", "calibration_curve.png")
 MIN_NOTE = 20
 
 INTENDED_USE = (
@@ -62,14 +63,14 @@ def version_dir(version: str) -> Path:
 
 
 def make_card(info: dict, metrics: dict, fairness: dict, comparison: dict | None, data: dict | None,
-              mapping: dict | None) -> dict:
+              mapping: dict | None, calibration: dict | None = None) -> dict:
     """The model card: everything a person needs to judge a model before it is used."""
     return {
         "version": info["version"], "model": info["model"], "trained_at": info["trained_at"],
         "why_this_model": info.get("reason"), "threshold": info["threshold"],
         "threshold_rule": "the best F1 on the validation set", "inputs": info["features"],
         "data": data, "mapping": mapping,
-        "test_results": metrics, "fairness": fairness,
+        "test_results": metrics, "fairness": fairness, "calibration": calibration,
         "model_comparison": comparison,
         "fairness_passes": bool(fairness and fairness.get("passes")),
         "intended_use": INTENDED_USE, "limitations": LIMITATIONS,
@@ -103,9 +104,12 @@ def ensure_live_registered() -> None:
         return
     info = {**read_json(MODELS_DIR / "model_info.json"), "version": version}
     metrics, fairness = read_json(RESULTS_DIR / "metrics.json"), read_json(RESULTS_DIR / "fairness.json")
+    calibration = read_json(RESULTS_DIR / "calibration.json")
+    if calibration and calibration.get("model_version") != version:
+        calibration = None  # measured for another version: not this one's
     card = make_card(info, metrics or {}, fairness or {}, read_json(RESULTS_DIR / "model_comparison.json"),
                      {"note": "Trained before the model registry existed; data: the Kaggle dataset in backend/data."},
-                     None)
+                     None, {k: v for k, v in calibration.items() if k not in ("model", "model_version")} if calibration else None)
     card["registered_note"] = "Registered automatically: this version was live before the model registry existed."
     register(MODELS_DIR, RESULTS_DIR, card)
 

@@ -115,7 +115,7 @@ check is enforced by the backend, not just hidden in the interface.
 | Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite (default) or PostgreSQL, PyJWT |
 | Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Frontend | React 19, React Router 7, Vite 7, TypeScript (API layer, generated from the backend's OpenAPI contract), lucide-react icons |
-| Testing | pytest (315 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
+| Testing | pytest (322 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
 
 **Why it is built this way.** One backend with clearly separated modules is right for one organisation's HR
 team: simpler to run, test and reason about than many services. The redesign keeps that, and adds what a
@@ -296,7 +296,7 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
   - role checks on every request;
   - rate limits and a honeypot on the public form;
   - secrets kept in an uncommitted `.env` file.
-- **Honesty about limits:** LIME's fit is shown, the score is described as a ranking rather than a probability, and
+- **Honesty about limits:** LIME's fit is shown, the score's calibration is measured before it is described as a rate, and
   every number on the website is measured.
 
 ---
@@ -307,11 +307,12 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 |---|---|---|
 | Promotion model: test-set metrics, curves, model comparison | `results/metrics.json`, `results/*.png`, `results/model_comparison.json` | Done |
 | Fairness (four-fifths rule) | `results/fairness.json` | Done, passes |
+| Calibration (does a score of 30% mean about 30%?) | `results/calibration.json`, `results/calibration_curve.png` | Done: well calibrated (ECE 0.0056, slope 0.998) |
 | Proxies for gender, age, education and department; equal opportunity | `results/proxy_analysis.json` | Done |
 | Explanations: exactness, common sense, LIME fit and agreement, tips | `results/explanation_evaluation.json` | Done |
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
-| Automated tests | `backend/tests/`, 315 tests | All passing |
+| Automated tests | `backend/tests/`, 322 tests | All passing |
 | Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 6 checks passing; 0 accessibility findings on 15 pages |
 | Continuous integration | `.github/workflows/ci.yml` | Tests, build and browser checks on every push |
 
@@ -412,11 +413,12 @@ All commands run from the `backend` folder (on Windows, use `.venv\Scripts\pytho
 ```bash
 python train.py                                  # trains, compares, tests once, fairness-checks; registers a candidate
 python train.py --mapping data/mappings/X.json   # the same, on another organisation's export (see example_other_organisation.json)
+python -m evaluation.calibration                 # calibration of the live model (or a version: ... calibration v2026...)
 python -m evaluation.proxy_analysis              # proxies for gender, age, education, department; equal opportunity
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 315 automated tests, in about 5 minutes
+python -m pytest                                 # the 322 automated tests, in about 5 minutes
 python export_openapi.py                         # the API contract → frontend/openapi.json (then: npm run gen:api)
 ```
 
@@ -458,7 +460,7 @@ backend/
   evaluation/            explanation evaluation, proxy analysis, feedback export, user test
   data/                  the synthetic employee dataset (100,000 rows); mappings/ for other organisations' data
   models/                the live promotion model; registry/ every trained version (not committed)
-  tests/                 315 automated tests
+  tests/                 322 automated tests
   instance/              database, secret key, outbox, correction evidence (created automatically, never committed)
 deploy/postgres/         running on PostgreSQL, with database roles that enforce the isolation
 frontend/

@@ -1,0 +1,117 @@
+{
+  "model": "EBM (monotonic)",
+  "model_version": "v20261008215310",
+  "test_size": 20000,
+  "base_rate": 0.1,
+  "mean_score": 0.1007,
+  "brier": 0.0677,
+  "brier_baseline": 0.09,
+  "brier_skill": 0.2476,
+  "ece": 0.0056,
+  "slope": 0.998,
+  "intercept": -0.013,
+  "bins": [
+    {
+      "from": 0.0,
+      "to": 0.0006,
+      "count": 2000,
+      "mean_score": 0.0001,
+      "promoted": 0.0005,
+      "promoted_low": 0.0001,
+      "promoted_high": 0.0028,
+      "within_interval": true
+    },
+    {
+      "from": 0.0006,
+      "to": 0.0037,
+      "count": 2000,
+      "mean_score": 0.0019,
+      "promoted": 0.001,
+      "promoted_low": 0.0003,
+      "promoted_high": 0.0036,
+      "within_interval": true
+    },
+    {
+      "from": 0.0037,
+      "to": 0.0095,
+      "count": 2000,
+      "mean_score": 0.0064,
+      "promoted": 0.0025,
+      "promoted_low": 0.0011,
+      "promoted_high": 0.0058,
+      "within_interval": false
+    },
+    {
+      "from": 0.0095,
+      "to": 0.0195,
+      "count": 2000,
+      "mean_score": 0.0141,
+      "promoted": 0.0115,
+      "promoted_low": 0.0077,
+      "promoted_high": 0.0172,
+      "within_interval": true
+    },
+    {
+      "from": 0.0195,
+      "to": 0.034,
+      "count": 2000,
+      "mean_score": 0.0263,
+      "promoted": 0.0185,
+      "promoted_low": 0.0135,
+      "promoted_high": 0.0254,
+      "within_interval": false
+    },
+    {
+      "from": 0.034,
+      "to": 0.056,
+      "count": 2000,
+      "mean_score": 0.0442,
+      "promoted": 0.0455,
+      "promoted_low": 0.0372,
+      "promoted_high": 0.0555,
+      "within_interval": true
+    },
+    {
+      "from": 0.0561,
+      "to": 0.096,
+      "count": 2000,
+      "mean_score": 0.0741,
+      "promoted": 0.076,
+      "promoted_low": 0.0652,
+      "promoted_high": 0.0884,
+      "within_interval": true
+    },
+    {
+      "from": 0.096,
+      "to": 0.1636,
+      "count": 2000,
+      "mean_score": 0.1263,
+      "promoted": 0.135,
+      "promoted_low": 0.1207,
+      "promoted_high": 0.1507,
+      "within_interval": true
+    },
+    {
+      "from": 0.1637,
+      "to": 0.3063,
+      "count": 2000,
+      "mean_score": 0.2251,
+      "promoted": 0.237,
+      "promoted_low": 0.2189,
+      "promoted_high": 0.2561,
+      "within_interval": true
+    },
+    {
+      "from": 0.3063,
+      "to": 0.9645,
+      "count": 2000,
+      "mean_score": 0.4888,
+      "promoted": 0.4725,
+      "promoted_low": 0.4507,
+      "promoted_high": 0.4944,
+      "within_interval": true
+    }
+  ],
+  "groups_within_interval": 8,
+  "verdict": "well calibrated"
+}

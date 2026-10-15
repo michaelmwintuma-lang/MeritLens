@@ -197,8 +197,11 @@ The model gives each employee a score between 0 and 1. The **threshold** is the 
 model recommends promotion. It is chosen on the validation set as the value with the best **F1 score** (a balance
 between precision and recall): **0.2283**.
 
-The score is best read as a **ranking of readiness, not a probability**. What matters is whether a score is above
-or below the threshold, and by how much.
+The score is **calibrated**: it can be read as the share of employees like this who were promoted in the past data.
+Measured on the test set (`python -m evaluation.calibration`), the average gap between score and actual rate
+(expected calibration error) is 0.0056, the calibration slope 0.998: of employees scoring around 23%, about 23-24%
+were promoted. It describes past decisions in that (synthetic) data, not a promise about a person's future, and what
+matters for a recommendation is still whether a score is above or below the threshold.
 
 ### Results on the test set (measured once)
 
@@ -284,7 +287,7 @@ Checked by the backend on every request (`can_see` in `routes.py`):
 ### What the API returns for one employee
 
 **Readiness score.** The model's score, shown as a percentage, and whether it reaches the threshold (23%).
-As explained in step 2, it ranks readiness; it is not a probability.
+As explained in step 2, it is calibrated against past promotions (a score of 23% matches about 23 promoted in 100), but it is not a promise.
 
 **Exact contributions.** The EBM adds up one learned term per input:
 
@@ -410,8 +413,8 @@ top to bottom answering the questions a person naturally asks:
 
 1. **Where do I stand?** The score as a percentage on a 0–100% bar, with the threshold marked, and
    "Recommended" or "Not yet recommended" in words. Below it, the plain-language summary, and "Your readiness is
-   compared with an average employee. It ranks readiness against the threshold; it isn't a chance of promotion.
-   The model only advises: people make the decision." A score above zero that rounds to 0% reads "under 1%".
+   compared with an average employee. Scores match past promotions closely: of employees scoring around 23%, about 23 in 100 were promoted. It describes past decisions, so it isn't a promise:
+   the model only advises, and people make the decision." A score above zero that rounds to 0% reads "under 1%".
 2. **Why?** Two short lists: what raised the score and what lowered it, compared with an average employee, each
    with the person's real value and a bar for the size of the effect. On the employee's own page the bars carry
    no numbers; HR and managers see each contribution's size.
@@ -665,7 +668,7 @@ keeps dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **315 tests**, all passing, in about three
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **322 tests**, all passing, in about three
 minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |

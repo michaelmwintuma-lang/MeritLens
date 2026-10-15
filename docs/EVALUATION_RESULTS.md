@@ -78,6 +78,33 @@ Confusion matrix: 1,190 true positives, 1,711 false positives, 810 false negativ
 ROC-AUC 0.9295, but it scored people by where they work: past promotion rates ranged from 2% (Support) to 33%
 (Engineering). Removing department is what most of the drop reflects.
 
+### Calibration (test set)
+
+Source: `results/calibration.json`, `results/calibration_curve.png`; `python -m evaluation.calibration`.
+
+| Brier score | Always guessing 10% | Brier skill | ECE (10 groups) | Slope | Intercept | Average score vs promoted |
+|---|---|---|---|---|---|---|
+| 0.0677 | 0.0900 | 0.248 | 0.0056 | 0.998 | -0.013 | 10.07% vs 10.0% |
+
+| Score group | Average score | Actually promoted (95% interval) |
+|---|---|---|
+| 0.000-0.001 | 0.0% | 0.1% (0.0-0.3) |
+| 0.001-0.004 | 0.2% | 0.1% (0.0-0.4) |
+| 0.004-0.009 | 0.6% | 0.3% (0.1-0.6) |
+| 0.009-0.019 | 1.4% | 1.1% (0.8-1.7) |
+| 0.019-0.034 | 2.6% | 1.8% (1.3-2.5) |
+| 0.034-0.056 | 4.4% | 4.5% (3.7-5.6) |
+| 0.056-0.096 | 7.4% | 7.6% (6.5-8.8) |
+| 0.096-0.164 | 12.6% | 13.5% (12.1-15.1) |
+| 0.164-0.306 | 22.5% | 23.7% (21.9-25.6) |
+| 0.306-0.965 | 48.9% | 47.2% (45.1-49.4) |
+
+**Well calibrated.** Scores can be read as rates: of employees scoring around the 23% threshold, about 23-24% were
+promoted. 8 of 10 groups fall within their 95% interval; the two that don't are among the lowest scores (e.g. 2.6%
+predicted, 1.8% promoted), small over-estimates where almost nobody is promoted. The EBM was trained without class
+weights, which is why its scores stay on the scale of the real outcome. This is calibration to past decisions in
+synthetic data: a score is a rate for similar employees, not a promise about one person.
+
 ### Fairness (four-fifths rule, test set)
 
 | Characteristic | Selection rates | Ratio | Result |
@@ -164,7 +191,7 @@ numbers are to be collected during the usability study (section 5) and reported 
 
 | Check | Result | How |
 |---|---|---|
-| Backend tests | 315 passed | `cd backend && python -m pytest`, in about 5 minutes |
+| Backend tests | 322 passed | `cd backend && python -m pytest`, in about 5 minutes |
 | Browser checks: sessions, the feedback channel end to end, dashboards, landing page, pagination, every menu page for six roles (with no mention of the removed reporting) | 6 passed | `python scripts/browser_test.py`, against a throwaway copy of the app |
 | Accessibility: axe-core, WCAG 2.1 A/AA, 15 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
 | Pages wider than a phone screen (390 px) | none | same script |

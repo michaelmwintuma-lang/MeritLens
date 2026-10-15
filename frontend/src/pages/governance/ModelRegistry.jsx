@@ -10,6 +10,7 @@ import { useAction } from "../../useAction";
 import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
 import { Button, Card, LoadError, Loading, PageHeader } from "../../components/ui";
+import CalibrationChart, { CalibrationSummary } from "../../components/governance/CalibrationChart";
 
 const STATUS = {
   live: ["tag tag-yes", "Live"],
@@ -111,6 +112,18 @@ function ModelCard({ version, rows, onChanged }) {
           </tbody></table>
         </div>
       </div>
+
+      <h3 style={{ marginTop: 20 }}>Calibration: does a score of 30% mean about 30%?</h3>
+      {card.calibration ? (
+        <>
+          <CalibrationSummary calibration={card.calibration} />
+          <p className="small muted" style={{ margin: "0 0 12px", maxWidth: "72ch" }}>
+            Employees are put in ten equal groups by score. If each point sits on the dashed line (perfect calibration), a score can be read
+            as the share of similar employees promoted in the past data. It describes past decisions, not a promise.
+          </p>
+          <CalibrationChart calibration={card.calibration} />
+        </>
+      ) : <p className="small muted">Not measured for this version yet (python -m evaluation.calibration {version}).</p>}
 
       {card.why_this_model && (
         <details className="details">

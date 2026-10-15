@@ -343,7 +343,7 @@ of employees who were promoted.*
 - It is learned from the **historical promotion outcome** (`promoted`, yes or no).
 - The model gives a score between 0 and 1. At or above the threshold (0.2283, chosen as the best F1 on validation
   data), it recommends promotion.
-- The score is a **ranking**, not a probability of promotion.
+- The score is **calibrated** to past promotions (test set: ECE 0.0056, slope 0.998; `results/calibration.json`): it can be read as the share of similar employees promoted in the past data, not as a promise.
 
 #### Justification: why historical outcomes
 
@@ -376,8 +376,11 @@ both definitions: the **model** describes the historical pattern, and **people**
   results would only reproduce the researcher's own rules.
 - **Expert ratings as the target** would need real experts to rate employees; none are available for a synthetic
   dataset.
-- **A probability of promotion** isn't possible to claim: the model is trained to rank, and its scores aren't
-  calibrated, so the score is presented as a ranking against a threshold.
+- **A probability of promotion for the person** isn't claimed. Calibration was measured rather than assumed
+  (`python -m evaluation.calibration`): the scores are well calibrated to the past outcomes (expected calibration
+  error 0.0056, slope 0.998, 8 of 10 score groups within their 95% interval), so a score can honestly be read as
+  "about this share of similar employees were promoted in the past data". It remains an estimate of past decisions
+  in synthetic data, not a promise about one person's future, and the recommendation still rests on the threshold.
 
 #### Limitations
 
