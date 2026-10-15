@@ -871,7 +871,8 @@ export interface paths {
         };
         /**
          * Pay Reviews
-         * @description Every promotion pay rise that has been through Finance (waiting first, then newest), with a summary.
+         * @description Every promotion pay rise that has been through Finance (waiting first, oldest waiting first; then newest), with
+         *     a summary. `cycle_id` keeps only one review cycle's.
          */
         get: operations["pay_reviews_api_finance_pay_reviews_get"];
         put?: never;
@@ -902,6 +903,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/finance/pay-reviews/sign-off-many": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign Off Many
+         * @description Sign off several pay rises at once: only ones waiting for Finance and within the pay policy (a rise outside the
+         *     policy is always reviewed on its own). Each is signed off, logged and announced exactly as if done one by one.
+         */
+        post: operations["sign_off_many_api_finance_pay_reviews_sign_off_many_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/finance/pay-reviews/{decision_id}/return": {
         parameters: {
             query?: never;
@@ -916,6 +938,46 @@ export interface paths {
          * @description Finance sends the pay rise back to HR with a reason. Nobody else is told.
          */
         post: operations["send_back_api_finance_pay_reviews__decision_id__return_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/payroll.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payroll Csv
+         * @description Signed-off promotion pay rises for payroll (only those not yet handed over, unless include_sent).
+         */
+        get: operations["payroll_csv_api_finance_payroll_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/payroll/mark-sent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Sent To Payroll
+         * @description Finance confirms these signed-off rises were handed to payroll. Each can be marked once.
+         */
+        post: operations["mark_sent_to_payroll_api_finance_payroll_mark_sent_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2257,6 +2319,11 @@ export interface components {
             /** Max Raise */
             max_raise: number;
         };
+        /** PayrollSentIn */
+        PayrollSentIn: {
+            /** Ids */
+            ids: number[];
+        };
         /** PermissionIn */
         PermissionIn: {
             /** Can View Employees */
@@ -2364,6 +2431,13 @@ export interface components {
         };
         /** SignOffIn */
         SignOffIn: {
+            /** Note */
+            note?: string | null;
+        };
+        /** SignOffManyIn */
+        SignOffManyIn: {
+            /** Ids */
+            ids: number[];
             /** Note */
             note?: string | null;
         };
@@ -3810,7 +3884,9 @@ export interface operations {
     };
     pay_reviews_api_finance_pay_reviews_get: {
         parameters: {
-            query?: never;
+            query?: {
+                cycle_id?: number | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3824,6 +3900,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3863,6 +3948,39 @@ export interface operations {
             };
         };
     };
+    sign_off_many_api_finance_pay_reviews_sign_off_many_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignOffManyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     send_back_api_finance_pay_reviews__decision_id__return_post: {
         parameters: {
             query?: never;
@@ -3875,6 +3993,70 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ReturnIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payroll_csv_api_finance_payroll_csv_get: {
+        parameters: {
+            query?: {
+                include_sent?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_sent_to_payroll_api_finance_payroll_mark_sent_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayrollSentIn"];
             };
         };
         responses: {

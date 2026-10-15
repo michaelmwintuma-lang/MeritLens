@@ -341,3 +341,21 @@ Promotion rounds now run as **review cycles** (details: `docs/HOW_IT_WORKS.md`, 
 Checked: 336 backend tests (14 new in `tests/test_cycles.py`), 8 browser checks, and 0 axe findings on 41 pages in
 both themes.
 
+## Teams, reliable email and Finance at work (2026-10-15)
+
+Details: `docs/HOW_IT_WORKS.md`, "Teams and reporting lines", "Email: delivery, the notification centre,
+reminders and digests" and "Finance at work".
+
+- **Teams.** Reporting lines chain through managers' own employee records. A manager sees their own team, a team
+  they cover, and (read-only) everyone further down; only a person's own manager (or cover) recommends them. HR's
+  Teams page has a "without a manager" queue, the reporting lines and cover. A line can never loop.
+- **Email.** A delivery log with automatic retries (1, 5, 15, 60, 240 minutes) and resending; content erased once
+  delivered. The bell keeps a read/unread history from the same events as the emails. Reminders, each sent once:
+  nominations closing, pay rises waiting, a cycle ready to close, corrections waiting. An optional daily digest;
+  account emails always go at once. A background timer runs retries, reminders and digests. Moving to a
+  transactional email service is a settings change (`SMTP_SECURITY` added for port 465).
+- **Finance.** Working days waiting (longest first), bulk sign-off of within-policy rises (each logged on its own),
+  a review-cycle filter and the spread of signed-off rises, and the payroll hand-over (CSV, then "mark as sent").
+
+Checked: 359 backend tests, 10 browser checks, and 0 axe findings on 42 pages in both themes.
+

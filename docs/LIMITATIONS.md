@@ -90,7 +90,7 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   backend runs in WSL (Ubuntu) there. On a normal Linux server this doesn't arise.
 - **Pay rises aren't checked for fairness across groups.** Live fairness covers recommendations, nominations and
   approvals, not the size of pay rises. Only percentages are kept, never salaries.
-- **Tested mostly by its developer.** 336 automated tests and 8 browser checks verify behaviour and privacy rules,
+- **Tested mostly by its developer.** 359 automated tests and 10 browser checks verify behaviour and privacy rules,
   and an accessibility audit found nothing on 15 pages. But usability and perceived fairness with real users
   depend on the user test (`docs/USER_TEST.md`).
 - **CI hasn't run on GitHub yet.** The workflow is written and each of its steps passes locally, but the

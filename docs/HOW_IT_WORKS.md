@@ -624,6 +624,100 @@ fixes this:
   evidence; letting scores drift with every model change would make a round impossible to compare. The rule chosen
   (only logged record changes move a score; no model releases mid-cycle) keeps both.
 
+## Teams and reporting lines
+
+Code: `backend/app/promotion/teams.py` (the rules), `routes_teams.py` (the API), the table `team_covers`, the page
+`frontend/src/pages/promotion/Teams.jsx` and `components/promotion/Cover.jsx`. Tests: `tests/test_teams.py`.
+
+**One manager per person, deliberately.** Every employee has at most one manager, so every recommendation has
+exactly one accountable person. A manager's account can be linked to their own employee record, and that record has
+a manager too, so reporting lines chain upwards (an org chart). From that, three kinds of access:
+
+| | What the manager sees | May recommend them? |
+|---|---|---|
+| **Own team** (direct reports) | Scores and explanations | Yes |
+| **A team they cover** for a manager who is away | Scores and explanations, for those dates only | Yes |
+| **Further down the line** (a skip-level view) | Scores and explanations, read-only | No: only that person's own manager |
+
+**HR owns reporting lines; the admin owns accounts.** HR's **Teams** page (Promotion → Teams) shows:
+- **Without a manager:** everyone nobody can recommend yet. Tick people, choose a manager, and assign them; the
+  manager is emailed the names (no scores).
+- **Reporting lines:** every manager under the manager they report to, with their own team, how many are further
+  down, and any cover. "Team" opens a drawer to move people to another manager, or to none.
+- **Cover while a manager is away:** another manager sees and may recommend the team for given dates (at most six
+  months, no overlaps). A manager arranges cover for their own team on **My team**; HR can for anyone. It ends by
+  itself, or earlier.
+
+**A reporting line can never loop.** Putting a manager's own record under someone who already reports to them is
+refused. Every move and cover is in the audit trail (`team_changed`, `cover_arranged`, `cover_ended`) and the
+activity log.
+
+**Where people see it.** My growth says who the employee's manager is ("Your manager, … can recommend you") and
+whether someone is covering. A skip-level manager sees "Read-only for you" and no recommendation form. My team shows
+who each person reports to, with a filter for only the people you can recommend. The review-cycle page warns when
+people the model recommends have no manager.
+
+The admin's team editor (Users → Team) still works, for setting up a new manager's account.
+
+## Email: delivery, the notification centre, reminders and digests
+
+Code: `backend/app/core/mailer.py` (sending, the delivery log, retries), `notifications.py` (the bell's history),
+`reminders.py`, `digests.py`, `scheduler.py` (the timer), `email_templates.py` (every email's words). Pages: the
+bell (`components/NotificationBell.jsx`), the admin's Email page with the **Delivery log**
+(`components/admin/DeliveryLog.jsx`), and the email choice on **My profile**. Tests: `tests/test_email_delivery.py`.
+
+**Every email is logged and retried.** Each email gets a row in `email_log`: to whom, the subject, its kind, and
+whether it was sent. If the mail server doesn't accept it, it is tried again after 1, 5, 15, 60 and 240 minutes,
+then marked "not delivered". The admin's Email page shows the log, what is waiting to be retried, and a **Resend**
+button. Once an email is delivered, its content is erased (a welcome email holds a temporary password): only who,
+what subject and when are kept. Without a mail server, emails are saved to `instance/outbox/` as before.
+
+**The bell and the email come from the same event.** An email about something the recipient may need to act on
+carries a short "notice". Sending it also adds that line to their bell's history, read or unread. The bell has two
+parts:
+- **Waiting for you:** worked out live, e.g. corrections in HR's queue, or pay rises waiting for Finance.
+- **Recent:** that history. Opening an item marks it read; "Mark all read" clears the rest.
+
+**Reminders, each sent once** (`reminders_sent` remembers them). The timer checks every hour; the admin can also
+"Run reminders now".
+
+| Who | When | What |
+|---|---|---|
+| Managers | In the last 3 days before a review cycle's nomination deadline | How many on their own team the model recommends and they haven't nominated (a count, never names; recommending nobody is fine) |
+| Finance | A pay rise has waited more than 2 working days | Which pay rises are waiting |
+| HR | A cycle's nominations have closed and all are decided | The cycle is ready to close |
+| HR | A record correction has waited more than 3 days | How many are waiting |
+
+**Daily digest (optional).** On My profile, anyone can choose "one digest each morning" instead of each email as
+it happens. Routine emails are then held and sent together at `DIGEST_HOUR` (default 9:00). The bell still shows
+each one at once. **Account emails are never held**: sign-in details, password, username and email address changes
+always go out immediately.
+
+**The timer** is one background thread started with the app (`SCHEDULER=0` switches it off; the tests run each
+step directly). A problem in one step is logged and never stops the others.
+
+**Email for real use.** Gmail with an app password is fine for a demo. For real staff, use a transactional email
+service (Brevo, Postmark, Amazon SES or Mailgun) for better delivery, sender authentication (SPF and DKIM on your
+own domain) and bounce reports. It is only a settings change: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASSWORD`, `SMTP_SENDER` and, for port 465, `SMTP_SECURITY=ssl` (see `backend/.env.example`).
+
+## Finance at work
+
+Code: `backend/app/promotion/routes_finance.py`, the page `frontend/src/pages/finance/PaySignOff.jsx`. Tests:
+`tests/test_finance_operations.py`.
+
+- **How long each pay rise has waited**, in working days since it last reached Finance, with the longest-waiting
+  first. After 2 working days it is highlighted, and Finance gets a reminder.
+- **Signing off several at once.** Tick pay rises within the pay policy and sign them off together. Each is signed
+  off, logged, audited and announced exactly as if done one by one. A rise outside the policy can't be ticked: it is
+  always reviewed on its own, with HR's reason.
+- **Review cycles in Finance.** A filter for one cycle's pay rises, the cycle on each row, and how the signed-off
+  rises spread across the policy band (a chart, with any outside the policy named).
+- **Hand-over to payroll.** Signed-off rises payroll hasn't had yet are listed. Download them as a CSV (employee,
+  new role, start date, percentage, cycle), give the file to payroll, then **Mark as sent**. Each is marked once
+  (`payroll_sent_at`, and a `payroll_sent` audit event), so nothing is applied twice or forgotten. Still only
+  percentages, never salaries.
+
 ## Design system
 
 Every page is built from one small design system, so the whole interface looks and behaves the same. It is a
@@ -838,7 +932,7 @@ keeps dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **336 tests**, all passing, in about three
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **359 tests**, all passing, in about three
 minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |

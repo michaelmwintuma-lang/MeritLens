@@ -1938,8 +1938,31 @@
           "finance"
         ],
         "summary": "Pay Reviews",
-        "description": "Every promotion pay rise that has been through Finance (waiting first, then newest), with a summary.",
+        "description": "Every promotion pay rise that has been through Finance (waiting first, oldest waiting first; then newest), with\na summary. `cycle_id` keeps only one review cycle's.",
         "operationId": "pay_reviews_api_finance_pay_reviews_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cycle_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cycle Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1948,13 +1971,18 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/finance/pay-reviews/{decision_id}/sign-off": {
@@ -2013,6 +2041,51 @@
         }
       }
     },
+    "/api/finance/pay-reviews/sign-off-many": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Sign Off Many",
+        "description": "Sign off several pay rises at once: only ones waiting for Finance and within the pay policy (a rise outside the\npolicy is always reviewed on its own). Each is signed off, logged and announced exactly as if done one by one.",
+        "operationId": "sign_off_many_api_finance_pay_reviews_sign_off_many_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignOffManyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/finance/pay-reviews/{decision_id}/return": {
       "post": {
         "tags": [
@@ -2067,6 +2140,98 @@
             }
           }
         }
+      }
+    },
+    "/api/finance/payroll.csv": {
+      "get": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Payroll Csv",
+        "description": "Signed-off promotion pay rises for payroll (only those not yet handed over, unless include_sent).",
+        "operationId": "payroll_csv_api_finance_payroll_csv_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "include_sent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Sent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finance/payroll/mark-sent": {
+      "post": {
+        "tags": [
+          "finance"
+        ],
+        "summary": "Mark Sent To Payroll",
+        "description": "Finance confirms these signed-off rises were handed to payroll. Each can be marked once.",
+        "operationId": "mark_sent_to_payroll_api_finance_payroll_mark_sent_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayrollSentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/finance/pay-policy": {
@@ -5344,6 +5509,24 @@
         ],
         "title": "PayPolicyIn"
       },
+      "PayrollSentIn": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "title": "PayrollSentIn"
+      },
       "PermissionIn": {
         "properties": {
           "can_view_employees": {
@@ -5719,6 +5902,36 @@
         },
         "type": "object",
         "title": "SignOffIn"
+      },
+      "SignOffManyIn": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Ids"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "title": "SignOffManyIn"
       },
       "StageOut": {
         "properties": {

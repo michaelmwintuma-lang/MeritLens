@@ -80,6 +80,9 @@ SMTP = {
     # Gmail only sends from the signed-in address, so by default the sender is that address
     "sender": os.getenv("SMTP_SENDER", "") or os.getenv("SMTP_USER", "") or "no-reply@meritlens.local",
     "sender_name": os.getenv("SMTP_SENDER_NAME", "") or APP_NAME,
+    # How the connection is secured: "starttls" (port 587: Gmail, Brevo, Postmark, Mailgun, Amazon SES) or "ssl"
+    # (port 465). See README: "Email for real use".
+    "security": os.getenv("SMTP_SECURITY", "starttls").lower(),
 }
 # Where "Book a demo" requests are emailed (default: the Gmail address that sends the platform's emails)
 DEMO_INBOX = os.getenv("DEMO_INBOX", "") or os.getenv("SMTP_USER", "")

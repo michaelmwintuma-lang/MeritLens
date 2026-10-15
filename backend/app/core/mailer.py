@@ -149,6 +149,15 @@ def notify(db: Session, to: str, mail: dict) -> User | None:
     return user
 
 
+def connect() -> smtplib.SMTP:
+    """A secured connection to the mail server: SSL from the start (port 465), or upgraded with STARTTLS (587)."""
+    if SMTP["security"] == "ssl":
+        return smtplib.SMTP_SSL(SMTP["host"], SMTP["port"], timeout=20)
+    server = smtplib.SMTP(SMTP["host"], SMTP["port"], timeout=20)
+    server.starttls()
+    return server
+
+
 def deliver(entry: EmailLog) -> dict:
     """One attempt at delivering a logged email. Updates the entry; the caller commits."""
     message = build(entry.to_address, json.loads(entry.mail_json))
@@ -157,8 +166,7 @@ def deliver(entry: EmailLog) -> dict:
         entry.status, entry.next_attempt_at = "saved", None
         return {"sent": False, "detail": f"No mail server is set up, so the email was saved to {_save(message)}."}
     try:
-        with smtplib.SMTP(SMTP["host"], SMTP["port"], timeout=20) as server:
-            server.starttls()
+        with connect() as server:
             server.login(SMTP["user"], SMTP["password"])
             server.send_message(message)
     except (smtplib.SMTPException, OSError) as error:

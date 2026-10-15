@@ -41,6 +41,8 @@ def test_each_waiting_pay_rise_says_how_long_it_has_waited_longest_first(client)
 
 def test_several_within_policy_rises_are_signed_off_at_once_each_on_its_own_record(client):
     first, second = approve(client, 1), approve(client, 2)
+    told = lambda: len([e for e in emails_to("manager@example.org") if e["subject"].startswith("Decision on your nomination")])  # noqa: E731
+    before = told()  # the outbox is shared by every test in a run: count what this sign-off adds
     res = client.post("/api/finance/pay-reviews/sign-off-many", headers=login(client, "finance"), json={"ids": [first, second]})
     assert res.status_code == 200 and res.json()["signed_off"] == 2
     rows = {r["id"]: r for r in reviews(client)["reviews"]}
@@ -48,7 +50,7 @@ def test_several_within_policy_rises_are_signed_off_at_once_each_on_its_own_reco
     assert [h["action"] for h in rows[first]["history"]] == ["submitted", "signed_off"]
     events = client.get("/api/governance/audit", headers=login(client, "auditor"), params={"event": "pay_signed_off"}).json()
     assert events["total"] == 2
-    assert len([e for e in emails_to("manager@example.org") if e["subject"].startswith("Decision on your nomination")]) == 2
+    assert told() - before == 2
 
 
 def test_a_rise_outside_the_policy_is_never_signed_off_in_bulk(client):
