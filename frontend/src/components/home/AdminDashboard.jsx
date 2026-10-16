@@ -25,7 +25,7 @@ function Health({ state, label, children }) {
 const FAIRNESS_STATE = { passes: "ok", "below four-fifths": "warn", "within chance": "info", "not enough data": "info" };
 
 export default function AdminDashboard({ system, employees, fairness: live, models = [] }) {
-  const { accounts, model, fairness, drift, email, backup } = system;
+  const { accounts, model, fairness, drift, email, backup, errors = [] } = system;
   const backupAge = backup ? (Date.now() - Date.parse(backup.made_at)) / 3_600_000 : null; // hours
   const candidates = models.filter((m) => m.status === "candidate");
   const attention = [
@@ -86,6 +86,9 @@ export default function AdminDashboard({ system, employees, fairness: live, mode
             <Health state={backup == null ? "warn" : backupAge > 36 ? "warn" : "ok"}
               label={backup ? `Backups: last ${backup.made_at.replace("T", " ").slice(0, 16)} UTC` : "Backups: none yet"}>
               {backup ? `${backup.count} kept in ${backup.folder}; copy them to another disk too.` : "Made every night while the app runs, or by hand (docs/BACKUPS.md)."}
+            </Health>
+            <Health state={errors.length ? "warn" : "ok"} label={errors.length ? `Errors since the last restart: ${errors.length}` : "No errors since the last restart"}>
+              {errors.length > 0 && <>Latest: {errors[0].where}, {errors[0].at.replace("T", " ")} UTC (reference <span className="mono">{errors[0].reference}</span>). Admins are emailed at most once an hour per kind of error.</>}
             </Health>
           </ul>
         </Card>

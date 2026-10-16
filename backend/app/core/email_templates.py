@@ -230,6 +230,20 @@ def cycle_opened(manager_name: str, cycle_name: str, team: int, recommended: int
     }
 
 
+def system_error(admin_name: str, where: str, error: str, reference: str) -> dict:
+    return {
+        "subject": f"Something went wrong in {APP_NAME}: {where}"[:200],
+        "kind": "security",
+        "notice": f"An error happened: {where}",
+        "heading": "An unexpected error happened",
+        "greeting": f"Hello {admin_name},",
+        "paragraphs": ["The platform hit an error it didn't expect. Details are in the server's log under the "
+                       "reference below. You'll hear about the same error again at most once an hour."],
+        "details": [("Where", where), ("Error", error), ("Reference", reference)],
+        "button": ("Open the admin home page", link("/")),
+    }
+
+
 def approval_needed(hr_name: str, requester: str, summary: str) -> dict:
     return {
         "subject": f"Your approval is needed: {summary[:80]}",

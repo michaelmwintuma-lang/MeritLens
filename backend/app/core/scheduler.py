@@ -25,8 +25,9 @@ _thread: threading.Thread | None = None
 def _safely(name, step):
     try:
         step()
-    except Exception:  # noqa: BLE001 - keep the scheduler alive, and say what went wrong
-        log.exception("Scheduled step failed: %s", name)
+    except Exception as error:  # noqa: BLE001 - keep the scheduler alive, say what went wrong, tell the admins
+        from app.core import logs
+        logs.report(f"timer: {name}", error)
 
 
 def _reminders():

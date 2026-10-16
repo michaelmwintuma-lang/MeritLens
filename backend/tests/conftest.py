@@ -60,10 +60,11 @@ def restore_live_model():
 @pytest.fixture
 def client():
     """A test client on an empty database; start-up then adds the demo accounts (one per role)."""
-    from app.core import jobs, throttle
+    from app.core import jobs, logs, throttle
     restore_live_model()
     jobs.clear()  # no background results carried over from another test
     throttle.clear()  # nor failed sign-ins counted against the test client's address
+    logs.clear()  # nor errors and alerts from another test
     Base.metadata.drop_all(engine)
     with engine.begin() as connection:  # and the record of migrations applied, so start-up builds it all again
         connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")

@@ -16,7 +16,7 @@ from app.core.roles import ADMIN, AUDITOR, FINANCE, HR, MANAGER
 from app.core.security import hash_password, require_roles, temporary_password, withdraw_tokens
 from app.core import email_templates as templates
 from app.core import mailer
-from app.core import backups
+from app.core import backups, logs
 from app.core.activity import ACTIONS, ActivityEntry, record
 from app.promotion.models import Decision, Employee, Nomination, TeamCover, current_employees
 
@@ -374,4 +374,4 @@ def system(db: Session = Depends(get_db), _: User = Depends(admin_only)):
             "fairness": fairness_gate, "drift": drift,
             "email": {"configured": mailer.is_configured(), "sender": SMTP["sender"] if mailer.is_configured() else None,
                       "outbox_count": len(outbox)},
-            "backup": backups.latest()}
+            "backup": backups.latest(), "errors": logs.recent_errors()}

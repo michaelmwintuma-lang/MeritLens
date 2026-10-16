@@ -20,7 +20,7 @@ from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
 from app.core import approvals, notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
 from app.core.config import APP_NAME, APP_URL
-from app.core import migrations
+from app.core import logs, migrations
 from app.core.database import SessionLocal
 
 
@@ -42,6 +42,7 @@ async def lifespan(_app: FastAPI):
     scheduler.stop()
 
 
+logs.configure()
 app = FastAPI(title=APP_NAME, lifespan=lifespan)
 
 
@@ -61,6 +62,39 @@ async def security_headers(request, call_next):
         response.headers.setdefault("Cache-Control", "no-store")
     if APP_URL.startswith("https://"):
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    """
+    Log every request with an id (core/logs.py). An unexpected error is logged in full, the person gets a short
+    message quoting the id, and the admins are alerted once the answer has gone.
+    """
+    import re
+    import time
+
+    from fastapi.responses import JSONResponse
+    from starlette.background import BackgroundTask
+
+    given = request.headers.get("X-Request-ID", "")
+    request_id = given if re.fullmatch(r"[A-Za-z0-9-]{1,64}", given) else logs.new_request_id()
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as error:  # noqa: BLE001 - anything not already turned into an answer
+        route = request.scope.get("route")
+        where = f"{request.method} {getattr(route, 'path', request.url.path)}"
+        reference, alert = logs.report(where, error, request_id, alert_now=False)
+        response = JSONResponse(status_code=500, content={"detail": "Something went wrong on our side. If it happens "
+                                f"again, please tell your administrator and quote reference {reference}."})
+        if alert:
+            response.background = BackgroundTask(logs.alert_admins, where, f"{type(error).__name__}: {str(error)[:300]}",
+                                                 reference)
+    response.headers["X-Request-ID"] = request_id
+    logs.request_log.info("%s %s %s", request.method, request.url.path, response.status_code,
+                          extra={"request_id": request_id, "method": request.method, "path": request.url.path,
+                                 "status": response.status_code, "ms": round((time.perf_counter() - started) * 1000, 1)})
     return response
 app.include_router(routes_auth.router)
 app.include_router(notifications.router)
