@@ -10,6 +10,7 @@ import { Card, LoadError, PageHeader, PageLoading, StatCard } from "../component
 import ScoreBar, { Verdict } from "../components/promotion/ScoreBar";
 import NominationsTable from "../components/promotion/NominationsTable";
 import AdminDashboard from "../components/home/AdminDashboard";
+import FirstTimeGuide from "../components/FirstTimeGuide";
 import Attention, { plural } from "../components/governance/Attention";
 import { StatusTag } from "./governance/LiveFairness";
 
@@ -183,6 +184,7 @@ export default function Home() {
   return (
     <>
       <PageHeader title={`Hello, ${user.full_name.split(" ")[0]}`} subtitle={INTROS[user.role]} />
+      <FirstTimeGuide />
       {error && <LoadError message={error} onRetry={load} />}
       {!data && !error && <PageLoading />}
       {data && (user.role === "hr" || user.role === "manager") && <PromotionOverview data={data} isHr={user.role === "hr"} />}

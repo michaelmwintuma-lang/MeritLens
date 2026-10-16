@@ -8,7 +8,7 @@ from contextlib import closing
 
 import pytest
 
-from app.core import backups
+from app.core import backups, migrations
 from tests.conftest import login
 
 
@@ -24,7 +24,7 @@ def test_a_backup_holds_the_database_and_a_manifest(client, backup_dir):
         names = set(archive.namelist())
         assert {"app.db", "manifest.json"} <= names
         manifest = __import__("json").loads(archive.read("manifest.json"))
-    assert manifest["migration"] == "0001_baseline" and "app.db" in manifest["files"]
+    assert manifest["migration"] == migrations.head_revision() and "app.db" in manifest["files"]
     copy = backup_dir / "copy.db"
     copy.write_bytes(zipfile.ZipFile(path).read("app.db"))
     with closing(sqlite3.connect(copy)) as db, db:

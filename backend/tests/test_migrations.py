@@ -10,7 +10,7 @@ from tests.conftest import login
 
 
 def test_a_new_database_is_built_by_the_migrations_and_marked_up_to_date(client):
-    assert migrations.current_revision() == migrations.head_revision() == "0001_baseline"
+    assert migrations.current_revision() == migrations.head_revision() == "0002_first_time_guide"
     tables = set(inspect(engine).get_table_names())
     assert {"users", "employees", "audit_events", "approvals", "alembic_version"} <= tables
 
@@ -28,6 +28,15 @@ def test_a_database_from_before_migrations_keeps_its_data_and_gets_new_columns(c
     assert migrations.current_revision() == migrations.head_revision()
     assert "totp_secret" in {c["name"] for c in inspect(engine).get_columns("users")}
     assert client.get("/api/promotion/employees", headers=login(client, "hr")).json()["employees"] == before
+
+
+def test_a_database_at_the_baseline_gets_the_later_migrations(client):
+    with engine.begin() as connection:
+        connection.exec_driver_sql('ALTER TABLE users DROP COLUMN "guide_done"')
+        connection.exec_driver_sql("UPDATE alembic_version SET version_num = '0001_baseline'")
+    migrations.upgrade()
+    assert migrations.current_revision() == "0002_first_time_guide"
+    assert "guide_done" in {c["name"] for c in inspect(engine).get_columns("users")}
 
 
 def test_running_the_migrations_again_changes_nothing(client):

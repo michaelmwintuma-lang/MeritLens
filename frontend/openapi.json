@@ -429,6 +429,53 @@
         ]
       }
     },
+    "/api/auth/guide": {
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Set Guide",
+        "description": "Close the first-time guide on the overview, or show it again.",
+        "operationId": "set_guide_api_auth_guide_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuideIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/auth/profile/photo": {
       "put": {
         "tags": [
@@ -5985,6 +6032,19 @@
         ],
         "title": "GroupOut"
       },
+      "GuideIn": {
+        "properties": {
+          "done": {
+            "type": "boolean",
+            "title": "Done"
+          }
+        },
+        "type": "object",
+        "required": [
+          "done"
+        ],
+        "title": "GuideIn"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -7072,6 +7132,18 @@
               }
             ],
             "title": "Totp Enabled",
+            "default": false
+          },
+          "guide_done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guide Done",
             "default": false
           },
           "must_set_up_2fa": {

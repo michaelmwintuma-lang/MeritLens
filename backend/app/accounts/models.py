@@ -30,6 +30,8 @@ class User(Base):
     # Two-factor sign-in (core/totp.py): the shared secret, and whether it has been confirmed and is in use
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     totp_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
+    # The first-time guide on the overview (frontend: FirstTimeGuide) was closed; My profile can show it again
+    guide_done: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
 
     @property
     def must_set_up_2fa(self) -> bool:

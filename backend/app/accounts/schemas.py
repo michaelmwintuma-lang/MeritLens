@@ -24,6 +24,7 @@ class UserOut(BaseModel):
     can_view_employees: bool | None = False
     email_mode: str | None = "instant"
     totp_enabled: bool | None = False
+    guide_done: bool | None = False
     must_set_up_2fa: bool = False
     created_at: datetime | None = None
 

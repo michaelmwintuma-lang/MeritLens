@@ -227,6 +227,18 @@ def set_preferences(body: PreferencesIn, user: User = Depends(get_current_user),
     return user
 
 
+class GuideIn(BaseModel):
+    done: bool
+
+
+@router.put("/guide", response_model=UserOut)
+def set_guide(body: GuideIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Close the first-time guide on the overview, or show it again."""
+    user.guide_done = body.done
+    db.commit()
+    return user
+
+
 @router.put("/profile/photo", response_model=UserOut)
 def set_photo(body: PhotoIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Set or remove your profile picture (a small image, already shrunk by the browser)."""

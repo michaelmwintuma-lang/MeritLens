@@ -314,6 +314,11 @@ function EmailPreference() {
         </div>
       </fieldset>
       <p className="muted">Emails about your account (sign-in details, password, username or email address changes) always arrive at once.</p>
+      {user.guide_done && (
+        <Button look="secondary" onClick={async () => { setUser(await api("/auth/guide", { method: "PUT", body: { done: false } })); toast("The getting-started guide is back on your overview."); }}>
+          Show the getting-started guide again
+        </Button>
+      )}
     </Card>
   );
 }

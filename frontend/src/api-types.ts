@@ -210,6 +210,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Guide
+         * @description Close the first-time guide on the overview, or show it again.
+         */
+        put: operations["set_guide_api_auth_guide_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/profile/photo": {
         parameters: {
             query?: never;
@@ -2559,6 +2579,11 @@ export interface components {
             /** Shown */
             shown: boolean;
         };
+        /** GuideIn */
+        GuideIn: {
+            /** Done */
+            done: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2905,6 +2930,11 @@ export interface components {
              */
             totp_enabled: boolean | null;
             /**
+             * Guide Done
+             * @default false
+             */
+            guide_done: boolean | null;
+            /**
              * Must Set Up 2Fa
              * @default false
              */
@@ -3240,6 +3270,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PreferencesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_guide_api_auth_guide_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuideIn"];
             };
         };
         responses: {

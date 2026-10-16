@@ -10,6 +10,14 @@ def create(client, username="new.person", email="new.person@example.org", role="
                        json={"username": username, "full_name": "New Person", "email": email, "role": role})
 
 
+def test_the_first_time_guide_can_be_closed_and_shown_again(client):
+    headers = login(client, "manager")
+    assert client.get("/api/auth/me", headers=headers).json()["guide_done"] is False
+    assert client.put("/api/auth/guide", headers=headers, json={"done": True}).json()["guide_done"] is True
+    assert client.get("/api/auth/me", headers=headers).json()["guide_done"] is True
+    assert client.put("/api/auth/guide", headers=headers, json={"done": False}).json()["guide_done"] is False
+
+
 # ─── Welcome emails ───────────────────────────────────────────────────────────
 def test_new_accounts_get_a_welcome_email_with_their_sign_in_details(client):
     res = create(client)
