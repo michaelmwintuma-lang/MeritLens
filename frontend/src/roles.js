@@ -1,6 +1,6 @@
 // The six roles, how they're named on screen, and the menu each one sees.
 // The backend checks roles on every request; this file only decides what to show.
-import { Banknote, BarChart3, BookCheck, Boxes, Brain, CalendarCheck, FlaskConical, CalendarRange, ClipboardCheck, ClipboardPen, Gauge, LayoutGrid, Mail, Network, Scale, ScrollText, ShieldCheck, UserCog, Users } from "lucide-react";
+import { Banknote, BarChart3, BookCheck, Boxes, Brain, CalendarCheck, FlaskConical, CalendarRange, ClipboardCheck, ClipboardPen, Gauge, LayoutGrid, Mail, Network, Scale, ScrollText, ShieldCheck, Stamp, UserCog, Users } from "lucide-react";
 
 export const ROLE_NAMES = {
   employee: "Employee",
@@ -46,7 +46,7 @@ export const MENU = {
     { group: "Feedback", items: [
       { to: "/corrections", label: "Record corrections", icon: ClipboardPen },
       { to: "/feedback", label: "Feedback dashboard", icon: BarChart3 }] },
-    { group: "Governance", items: [REGISTRY, FAIRNESS] }],
+    { group: "Governance", items: [REGISTRY, FAIRNESS, { to: "/approvals", label: "Approvals", icon: Stamp }] }],
   admin: [OVERVIEW,
     { group: "Administration", items: [
       { to: "/admin/users", label: "Users", icon: UserCog },

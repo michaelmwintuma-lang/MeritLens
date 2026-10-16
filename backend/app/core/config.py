@@ -93,6 +93,9 @@ OUTBOX_DIR = Path(os.getenv("OUTBOX_DIR", str(INSTANCE_DIR / "outbox")))
 # SCHEDULER=0 switches it off (the tests run each step directly).
 SCHEDULER_ON = os.getenv("SCHEDULER", "1") != "0"
 DIGEST_HOUR = int(os.getenv("DIGEST_HOUR", "9"))
+# A second HR person must approve a model release, and a record correction that moves someone across the threshold
+# (app/core/approvals.py). Off by default: it needs at least two HR accounts.
+FOUR_EYES = os.getenv("FOUR_EYES", "0") == "1"
 # How long personal data is kept before it is removed automatically (days; app/privacy/retention.py)
 RETENTION_DAYS = {
     "rating_comments": int(os.getenv("RETAIN_RATING_COMMENTS_DAYS", "730")),   # 2 years: the 1-5 answers stay

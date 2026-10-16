@@ -9,13 +9,13 @@ Who sees what:
 """
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
-from app.core import audit
+from app.core import approvals, audit
 from app.core.activity import record
 from app.core.database import get_db
 from app.core.roles import ADMIN, AUDITOR, HR
@@ -81,23 +81,47 @@ def model_card(version: str, db: Session = Depends(get_db), _: User = Depends(re
     return {"version": version, "status": row["status"], "card": data, "releases": registry.release_history(db, version)}
 
 
-@router.post("/models/{version}/release", response_model=ModelCardOut)
-def release(version: str, body: ReleaseIn, db: Session = Depends(get_db), user: User = Depends(require_roles(HR))):
-    """
-    Make this version the live model, after reading its card. HR only, with a note of at least 20 characters.
-    Releasing an older version is how a release is rolled back.
-    """
+def release_errors(action):
+    """Run a registry step, turning its refusals into HTTP answers."""
     try:
-        registry.release(db, version, user, body.note)
+        return action()
     except LookupError as error:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(error))
     except PermissionError as error:
         raise HTTPException(status.HTTP_409_CONFLICT, str(error))
     except ValueError as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error))
+
+
+@router.post("/models/{version}/release", response_model=ModelCardOut,
+             responses={202: {"description": "Waiting for a second HR person's approval (FOUR_EYES)"}})
+def release(version: str, body: ReleaseIn, background: BackgroundTasks, db: Session = Depends(get_db),
+            user: User = Depends(require_roles(HR))):
+    """
+    Make this version the live model, after reading its card. HR only, with a note of at least 20 characters.
+    Releasing an older version is how a release is rolled back. With FOUR_EYES on, this asks a second HR person.
+    """
+    if approvals.on():
+        release_errors(lambda: registry.check_release(db, version, body.note))
+        entry = approvals.request(db, background, "model_release", version, f"Release model version {version}: {body.note.strip()}",
+                                  {"note": body.note}, user)
+        db.commit()
+        return approvals.pending_response(entry)
+    release_errors(lambda: registry.release(db, version, user, body.note))
     record(db, user, "model_released", version)
     db.commit()
     return model_card(version, db)
+
+
+def approved_release(db, entry, payload, requester, approver, _background):
+    """A second HR person approved the release: it happens now, in the name of the person who asked."""
+    note = f"{payload['note'].strip()} (approved by {approver.full_name})"
+    release_errors(lambda: registry.release(db, entry.subject, requester, note))
+    record(db, approver, "model_released", entry.subject)
+    return {"version": entry.subject}
+
+
+approvals.register("model_release", approved_release)
 
 
 # ─── Live fairness ────────────────────────────────────────────────────────────

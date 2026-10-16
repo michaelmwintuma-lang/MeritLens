@@ -167,10 +167,10 @@ def _copy_atomically(source: Path, target: Path) -> None:
     os.replace(temporary, target)
 
 
-def release(db: Session, version: str, user, note: str) -> ModelRelease:
+def check_release(db: Session, version: str, note: str) -> dict:
     """
-    Make a registered version the live model. Refused for a version that failed the fairness check, the version
-    already live, or without a note of at least MIN_NOTE characters. The caller commits.
+    The checks before a release, returning the version's card. Refused for a version that failed the fairness check,
+    while a review cycle is open, for the version already live, or without a note of at least MIN_NOTE characters.
     """
     data = card(version)
     if data is None:
@@ -181,11 +181,17 @@ def release(db: Session, version: str, user, note: str) -> ModelRelease:
     if open_cycle is not None:
         raise PermissionError(f"The review cycle “{open_cycle.name}” is open. Close it before releasing a model, so "
                               "everyone in a cycle is scored by the same model.")
-    previous = live_version()
-    if version == previous:
+    if version == live_version():
         raise ValueError("This version is already live.")
     if len(note.strip()) < MIN_NOTE:
         raise ValueError(f"Please say why you are releasing it, in at least {MIN_NOTE} characters.")
+    return data
+
+
+def release(db: Session, version: str, user, note: str) -> ModelRelease:
+    """Make a registered version the live model, after the checks (check_release). The caller commits."""
+    data = check_release(db, version, note)
+    previous = live_version()
     folder = version_dir(version)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

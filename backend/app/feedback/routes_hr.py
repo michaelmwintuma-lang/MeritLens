@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.contacts import login_for_employee
 from app.accounts.models import User
-from app.core import audit
+from app.core import approvals, audit
 from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
@@ -34,6 +34,7 @@ from app.feedback.routes import evidence_file
 from app.promotion.features import MODEL_FEATURES
 from app.promotion.labels import label
 from app.promotion.models import Employee, Nomination
+from app.promotion.routes import model
 from app.promotion.routes_records import record_history
 
 router = APIRouter(prefix="/api/hr/feedback", tags=["feedback (HR)"])
@@ -110,9 +111,28 @@ def confirm(request_id: int, body: ConfirmIn, background: BackgroundTasks, db: S
     employee = db.get(Employee, request.employee_id)
     if value == corrections.current_value(employee, request.field):
         raise corrections.unprocessable("That is the value already in the record. If it is right, reject the request instead.")
+    note = (body.note or "").strip() or None
+    if approvals.on():
+        old, new = corrections.corrected_record(employee, request.field, value)
+        live = model()
+        before, after = live.score(old) >= live.threshold, live.score(new) >= live.threshold
+        if before != after:  # it changes whether the model recommends them: a second HR person approves it
+            moves = "above" if after else "below"
+            entry = approvals.request(
+                db, background, "correction_confirm", request.id,
+                f"Correct {employee.full_name}'s {corrections.field_label(request.field)} to "
+                f"{corrections.show(request.field, value)}, which moves them {moves} the threshold",
+                {"verified_value": value, "note": note}, user)
+            db.commit()
+            return approvals.pending_response(entry)
+    return confirm_now(db, background, request, employee, value, note, user)
+
+
+def confirm_now(db: Session, background: BackgroundTasks, request: CorrectionRequest, employee: Employee, value: float,
+                note: str | None, user: User):
+    """Correct the record, re-score the employee, and tell them. The caller has checked the value."""
     old, new = corrections.corrected_record(employee, request.field, value)
     employee.record_json = json.dumps(new)
-    note = (body.note or "").strip() or None
     change = record_history(db, employee, old, new, user, "correction",
                             f"Correction request {request.id} confirmed" + (f": {note}" if note else ""))
     db.flush()
@@ -133,6 +153,17 @@ def confirm(request_id: int, body: ConfirmIn, background: BackgroundTasks, db: S
     return corrections.describe(request, employee.full_name)
 
 
+def approved_correction(db, entry, payload, requester, approver, background):
+    """A second HR person approved the correction: it is made now, in the name of the person who checked it."""
+    request = pending_request(db, int(entry.subject))
+    employee = db.get(Employee, request.employee_id)
+    note = f"{payload['note'] or 'Confirmed'} (approved by {approver.full_name})"
+    return confirm_now(db, background, request, employee, payload["verified_value"], note, requester)
+
+
+approvals.register("correction_confirm", approved_correction)
+
+
 class RejectIn(BaseModel):
     reason: str = Field(max_length=2000)
 
@@ -146,6 +177,7 @@ def reject(request_id: int, body: RejectIn, background: BackgroundTasks, db: Ses
     if len(reason) < MIN_REASON:
         raise corrections.unprocessable(f"Please explain why, in at least {MIN_REASON} characters. The employee receives it.")
     request.status, request.decision_reason = "rejected", reason
+    approvals.withdraw(db, "correction_confirm", request.id, user, "The correction request was rejected instead.")
     request.decided_by, request.decided_by_name = user.id, user.full_name
     request.decided_at = datetime.now(timezone.utc)
     request.employee_seen = False

@@ -9,6 +9,7 @@ import { percent } from "../../format";
 import { Button, Callout, Card, EmptyState, LoadError, PageLoading, PageHeader, Segmented } from "../../components/ui";
 import CorrectionStatus from "../../components/feedback/CorrectionStatus";
 import { useAction } from "../../useAction";
+import { useToast } from "../../components/Toast";
 
 const MIN_REASON = 20;
 
@@ -26,12 +27,15 @@ function Decide({ request, onDone }) {
   const [error, setError] = useState("");
   const [confirming, withConfirming] = useAction();
   const [rejecting, withRejecting] = useAction();
+  const toast = useToast();
 
   const act = (path, body) => async (e) => {
     e.preventDefault();
     setError("");
     try {
-      onDone(await api(`/hr/feedback/corrections/${request.id}/${path}`, { method: "POST", body }));
+      const res = await api(`/hr/feedback/corrections/${request.id}/${path}`, { method: "POST", body });
+      if (res.approval) toast("This moves them across the threshold, so a second HR person must approve it (see Approvals).");
+      onDone(res);
     } catch (err) {
       setError(err.message);
     }

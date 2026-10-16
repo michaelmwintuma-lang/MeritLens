@@ -18,7 +18,7 @@ from app.study import routes as study_routes
 from app.privacy import routes as privacy_routes
 from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
-from app.core import notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
+from app.core import approvals, notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
 from app.core.config import APP_NAME, APP_URL
 from app.core.database import (Base, SessionLocal, add_missing_columns, drop_removed_reporting, engine,
                                move_deferrals_to_holds)
@@ -86,6 +86,7 @@ app.include_router(feedback_dashboard.router)
 app.include_router(governance_routes.router)
 app.include_router(study_routes.router)
 app.include_router(privacy_routes.router)
+app.include_router(approvals.router)
 app.include_router(demo_routes.router)
 app.include_router(demo_routes.admin_router)
 

@@ -3,6 +3,7 @@
 // version that failed the fairness check can never be released. Releasing an older version is how a release is
 // rolled back. Admins and the auditor can read everything here; only HR releases.
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Rocket, RotateCcw, ShieldAlert } from "lucide-react";
 import { governance } from "../../api";
 import { useAuth } from "../../auth";
@@ -38,15 +39,26 @@ function ReleaseBox({ row, onReleased }) {
   const [note, setNote] = useState("");
   const [read, setRead] = useState(false);
   const [error, setError] = useState("");
+  const [waiting, setWaiting] = useState(false); // four-eyes rule: a second HR person must approve
   const [working, withWorking] = useAction();
   const rollback = row.status === "retired";
 
   async function release(e) {
     e.preventDefault();
     setError("");
-    try { onReleased(await governance.release(row.version, { note })); setNote(""); setRead(false); }
-    catch (err) { setError(err.message); }
+    try {
+      const res = await governance.release(row.version, { note });
+      if ("approval" in res) setWaiting(true);
+      else onReleased(res);
+      setNote(""); setRead(false);
+    } catch (err) { setError(err.message); }
   }
+
+  if (waiting) return (
+    <Callout tone="success" title="Waiting for a second HR person" className="section-gap">
+      A second HR person must approve this release before it goes live. They have been told; it is listed under <Link to="/approvals">Approvals</Link>.
+    </Callout>
+  );
 
   return (
     <form className="release-box" onSubmit={(e) => withWorking(() => release(e))}>

@@ -125,7 +125,7 @@ export const governance = {
   models: () => api<ModelVersion[]>("/governance/models"),
   model: (version: string) => api<ModelCard>(`/governance/models/${version}`),
   release: (version: string, body: Schemas["ReleaseIn"]) =>
-    api<ModelCard>(`/governance/models/${version}/release`, { method: "POST", body }),
+    api<ModelCard | { approval: { id: number } }>(`/governance/models/${version}/release`, { method: "POST", body }),
   fairness: () => api<Fairness>("/governance/fairness"),
   audit: (params: { event?: string; subject_type?: string; subject_id?: string; page?: number } = {}) => {
     const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== "")

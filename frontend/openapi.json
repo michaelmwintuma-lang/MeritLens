@@ -4164,7 +4164,7 @@
           "governance"
         ],
         "summary": "Release",
-        "description": "Make this version the live model, after reading its card. HR only, with a note of at least 20 characters.\nReleasing an older version is how a release is rolled back.",
+        "description": "Make this version the live model, after reading its card. HR only, with a note of at least 20 characters.\nReleasing an older version is how a release is rolled back. With FOUR_EYES on, this asks a second HR person.",
         "operationId": "release_api_governance_models__version__release_post",
         "security": [
           {
@@ -4202,6 +4202,9 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "Waiting for a second HR person's approval (FOUR_EYES)"
           },
           "422": {
             "description": "Validation Error",
@@ -4725,6 +4728,172 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EraseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals": {
+      "get": {
+        "tags": [
+          "approvals"
+        ],
+        "summary": "List Approvals",
+        "description": "Requests waiting for a second HR person (or all of them), newest first, and whether the rule is on.",
+        "operationId": "list_approvals_api_approvals_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "pending",
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals/{approval_id}/approve": {
+      "post": {
+        "tags": [
+          "approvals"
+        ],
+        "summary": "Approve",
+        "description": "A second HR person approves: the action is carried out now, in both people's names.",
+        "operationId": "approve_api_approvals__approval_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Approval Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals/{approval_id}/decline": {
+      "post": {
+        "tags": [
+          "approvals"
+        ],
+        "summary": "Decline",
+        "description": "A second HR person declines: nothing changes, and the request is closed with their note.",
+        "operationId": "decline_api_approvals__approval_id__decline_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Approval Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideIn"
               }
             }
           }
@@ -5411,6 +5580,24 @@
           "name"
         ],
         "title": "CycleIn"
+      },
+      "DecideIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "DecideIn"
       },
       "DecisionIn": {
         "properties": {

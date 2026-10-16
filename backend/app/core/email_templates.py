@@ -230,6 +230,18 @@ def cycle_opened(manager_name: str, cycle_name: str, team: int, recommended: int
     }
 
 
+def approval_needed(hr_name: str, requester: str, summary: str) -> dict:
+    return {
+        "subject": f"Your approval is needed: {summary[:80]}",
+        "notice": f"{requester} asks for your approval",
+        "heading": "A second HR person's approval is needed",
+        "greeting": f"Hello {hr_name},",
+        "paragraphs": [f"{requester} has asked for this, and it needs a second HR person before it happens:",
+                       summary, "Nothing changes until you approve it."],
+        "button": ("Open approvals", link("/approvals")),
+    }
+
+
 def correction_received(hr_name: str, employee_name: str, field: str) -> dict:
     return {
         "subject": f"Record correction requested: {employee_name}",

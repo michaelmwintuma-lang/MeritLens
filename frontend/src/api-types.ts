@@ -1848,7 +1848,7 @@ export interface paths {
         /**
          * Release
          * @description Make this version the live model, after reading its card. HR only, with a note of at least 20 characters.
-         *     Releasing an older version is how a release is rolled back.
+         *     Releasing an older version is how a release is rolled back. With FOUR_EYES on, this asks a second HR person.
          */
         post: operations["release_api_governance_models__version__release_post"];
         delete?: never;
@@ -2091,6 +2091,66 @@ export interface paths {
          * @description HR erases someone who has left (see this module's notes for what is removed and what stays, pseudonymised).
          */
         post: operations["erase_api_privacy_employees__employee_id__erase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Approvals
+         * @description Requests waiting for a second HR person (or all of them), newest first, and whether the rule is on.
+         */
+        get: operations["list_approvals_api_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/{approval_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve
+         * @description A second HR person approves: the action is carried out now, in both people's names.
+         */
+        post: operations["approve_api_approvals__approval_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/{approval_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline
+         * @description A second HR person declines: nothing changes, and the request is closed with their note.
+         */
+        post: operations["decline_api_approvals__approval_id__decline_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2364,6 +2424,11 @@ export interface components {
             name: string;
             /** Nominations Close */
             nominations_close?: string | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** DecideIn */
+        DecideIn: {
             /** Note */
             note?: string | null;
         };
@@ -5679,6 +5744,13 @@ export interface operations {
                     "application/json": components["schemas"]["ModelCardOut"];
                 };
             };
+            /** @description Waiting for a second HR person's approval (FOUR_EYES) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6019,6 +6091,107 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["EraseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_approvals_api_approvals_get: {
+        parameters: {
+            query?: {
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_approvals__approval_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_api_approvals__approval_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideIn"];
             };
         };
         responses: {

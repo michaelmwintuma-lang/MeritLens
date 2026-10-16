@@ -49,6 +49,9 @@ EVENTS = {
     "payroll_sent": "Finance handed signed-off pay rises to payroll",
     "records_normalised": "Counts in work records rounded to whole numbers (a one-off data repair)",
     "employee_erased": "HR erased the personal data of someone who has left",
+    "approval_requested": "HR asked a second HR person to approve an action (four-eyes rule)",
+    "approval_given": "A second HR person approved an action, which was carried out",
+    "approval_declined": "A second HR person declined an action",
 }
 
 
@@ -60,7 +63,7 @@ class AuditEvent(Base):
     event: Mapped[str] = mapped_column(String(40), index=True)
     actor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     actor_name: Mapped[str] = mapped_column(String(120))        # kept even if the account is renamed or deleted
-    subject_type: Mapped[str] = mapped_column(String(20))       # employee, nomination, decision, correction, model, cycle or cover
+    subject_type: Mapped[str] = mapped_column(String(20))       # employee, nomination, decision, correction, model, cycle, cover or approval
     subject_id: Mapped[str] = mapped_column(String(60), index=True)
     model_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     payload_json: Mapped[str] = mapped_column(Text, default="{}")

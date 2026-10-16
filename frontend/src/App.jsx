@@ -38,6 +38,7 @@ const ModelRegistry = lazy(() => import("./pages/governance/ModelRegistry"));
 const LiveFairness = lazy(() => import("./pages/governance/LiveFairness"));
 const AuditTrail = lazy(() => import("./pages/governance/AuditTrail"));
 const Corrections = lazy(() => import("./pages/feedback/Corrections"));
+const Approvals = lazy(() => import("./pages/governance/Approvals"));
 const FeedbackDashboard = lazy(() => import("./pages/feedback/FeedbackDashboard"));
 
 /**
@@ -127,6 +128,7 @@ export default function App() {
         <Route path="fairness" element={<OnlyFor roles={["hr", "admin", "auditor"]}><LiveFairness /></OnlyFor>} />
         <Route path="audit" element={<OnlyFor roles={["admin", "auditor"]}><AuditTrail /></OnlyFor>} />
         <Route path="corrections" element={<OnlyFor roles={["hr"]}><Corrections /></OnlyFor>} />
+        <Route path="approvals" element={<OnlyFor roles={["hr"]}><Approvals /></OnlyFor>} />
         <Route path="feedback" element={<OnlyFor roles={["hr", "auditor"]}><FeedbackDashboard /></OnlyFor>} />
         <Route path="finance" element={<OnlyFor roles={["finance"]}><PaySignOff /></OnlyFor>} />
         <Route path="login" element={<AfterSignIn />} />
