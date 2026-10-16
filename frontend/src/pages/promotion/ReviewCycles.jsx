@@ -3,7 +3,7 @@
 // totals only. One cycle can be open at a time; the page opens on it, or on the latest cycle.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarRange, CheckCircle2, Download, Lock, Play, TrendingDown, TrendingUp, UserSearch } from "lucide-react";
+import { CalendarRange, CheckCircle2, Download, Lock, Play, Printer, TrendingDown, TrendingUp, UserSearch } from "lucide-react";
 import { api, apiBlob } from "../../api";
 import { useAuth } from "../../auth";
 import { useAction } from "../../useAction";
@@ -182,12 +182,11 @@ function CycleReport({ id, isHr, onChanged }) {
           {totals.added_late > 0 && ` ${totals.added_late} ${totals.added_late === 1 ? "person was" : "people were"} added after the cycle opened.`}
         </p>
         {problem && <Callout tone="error">{problem}</Callout>}
-        {isHr && (
-          <div className="form-actions">
-            {open && <Button icon={Lock} busy={closing} busyText="Closing…" disabled={!data.can_close} onClick={() => withClosing(close)}>Close the cycle</Button>}
-            <Button look="secondary" icon={Download} onClick={exportCsv}>Export CSV</Button>
-          </div>
-        )}
+        <div className="form-actions">
+          {isHr && open && <Button icon={Lock} busy={closing} busyText="Closing…" disabled={!data.can_close} onClick={() => withClosing(close)}>Close the cycle</Button>}
+          {isHr && <Button look="secondary" icon={Download} onClick={exportCsv}>Export CSV</Button>}
+          <Link className="btn btn-secondary" to={`/cycles/${id}/report`}><Printer size={16} aria-hidden="true" />Printable report</Link>
+        </div>
         {open && data.close_blocker && <Callout className="section-gap">{data.close_blocker} The cycle can be closed once they are decided.</Callout>}
         {isHr && totals.recommended_no_manager > 0 && (
           <Callout tone="warning" className="section-gap" title={`${totals.recommended_no_manager} ${totals.recommended_no_manager === 1 ? "person" : "people"} the model recommends ${totals.recommended_no_manager === 1 ? "has" : "have"} no manager`}>
