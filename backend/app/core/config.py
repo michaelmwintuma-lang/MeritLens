@@ -93,6 +93,7 @@ OUTBOX_DIR = Path(os.getenv("OUTBOX_DIR", str(INSTANCE_DIR / "outbox")))
 # SCHEDULER=0 switches it off (the tests run each step directly).
 SCHEDULER_ON = os.getenv("SCHEDULER", "1") != "0"
 DIGEST_HOUR = int(os.getenv("DIGEST_HOUR", "9"))
+BACKUP_HOUR = int(os.getenv("BACKUP_HOUR", "2"))  # the nightly backup (core/backups.py; BACKUPS=0 switches it off)
 # A second HR person must approve a model release, and a record correction that moves someone across the threshold
 # (app/core/approvals.py). Off by default: it needs at least two HR accounts.
 FOUR_EYES = os.getenv("FOUR_EYES", "0") == "1"

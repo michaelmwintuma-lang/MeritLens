@@ -25,7 +25,8 @@ function Health({ state, label, children }) {
 const FAIRNESS_STATE = { passes: "ok", "below four-fifths": "warn", "within chance": "info", "not enough data": "info" };
 
 export default function AdminDashboard({ system, employees, fairness: live, models = [] }) {
-  const { accounts, model, fairness, drift, email } = system;
+  const { accounts, model, fairness, drift, email, backup } = system;
+  const backupAge = backup ? (Date.now() - Date.parse(backup.made_at)) / 3_600_000 : null; // hours
   const candidates = models.filter((m) => m.status === "candidate");
   const attention = [
     accounts.locked && { key: "locked", text: `${plural(accounts.locked, "account")} locked after wrong passwords`, detail: "Unlocks after 15 minutes, or reset the password.", to: "/admin/users", action: "Users", tone: "warn" },
@@ -81,6 +82,10 @@ export default function AdminDashboard({ system, employees, fairness: live, mode
             </Health>
             <Health state={email.configured ? "ok" : "warn"} label={`Email: ${email.configured ? "sending" : "saved to the outbox, not sent"}`}>
               {email.configured ? `From ${email.sender}` : `${email.outbox_count} saved`}
+            </Health>
+            <Health state={backup == null ? "warn" : backupAge > 36 ? "warn" : "ok"}
+              label={backup ? `Backups: last ${backup.made_at.replace("T", " ").slice(0, 16)} UTC` : "Backups: none yet"}>
+              {backup ? `${backup.count} kept in ${backup.folder}; copy them to another disk too.` : "Made every night while the app runs, or by hand (docs/BACKUPS.md)."}
             </Health>
           </ul>
         </Card>

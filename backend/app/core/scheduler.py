@@ -5,6 +5,7 @@ Work done on a timer while the app runs, in one background thread:
 - every hour: send the reminders that are due (reminders.run_due), each only once
 - every morning at DIGEST_HOUR: send the daily digest to people who chose it (digests.send_due), and remove
   personal data past its retention period (privacy/retention.py)
+- every night at BACKUP_HOUR: a backup (core/backups.py), unless BACKUPS=0
 
 Started with the app (main.py) unless SCHEDULER=0 (the tests run each step directly instead). A problem in one step
 is written to the log and never stops the others or the app.
@@ -13,7 +14,7 @@ import logging
 import threading
 from datetime import datetime
 
-from app.core.config import DIGEST_HOUR, SCHEDULER_ON
+from app.core.config import BACKUP_HOUR, DIGEST_HOUR, SCHEDULER_ON
 from app.core.database import SessionLocal
 
 log = logging.getLogger("meritlens.scheduler")
@@ -46,9 +47,15 @@ def _retention():
         retention.run(db)
 
 
+def _backup():
+    from app.core import backups
+    if backups.BACKUPS_ON:
+        log.info("Backup made: %s", backups.create())
+
+
 def _loop():
     from app.core import mailer
-    last_hour, last_digest_day = None, None
+    last_hour, last_digest_day, last_backup_day = None, None, None
     while not _stop.is_set():
         _safely("email retries", mailer.retry_due)
         current = datetime.now()
@@ -59,6 +66,9 @@ def _loop():
             last_digest_day = current.date()
             _safely("daily digests", _digests)
             _safely("retention", _retention)
+        if current.hour >= BACKUP_HOUR and current.date() != last_backup_day:
+            last_backup_day = current.date()
+            _safely("backup", _backup)
         _stop.wait(60)
 
 
