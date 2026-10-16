@@ -31,23 +31,31 @@ from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
 from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
+from app.core.database import preload
 from app.core.dates import working_days_between
 from app.core.roles import FINANCE
 from app.core.security import require_roles
 from app.promotion.models import Decision, Employee, Nomination, PayReview, ReviewCycle
-from app.promotion.routes_decisions import MIN_DISAGREEMENT_REASON, name_of, pay_history, pay_policy, tell_about_promotion
+from app.promotion.routes_decisions import (MIN_DISAGREEMENT_REASON, name_of, pay_histories, pay_history, pay_policy,
+                                            tell_about_promotion)
 
 router = APIRouter(prefix="/api/finance", tags=["finance"])
 finance_only = require_roles(FINANCE)
 STATUSES = ("awaiting_finance", "returned", "signed_off")
 
 
-def review_row(db: Session, decision: Decision, policy) -> dict:
-    """One pay rise as Finance sees it."""
+def related(db: Session, decisions) -> tuple:
+    """The employees, nominations, cycles and deciders of many decisions, one query each (keep the result while using them)."""
+    return (preload(db, Employee, [d.employee_id for d in decisions]), preload(db, Nomination, [d.nomination_id for d in decisions]),
+            preload(db, ReviewCycle, [d.cycle_id for d in decisions]), preload(db, User, [d.decided_by for d in decisions]))
+
+
+def review_row(db: Session, decision: Decision, policy, histories: dict | None = None) -> dict:
+    """One pay rise as Finance sees it. A list passes the pay histories it fetched for all its rows at once."""
     employee = db.get(Employee, decision.employee_id)
     nomination = db.get(Nomination, decision.nomination_id)
     within = policy.min_raise <= (decision.approved_raise or 0) <= policy.max_raise
-    history = pay_history(db, decision.id)
+    history = histories.get(decision.id, []) if histories is not None else pay_history(db, decision.id)
     reached = [h for h in history if h["action"] in ("submitted", "resubmitted")]
     since = datetime.fromisoformat(reached[-1]["at"]).date() if reached else decision.decided_at.date()
     cycle = db.get(ReviewCycle, decision.cycle_id) if decision.cycle_id else None
@@ -84,7 +92,10 @@ def pay_reviews(cycle_id: int | None = None, db: Session = Depends(get_db), _: U
         query = query.where(Decision.cycle_id == cycle_id)
     decisions = db.scalars(query).all()
     order = {"awaiting_finance": 0, "returned": 1, "signed_off": 2}
-    rows = [review_row(db, d, policy) for d in decisions]
+    loaded = related(db, decisions)  # one query each, not one per row
+    histories = pay_histories(db, [d.id for d in decisions])
+    rows = [review_row(db, d, policy, histories) for d in decisions]
+    del loaded
     # Waiting for Finance first, longest waiting first; then sent back, then signed off, newest first within each
     waiting_rows = sorted((r for r in rows if r["status"] == "awaiting_finance"), key=lambda r: -(r["waiting_days"] or 0))
     others = sorted((r for r in rows if r["status"] != "awaiting_finance"), key=lambda r: r["approved_on"], reverse=True)
@@ -216,14 +227,18 @@ def payroll_csv(include_sent: bool = False, db: Session = Depends(get_db), _: Us
     writer = csv.writer(out)
     writer.writerow(["decision_id", "employee_id", "full_name", "department", "new_title", "start_date",
                      "pay_rise_percent", "signed_off_on", "review_cycle", "sent_to_payroll_on"])
-    for decision in db.scalars(query):
+    decisions = list(db.scalars(query))
+    loaded = related(db, decisions)  # one query each, not one per row
+    histories = pay_histories(db, [d.id for d in decisions])
+    for decision in decisions:
         employee, nomination = db.get(Employee, decision.employee_id), db.get(Nomination, decision.nomination_id)
-        signed = next((h["at"][:10] for h in reversed(pay_history(db, decision.id)) if h["action"] == "signed_off"), "")
+        signed = next((h["at"][:10] for h in reversed(histories.get(decision.id, [])) if h["action"] == "signed_off"), "")
         cycle = db.get(ReviewCycle, decision.cycle_id) if decision.cycle_id else None
         writer.writerow([decision.id, employee.id, employee.full_name, employee.department, nomination.proposed_title or "",
                          nomination.proposed_start.isoformat() if nomination.proposed_start else "", decision.approved_raise,
                          signed, cycle.name if cycle else "",
                          decision.payroll_sent_at.date().isoformat() if decision.payroll_sent_at else ""])
+    del loaded
     return Response(out.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": f'attachment; filename="payroll-{date.today().isoformat()}.csv"'})
 

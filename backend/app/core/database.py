@@ -56,6 +56,17 @@ def get_promotion_db():
         db.close()
 
 
+def preload(db, model, ids) -> list:
+    """
+    Load these rows in one query, so that db.get() on each of them afterwards needs no query of its own (a list
+    would otherwise ask the database once per row). Keep the returned list while using them: the session only
+    remembers rows something still refers to.
+    """
+    from sqlalchemy import select
+    wanted = {i for i in ids if i is not None}
+    return list(db.scalars(select(model).where(model.id.in_(wanted)))) if wanted else []
+
+
 def add_missing_columns() -> None:
     """
     SQLite can't update an existing table by itself. When a new optional column is added to a table in the code,

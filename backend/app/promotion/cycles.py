@@ -19,7 +19,7 @@ import json
 from collections import Counter
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
 from app.accounts.models import User
@@ -69,10 +69,12 @@ def open_new(db: Session, live, user, name: str, nominations_close: date | None,
     db.add(cycle)
     db.flush()  # gives the cycle its id
     employees = list(db.scalars(current_employees().order_by(Employee.id)))
-    for employee, score in zip(employees, live.scores([e.record for e in employees])):
-        db.add(CycleScore(cycle_id=cycle.id, employee_id=employee.id, score=round(score, 4),
-                          recommended=score >= live.threshold, record_json=json.dumps(employee.record, sort_keys=True),
-                          score_at_opening=round(score, 4)))
+    rows = [{"cycle_id": cycle.id, "employee_id": employee.id, "score": round(score, 4),
+             "recommended": score >= live.threshold, "record_json": json.dumps(employee.record, sort_keys=True),
+             "score_at_opening": round(score, 4)}
+            for employee, score in zip(employees, live.scores([e.record for e in employees]))]
+    if rows:
+        db.execute(insert(CycleScore), rows)  # one statement for everyone, not one per person
     db.flush()
     recommended = sum(1 for s in scores_of(db, cycle) if s.recommended)
     audit.append(db, "cycle_opened", user, "cycle", cycle.id, {

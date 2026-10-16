@@ -31,6 +31,7 @@ from app.core import email_templates as templates
 from app.core import mailer
 from app.core.activity import record
 from app.core.database import get_promotion_db as get_db  # the promotion code's own (restricted) connection
+from app.core.database import preload
 from app.core.holds import REASONS, active_hold
 from app.core.roles import AUDITOR, EMPLOYEE, HR, MANAGER
 from app.core.security import require_roles
@@ -225,12 +226,16 @@ def list_nominations(user: User = Depends(require_roles(HR, MANAGER)), db: Sessi
     if user.role == MANAGER:
         query = query.where((Nomination.nominated_by == user.id) | Nomination.employee_id.in_(teams.direct_reports(db, user.id)))
     nominations = list(db.scalars(query))
-    scores = model().scores([db.get(Employee, n.employee_id).record for n in nominations])
     decisions = {d.nomination_id: d for d in db.scalars(select(Decision).where(
         Decision.nomination_id.in_([n.id for n in nominations])))}
+    loaded = (preload(db, Employee, [n.employee_id for n in nominations]),  # one query each, not one per row
+              preload(db, User, [n.nominated_by for n in nominations] + [d.decided_by for d in decisions.values()]))
+    scores = model().scores([db.get(Employee, n.employee_id).record for n in nominations])
     histories = pay_histories(db, [d.id for d in decisions.values()])
-    return [describe(db, n, for_manager=user.role == MANAGER, score=s, decision=decisions.get(n.id), histories=histories)
+    rows = [describe(db, n, for_manager=user.role == MANAGER, score=s, decision=decisions.get(n.id), histories=histories)
             for n, s in zip(nominations, scores)]
+    del loaded
+    return rows
 
 
 @router.get("/nominations/{nomination_id}")
@@ -429,7 +434,11 @@ def decision_log(pay_status: str | None = None, _: User = Depends(require_roles(
         query = query.where(Decision.pay_status == pay_status)
     decisions = list(db.scalars(query))
     histories = pay_histories(db, [d.id for d in decisions])
-    return [log_entry(db, d, histories) for d in decisions]
+    loaded = (preload(db, Employee, [d.employee_id for d in decisions]),  # one query each, not one per row
+              preload(db, Nomination, [d.nomination_id for d in decisions]), preload(db, User, [d.decided_by for d in decisions]))
+    rows = [log_entry(db, d, histories) for d in decisions]
+    del loaded
+    return rows
 
 
 # ─── The employee's own promotions ────────────────────────────────────────────

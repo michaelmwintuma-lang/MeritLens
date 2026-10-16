@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 from sqlalchemy import select
 
+from app.accounts.models import User
 from app.core import audit
 from app.core.config import MODEL_REGISTRY_DIR, MODELS_DIR, RESULTS_DIR
 from app.core.database import SessionLocal
@@ -280,6 +281,22 @@ def test_live_fairness_includes_pay(client):
     report = client.get("/api/governance/fairness", headers=login(client, "hr")).json()
     assert [p["characteristic"] for p in report["pay"]][:1] == ["gender"]
     assert report["pay"][0]["status"] == "not enough data"  # no promotions approved with a rise yet
+
+    # Approved promotions with rises: the averages per group appear once each group has 5 or more
+    from app.promotion.models import Decision, Employee, Nomination
+    with SessionLocal() as db:
+        hr = db.scalar(select(User).where(User.username == "hr"))
+        for i, employee_id in enumerate(db.scalars(select(Employee.id).order_by(Employee.id).limit(60))):
+            nomination = Nomination(employee_id=employee_id, nominated_by=hr.id, reason="Test.", status="approved")
+            db.add(nomination)
+            db.flush()
+            db.add(Decision(nomination_id=nomination.id, employee_id=employee_id, decided_by=hr.id, decision="approve",
+                            model_score=0.5, model_threshold=0.4, model_recommended=True, agrees_with_model=True,
+                            approved_raise=5.0 + i % 4))
+        db.commit()
+    gender = client.get("/api/governance/fairness", headers=login(client, "hr")).json()["pay"][0]
+    assert gender["status"] in ("passes", "within chance", "below four-fifths") and gender["ratio"] is not None
+    assert all(g["average"] is None or 5.0 <= g["average"] <= 8.0 for g in gender["groups"])
 
 
 def test_live_fairness_never_shows_a_group_under_five(client):

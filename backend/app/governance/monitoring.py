@@ -143,8 +143,8 @@ def report(db: Session, cycle: ReviewCycle | None = None) -> dict:
     decided, rises = {}, {}
     for d in db.scalars(decisions):
         decided[d.employee_id] = d.decision == "approve" or decided.get(d.employee_id, False)
-        if d.decision == "approve" and d.raise_percent is not None:
-            rises[d.employee_id] = d.raise_percent
+        if d.decision == "approve" and d.approved_raise is not None:
+            rises[d.employee_id] = d.approved_raise
 
     checks = []
     for key, name in CHARACTERISTICS.items():
