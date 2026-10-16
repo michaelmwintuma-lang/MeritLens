@@ -14,6 +14,12 @@ chance": in a directory of 120, a handful of people more or less moves the ratio
 with at least MIN_GROUP people in it (and its rate is never shown otherwise), so no one person's outcome can be
 read off. When too few groups are big enough, the answer is "not enough data yet", never a guess. Comparing the stages
 shows where a gap appears: in the model, in managers' recommendations, or in HR's decisions.
+
+Two more views:
+- Gender within each age band (e.g. "Female, 40+"), where a gap can hide behind two characteristics that each pass.
+- Pay: the average promotion pay rise per group (approved decisions with a rise), checked with the same 80% rule on
+  the averages; a gap under 0.8 is flagged when a Mann-Whitney test finds it unlikely to be chance. Groups with fewer
+  than MIN_GROUP rises are never shown, so no one person's rise can be read off.
 """
 from collections import defaultdict
 from functools import lru_cache
@@ -27,7 +33,17 @@ from app.promotion.models import CycleScore, Decision, Employee, Nomination, Rev
 FOUR_FIFTHS = 0.8
 MIN_GROUP = 5
 SIGNIFICANCE = 0.05  # a gap is flagged only when chance alone would produce it less than 5% of the time
-CHARACTERISTICS = {"gender": "Gender", "age_band": "Age band", "education_level": "Education"}
+CHARACTERISTICS = {"gender": "Gender", "age_band": "Age band", "education_level": "Education",
+                   "gender_age_band": "Gender and age band"}
+
+
+def group_of(person, key: str) -> str | None:
+    """The person's group for a characteristic (None when not given: left out, never guessed)."""
+    if person is None:
+        return None
+    if key == "gender_age_band":
+        return f"{person.gender}, {person.age_band}" if person.gender and person.age_band else None
+    return getattr(person, key, None)
 
 
 def age_band(age: float | None) -> str | None:
@@ -124,15 +140,17 @@ def report(db: Session, cycle: ReviewCycle | None = None) -> dict:
         except ModelNotTrained:
             recommended, version = {}, None
     nominated = {n.employee_id for n in db.scalars(nominations)}
-    decided = {}
+    decided, rises = {}, {}
     for d in db.scalars(decisions):
         decided[d.employee_id] = d.decision == "approve" or decided.get(d.employee_id, False)
+        if d.decision == "approve" and d.raise_percent is not None:
+            rises[d.employee_id] = d.raise_percent
 
     checks = []
     for key, name in CHARACTERISTICS.items():
         model_counts, nominate_counts, approve_counts = (defaultdict(lambda: [0, 0]) for _ in range(3))
         for e in employees:
-            group = getattr(people.get(e.id), key, None) if e.id in people else None
+            group = group_of(people.get(e.id), key)
             if group is None:
                 continue  # not given: left out, never guessed
             model_counts[group][0] += bool(recommended.get(e.id))
@@ -147,9 +165,37 @@ def report(db: Session, cycle: ReviewCycle | None = None) -> dict:
             stage({g: tuple(v) for g, v in nominate_counts.items()}, "Managers nominate"),
             stage({g: tuple(v) for g, v in approve_counts.items()}, "HR approves (of decided)"),
         ]})
+    pay = [pay_check(key, name, {e.id: group_of(people.get(e.id), key) for e in employees}, rises)
+           for key, name in CHARACTERISTICS.items()]
     statuses = [s["status"] for c in checks for s in c["stages"]]
     overall = next((s for s in ("below four-fifths", "within chance", "passes") if s in statuses), "not enough data")
     return {"rule": f"each group's rate at least {FOUR_FIFTHS:.0%} of the highest group's; a gap is flagged when "
                     f"it is unlikely to be chance (Fisher exact test, p < {SIGNIFICANCE})",
             "min_group": MIN_GROUP, "employees": len(employees), "with_monitoring_data": len(people),
-            "model_version": version, "overall": overall, "checks": checks}
+            "model_version": version, "overall": overall, "checks": checks, "pay": pay}
+
+
+def pay_check(key: str, label: str, groups: dict[int, str | None], rises: dict[int, float]) -> dict:
+    """The average pay rise per group (groups with MIN_GROUP rises or more), the lowest-to-highest ratio, the verdict."""
+    from scipy.stats import mannwhitneyu
+    by_group = defaultdict(list)
+    for employee_id, rise in rises.items():
+        if groups.get(employee_id):
+            by_group[groups[employee_id]].append(rise)
+    shown = {g: v for g, v in by_group.items() if len(v) >= MIN_GROUP}
+    rows = [{"group": g, "count": len(v) if g in shown else None,
+             "average": round(sum(v) / len(v), 2) if g in shown else None, "shown": g in shown}
+            for g, v in sorted(by_group.items())]
+    result = {"characteristic": key, "label": label, "groups": rows, "ratio": None, "p_value": None,
+              "status": "not enough data"}
+    if len(shown) < 2:
+        return result
+    averages = {g: sum(v) / len(v) for g, v in shown.items()}
+    lowest, highest = min(averages, key=averages.get), max(averages, key=averages.get)
+    result["ratio"] = round(averages[lowest] / averages[highest], 4) if averages[highest] > 0 else 1.0
+    if result["ratio"] >= FOUR_FIFTHS:
+        result["status"] = "passes"
+    else:
+        result["p_value"] = round(float(mannwhitneyu(shown[lowest], shown[highest]).pvalue), 4)
+        result["status"] = "below four-fifths" if result["p_value"] < SIGNIFICANCE else "within chance"
+    return result

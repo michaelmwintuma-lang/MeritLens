@@ -195,6 +195,18 @@ def test_a_candidate_goes_live_only_when_hr_releases_it_with_a_note(client):
     assert statuses == {old: "live", new: "retired"}
 
 
+def test_hr_sees_what_a_release_would_change_for_today_s_employees(client):
+    new = make_candidate()  # the live model's own files: nothing should move
+    res = client.get(f"/api/governance/models/{new}/compare", headers=login(client, "hr"))
+    assert res.status_code == 200
+    diff = res.json()
+    assert diff["employees"] == 120 and diff["version"] == new
+    assert diff["live_recommends"] == diff["new_recommends"] and diff["gained"] == diff["lost"] == []
+    assert diff["average_change"] == 0 and sum(d["employees"] for d in diff["by_department"]) == 120
+    assert client.get(f"/api/governance/models/{new}/compare", headers=login(client, "auditor")).status_code == 403
+    assert client.get("/api/governance/models/v1/compare", headers=login(client, "hr")).status_code == 404
+
+
 def test_a_model_that_failed_the_fairness_check_can_never_be_released(client):
     blocked = make_candidate(passes=False)
     hr = login(client, "hr")
@@ -222,7 +234,9 @@ def test_releasing_publishes_the_versions_results(client):
 def test_live_fairness_checks_three_stages_per_characteristic(client):
     report = client.get("/api/governance/fairness", headers=login(client, "auditor")).json()
     assert report["with_monitoring_data"] == report["employees"] == 120
-    assert [c["characteristic"] for c in report["checks"]] == ["gender", "age_band", "education_level"]
+    assert [c["characteristic"] for c in report["checks"]] == ["gender", "age_band", "education_level", "gender_age_band"]
+    combined = {g["group"] for s in report["checks"][3]["stages"][:1] for g in s["groups"]}
+    assert "Female, 40+" in combined or "Male, under 40" in combined
     gender = report["checks"][0]
     assert [s["stage"] for s in gender["stages"]] == ["Model recommends", "Managers nominate", "HR approves (of decided)"]
     model_stage = gender["stages"][0]
@@ -246,6 +260,26 @@ def test_a_gap_is_flagged_only_when_it_is_unlikely_to_be_chance(counts, status):
         assert all(g["rate"] is None for g in result["groups"])
     if status in ("within chance", "below four-fifths"):
         assert (result["p_value"] < 0.05) == (status == "below four-fifths")
+
+
+def test_pay_rises_are_compared_per_group_and_small_groups_are_never_shown():
+    from app.governance.monitoring import pay_check
+    groups = {i: ("F" if i < 20 else "M") for i in range(40)} | {40: "X", 41: "X"}
+    alike = {i: 5.0 + (i % 3) for i in range(42)}
+    result = pay_check("gender", "Gender", groups, alike)
+    assert result["status"] == "passes" and result["ratio"] > 0.8
+    [x] = [g for g in result["groups"] if g["group"] == "X"]
+    assert not x["shown"] and x["average"] is None and x["count"] is None  # 2 rises: could point to a person
+    unequal = {i: (3.0 + (i % 2) * 0.1 if i < 20 else 8.0 + (i % 2) * 0.1) for i in range(40)}
+    flagged = pay_check("gender", "Gender", groups, unequal)
+    assert flagged["status"] == "below four-fifths" and flagged["p_value"] < 0.05
+    assert pay_check("gender", "Gender", groups, {})["status"] == "not enough data"
+
+
+def test_live_fairness_includes_pay(client):
+    report = client.get("/api/governance/fairness", headers=login(client, "hr")).json()
+    assert [p["characteristic"] for p in report["pay"]][:1] == ["gender"]
+    assert report["pay"][0]["status"] == "not enough data"  # no promotions approved with a rise yet
 
 
 def test_live_fairness_never_shows_a_group_under_five(client):

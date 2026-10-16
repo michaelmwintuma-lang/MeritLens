@@ -1,6 +1,7 @@
 // Live fairness: the four-fifths rule on what is happening now. For each characteristic, three stages side by
 // side (the model, managers' nominations, HR's approvals), so a gap can be traced to where it appears. Totals per
-// group only; a group under 5 people is never shown.
+// group only; a group under 5 people is never shown. Also gender within each age band, and the average promotion
+// pay rise per group.
 import { governance } from "../../api";
 import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
@@ -47,6 +48,35 @@ function Stage({ stage }) {
   );
 }
 
+/** The average promotion pay rise per group, with the same 80% rule on the averages. */
+function PayCheck({ check }) {
+  const top = Math.max(...check.groups.map((g) => g.average ?? 0), 0);
+  return (
+    <div className="fair-stage">
+      <div className="row spread">
+        <h3>{check.label}</h3>
+        <StatusTag status={check.status} />
+      </div>
+      <ul className="bar-list" aria-label={`${check.label}: average pay rise per group`}>
+        {check.groups.map((g) => (
+          <li key={g.group}>
+            <span className="bar-name">{g.group}</span>
+            <span className="bar-track" aria-hidden="true">
+              {g.average != null && top > 0 && <span className="bar-fill" style={{ width: `${Math.max((g.average / top) * 100, 2)}%` }} />}
+            </span>
+            <span className="bar-value">{g.shown ? `${g.average.toFixed(1)}%` : "fewer than 5"}
+              {g.count != null && <span className="muted"> ({g.count} rises)</span>}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="muted">
+        {check.ratio != null ? `Lowest ÷ highest average: ${check.ratio.toFixed(2)} (needs 0.80).` : "Needs at least two groups with 5 or more pay rises."}
+        {check.p_value != null && ` A gap this size would happen by chance ${percent(check.p_value)} of the time.`}
+      </p>
+    </div>
+  );
+}
+
 export default function LiveFairness() {
   const { data, error, reload } = useLoad(() => governance.fairness(), []);
   const header = <PageHeader title="Live fairness"
@@ -71,6 +101,9 @@ export default function LiveFairness() {
           <div className="fair-stages">{c.stages.map((s) => <Stage key={s.stage} stage={s} />)}</div>
         </Card>
       ))}
+      <Card title="Pay rises" subtitle="The average pay rise of approved promotions, per group: is one group promoted on smaller rises? Groups with fewer than 5 rises are not shown.">
+        <div className="fair-stages">{data.pay.map((p) => <PayCheck key={p.characteristic} check={p} />)}</div>
+      </Card>
     </>
   );
 }

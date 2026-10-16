@@ -81,6 +81,16 @@ def model_card(version: str, db: Session = Depends(get_db), _: User = Depends(re
     return {"version": version, "status": row["status"], "card": data, "releases": registry.release_history(db, version)}
 
 
+@router.get("/models/{version}/compare")
+def compare(version: str, db: Session = Depends(get_db), _: User = Depends(require_roles(HR))):
+    """
+    Before releasing: both this version and the live model score today's employees. How many each recommends, who
+    would gain or lose a recommendation, how far scores move, per department. Nothing is saved. HR only (names).
+    """
+    from app.governance.compare import compare_with_live
+    return release_errors(lambda: compare_with_live(db, version))
+
+
 def release_errors(action):
     """Run a registry step, turning its refusals into HTTP answers."""
     try:
@@ -146,6 +156,22 @@ class CharacteristicOut(BaseModel):
     stages: list[StageOut]
 
 
+class PayGroupOut(BaseModel):
+    group: str
+    count: int | None
+    average: float | None = Field(description="average pay rise in percent; only for groups with at least min_group rises")
+    shown: bool
+
+
+class PayCheckOut(BaseModel):
+    characteristic: str
+    label: str
+    groups: list[PayGroupOut]
+    ratio: float | None
+    p_value: float | None
+    status: str
+
+
 class FairnessOut(BaseModel):
     rule: str
     min_group: int
@@ -154,6 +180,7 @@ class FairnessOut(BaseModel):
     model_version: str | None
     overall: str
     checks: list[CharacteristicOut]
+    pay: list[PayCheckOut]
 
 
 @router.get("/fairness", response_model=FairnessOut)

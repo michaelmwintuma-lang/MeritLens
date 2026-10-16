@@ -4158,6 +4158,52 @@
         }
       }
     },
+    "/api/governance/models/{version}/compare": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Compare",
+        "description": "Before releasing: both this version and the live model score today's employees. How many each recommends, who\nwould gain or lose a recommendation, how far scores move, per department. Nothing is saved. HR only (names).",
+        "operationId": "compare_api_governance_models__version__compare_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/governance/models/{version}/release": {
       "post": {
         "tags": [
@@ -5821,6 +5867,13 @@
             },
             "type": "array",
             "title": "Checks"
+          },
+          "pay": {
+            "items": {
+              "$ref": "#/components/schemas/PayCheckOut"
+            },
+            "type": "array",
+            "title": "Pay"
           }
         },
         "type": "object",
@@ -5831,7 +5884,8 @@
           "with_monitoring_data",
           "model_version",
           "overall",
-          "checks"
+          "checks",
+          "pay"
         ],
         "title": "FairnessOut"
       },
@@ -6235,6 +6289,104 @@
           "proposed_raise"
         ],
         "title": "NominationIn"
+      },
+      "PayCheckOut": {
+        "properties": {
+          "characteristic": {
+            "type": "string",
+            "title": "Characteristic"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/PayGroupOut"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "p_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Value"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "characteristic",
+          "label",
+          "groups",
+          "ratio",
+          "p_value",
+          "status"
+        ],
+        "title": "PayCheckOut"
+      },
+      "PayGroupOut": {
+        "properties": {
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average",
+            "description": "average pay rise in percent; only for groups with at least min_group rises"
+          },
+          "shown": {
+            "type": "boolean",
+            "title": "Shown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group",
+          "count",
+          "average",
+          "shown"
+        ],
+        "title": "PayGroupOut"
       },
       "PayPolicyIn": {
         "properties": {

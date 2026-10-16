@@ -105,6 +105,28 @@ def test_four_fifths_rule_passes_and_fails_correctly():
     assert not result["passes"] and result["ratio"] == pytest.approx(0.6)
 
 
+def test_each_group_s_accuracy_is_reported_alongside_the_rule():
+    groups = ["a"] * 4 + ["b"] * 4
+    promoted = [1, 1, 0, 0, 1, 1, 0, 0]
+    recommended = [1, 1, 1, 0, 1, 0, 0, 0]
+    result = check_attribute(groups, recommended, promoted)
+    a, b = result["groups"]["a"], result["groups"]["b"]
+    assert a["true_positive_rate"] == 1.0 and b["true_positive_rate"] == 0.5   # promoted people the model finds
+    assert a["false_positive_rate"] == 0.5 and b["false_positive_rate"] == 0.0  # not promoted, still recommended
+    assert a["precision"] == pytest.approx(0.6667, abs=1e-4) and b["precision"] == 1.0
+    assert result["true_positive_rate_ratio"] == 0.5 and result["false_positive_rate_gap"] == 0.5
+
+
+def test_combinations_are_reported_but_never_block():
+    from app.promotion.fairness import fairness_report
+    test = pd.DataFrame({"gender": ["Female", "Male"] * 80, "age": [30] * 80 + [50] * 80,
+                         "education_level": ["Bachelor"] * 160, "promoted": [0, 1] * 80})
+    report = fairness_report(test, [1] * 160)
+    combined = report["combinations"]["gender_and_age_group"]
+    assert set(combined["groups"]) == {"Female, under 40", "Male, under 40", "Female, 40+", "Male, 40+"}
+    assert report["passes"]  # decided by the three single checks only
+
+
 def test_age_groups():
     assert list(age_group(pd.Series([25, 39, 40, 61]))) == ["under 40", "under 40", "40+", "40+"]
 

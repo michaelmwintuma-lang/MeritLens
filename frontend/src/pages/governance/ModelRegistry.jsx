@@ -12,6 +12,7 @@ import { useLoad } from "../../useLoad";
 import { percent } from "../../format";
 import { Button, Callout, Card, LoadError, Loading, PageHeader, PageLoading } from "../../components/ui";
 import CalibrationChart, { CalibrationSummary } from "../../components/governance/CalibrationChart";
+import ReleaseImpact from "../../components/governance/ReleaseImpact";
 
 const STATUS = {
   live: ["tag tag-yes", "Live"],
@@ -83,6 +84,25 @@ function ReleaseBox({ row, onReleased }) {
   );
 }
 
+/** Selection rate and accuracy per group, for each characteristic. */
+function GroupAccuracy({ entries }) {
+  const pct = (v) => (v == null ? "–" : percent(v));
+  return (
+    <div className="table-wrap auto-height" tabIndex={0} role="region" aria-label="Accuracy per group"><table>
+      <thead><tr><th>Group</th><th className="num">Test employees</th><th className="num">Recommended</th><th className="num">True-positive rate</th>
+        <th className="num">False-positive rate</th><th className="num">Precision</th></tr></thead>
+      <tbody>{entries.flatMap(([name, check]) => [
+        <tr key={name}><th colSpan={6} scope="colgroup">{name.replaceAll("_", " ")}
+          {check.true_positive_rate_ratio != null && <span className="muted"> · true-positive ratio {num(check.true_positive_rate_ratio, 2)}</span>}</th></tr>,
+        ...Object.entries(check.groups).map(([group, g]) => (
+          <tr key={`${name}-${group}`}><td>{group}</td><td className="num">{g.employees.toLocaleString()}</td><td className="num">{pct(g.selection_rate)}</td>
+            <td className="num">{pct(g.true_positive_rate)}</td><td className="num">{pct(g.false_positive_rate)}</td><td className="num">{pct(g.precision)}</td></tr>
+        )),
+      ])}</tbody>
+    </table></div>
+  );
+}
+
 function ModelCard({ version, rows, onChanged }) {
   const { user } = useAuth();
   const { data, error, reload, setData } = useLoad(() => governance.model(version), [version]);
@@ -93,6 +113,7 @@ function ModelCard({ version, rows, onChanged }) {
   const live = rows.find((r) => r.status === "live");
   const row = rows.find((r) => r.version === version);
   const checks = Object.entries(card.fairness?.checks || {});
+  const combinations = Object.entries(card.fairness?.combinations || {});
   const comparison = Object.entries(card.model_comparison?.validation || {});
 
   return (
@@ -124,6 +145,37 @@ function ModelCard({ version, rows, onChanged }) {
           </tbody></table>
         </div>
       </div>
+
+      {checks.some(([, c]) => c.groups && Object.values(c.groups)[0]?.true_positive_rate !== undefined) ? (
+        <details className="details">
+          <summary>Fairness in detail: how often the model is right for each group</summary>
+          <p className="muted measure">
+            True-positive rate: of the people actually promoted, the share the model recommends. False-positive rate: of
+            those not promoted, the share it still recommends. Precision: of those it recommends, the share actually
+            promoted. Similar numbers across groups mean the model is about as often right for each.
+          </p>
+          <GroupAccuracy entries={[...checks, ...combinations]} />
+          {card.fairness.combinations_note && <p className="muted">Gender within each age group: {card.fairness.combinations_note}</p>}
+        </details>
+      ) : <p className="muted">Per-group accuracy not measured for this version yet (python -m evaluation.fairness_detail {version}).</p>}
+
+      {card.proxy_analysis && (
+        <details className="details">
+          <summary>Proxy check: could the inputs stand in for gender, age or education?</summary>
+          <p className="muted measure">
+            None of these is an input, but inputs linked to them could act as a stand-in. A classifier was trained to guess
+            each characteristic from all {card.inputs.length} inputs together, on {card.proxy_analysis.test_employees.toLocaleString()} test
+            employees. A score near 0.50 means it does no better than guessing, so the model can't use the inputs as a proxy.
+          </p>
+          <table className="compact-table"><tbody>
+            {Object.entries(card.proxy_analysis.predictability_auc).map(([name, auc]) => (
+              <tr key={name}><td>{name.replace("_", " ")}</td><td className="strong">{num(auc, 2)}</td>
+                <td>{auc < 0.55 ? <span className="tag tag-yes">No usable trace</span> : <span className="tag tag-info">Some trace: check</span>}</td></tr>
+            ))}
+          </tbody></table>
+          <p className="muted">Department is not a protected characteristic; work differs by department, so some trace is expected.</p>
+        </details>
+      )}
 
       <h3 className="section-gap">Calibration: does a score of 30% mean about 30%?</h3>
       {card.calibration ? (
@@ -171,7 +223,10 @@ function ModelCard({ version, rows, onChanged }) {
         <Callout tone="warning" icon={ShieldAlert}>This version failed the four-fifths fairness check, so it can never be released.</Callout>
       )}
       {user.role === "hr" && (data.status === "candidate" || data.status === "retired") && (
-        <ReleaseBox row={row} onReleased={(result) => { setData(result); onChanged(); }} />
+        <>
+          <ReleaseImpact version={version} />
+          <ReleaseBox row={row} onReleased={(result) => { setData(result); onChanged(); }} />
+        </>
       )}
       {user.role !== "hr" && data.status === "candidate" && (
         <Callout>Waiting for an HR person to read this card and release it. Read-only for your role.</Callout>

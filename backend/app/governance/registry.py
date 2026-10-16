@@ -95,6 +95,18 @@ def register(source_dir: Path, results_dir: Path, card: dict) -> Path:
     return target
 
 
+def proxy_summary(analysis: dict) -> dict:
+    """What the model card shows of the proxy analysis: can the inputs stand in for a characteristic?"""
+    together = analysis["all_inputs_together_auc"]
+    return {
+        "test_employees": analysis["test_employees"],
+        # How well a classifier predicts each characteristic from all inputs together (0.5 = guessing)
+        "predictability_auc": {k: v["highest"] for k, v in together.items()},
+        "largest_single_links": analysis["one_input_at_a_time"]["largest"],
+        "score_link_to_characteristic": analysis["score_link_to_characteristic"],
+    }
+
+
 def ensure_live_registered() -> None:
     """
     A live model trained before the registry existed is registered once, from the live folder and results/, so the
@@ -112,6 +124,9 @@ def ensure_live_registered() -> None:
                      {"note": "Trained before the model registry existed; data: the Kaggle dataset in backend/data."},
                      None, {k: v for k, v in calibration.items() if k not in ("model", "model_version")} if calibration else None)
     card["registered_note"] = "Registered automatically: this version was live before the model registry existed."
+    proxy = read_json(RESULTS_DIR / "proxy_analysis.json")
+    if proxy and proxy.get("model_version") == version:
+        card["proxy_analysis"] = proxy_summary(proxy)
     register(MODELS_DIR, RESULTS_DIR, card)
 
 

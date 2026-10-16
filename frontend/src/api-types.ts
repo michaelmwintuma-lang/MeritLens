@@ -1836,6 +1836,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/governance/models/{version}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare
+         * @description Before releasing: both this version and the live model score today's employees. How many each recommends, who
+         *     would gain or lose a recommendation, how far scores move, per department. Nothing is saved. HR only (names).
+         */
+        get: operations["compare_api_governance_models__version__compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/governance/models/{version}/release": {
         parameters: {
             query?: never;
@@ -2506,6 +2527,8 @@ export interface components {
             overall: string;
             /** Checks */
             checks: components["schemas"]["CharacteristicOut"][];
+            /** Pay */
+            pay: components["schemas"]["PayCheckOut"][];
         };
         /** FinishIn */
         FinishIn: {
@@ -2640,6 +2663,35 @@ export interface components {
             model_disagreement?: string | null;
             /** Proposed Raise */
             proposed_raise: number;
+        };
+        /** PayCheckOut */
+        PayCheckOut: {
+            /** Characteristic */
+            characteristic: string;
+            /** Label */
+            label: string;
+            /** Groups */
+            groups: components["schemas"]["PayGroupOut"][];
+            /** Ratio */
+            ratio: number | null;
+            /** P Value */
+            p_value: number | null;
+            /** Status */
+            status: string;
+        };
+        /** PayGroupOut */
+        PayGroupOut: {
+            /** Group */
+            group: string;
+            /** Count */
+            count: number | null;
+            /**
+             * Average
+             * @description average pay rise in percent; only for groups with at least min_group rises
+             */
+            average: number | null;
+            /** Shown */
+            shown: boolean;
         };
         /** PayPolicyIn */
         PayPolicyIn: {
@@ -5707,6 +5759,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_api_governance_models__version__compare_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
