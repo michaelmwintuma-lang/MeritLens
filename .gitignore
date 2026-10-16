@@ -18,3 +18,5 @@ frontend/dist/
 Thumbs.db
 .DS_Store
 results/feedback_measures.json
+deploy/.env
+deploy/backups/

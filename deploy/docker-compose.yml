@@ -1,0 +1,54 @@
+# MeritLens on one server: PostgreSQL, the API, and Caddy (the website and HTTPS). See deploy/README.md.
+#   cp deploy/.env.example deploy/.env    (then fill it in)
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: meritlens
+      POSTGRES_USER: meritlens_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in deploy/.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meritlens_app -d meritlens"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: { context: .., dockerfile: deploy/backend.Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://meritlens_app:${DB_PASSWORD}@db/meritlens
+      APP_URL: https://${DOMAIN:?set DOMAIN in deploy/.env}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?set DEMO_PASSWORD in deploy/.env (the first sign-in password of the starting accounts)}
+      BACKUP_DIR: /backups
+    volumes:
+      - instance:/app/backend/instance        # secret key, correction evidence, outbox
+      - registry:/app/backend/models/registry  # trained versions waiting for release
+      - ${BACKUP_PATH:-./backups}:/backups     # nightly backups: point BACKUP_PATH at another disk
+
+  web:
+    build: { context: .., dockerfile: deploy/web.Dockerfile }
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data      # the HTTPS certificates
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  instance:
+  registry:
+  caddy-data:
+  caddy-config:
