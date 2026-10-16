@@ -17,5 +17,6 @@ RUN useradd --create-home meritlens && mkdir -p instance models/registry \
 USER meritlens
 
 EXPOSE 8000
-# One worker: the timer (reminders, digests, backups) runs inside the app, and must run once
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
+# One worker: the timer (reminders, digests, backups) runs inside the app, and must run once. PORT is set by hosts
+# such as Railway and Render; 8000 otherwise (docker compose).
+CMD ["sh", "-c", "exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips '*' --no-access-log"]

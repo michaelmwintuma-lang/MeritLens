@@ -9,7 +9,11 @@ from contextlib import closing
 import pytest
 
 from app.core import backups, migrations
+from app.core.database import is_sqlite
 from tests.conftest import login
+
+# These copy and restore an SQLite file; on PostgreSQL a backup is a pg_dump (docs/BACKUPS.md)
+pytestmark = pytest.mark.skipif(not is_sqlite(), reason="SQLite backups; PostgreSQL uses pg_dump")
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ import pytest
 from app.core.database import SessionLocal
 from app.feedback.models import CorrectionRequest, ExplanationRating
 from app.promotion.drift import psi
-from app.promotion.models import Decision, Employee
+from app.promotion.models import Decision, Employee, Nomination
 from tests.conftest import login
 
 
@@ -83,7 +83,10 @@ def test_committee_override_rate_and_reasons(client):
     with SessionLocal() as db:
         person = db.query(Employee).first()
         for i, agrees in enumerate([True, True, False]):
-            db.add(Decision(nomination_id=1000 + i, employee_id=person.id, decided_by=1, decision="approve",
+            nomination = Nomination(employee_id=person.id, nominated_by=1, reason="Test.", status="approved")
+            db.add(nomination)
+            db.flush()  # a real nomination for each decision (PostgreSQL enforces the link)
+            db.add(Decision(nomination_id=nomination.id, employee_id=person.id, decided_by=1, decision="approve",
                             model_score=0.1, model_threshold=0.23, model_recommended=agrees, agrees_with_model=agrees,
                             reason=None if agrees else "Strong client feedback the record doesn't show.",
                             model_version="v1"))

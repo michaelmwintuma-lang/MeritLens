@@ -18,7 +18,7 @@ from app.core import email_templates as templates
 from app.core import mailer
 from app.core import backups, logs
 from app.core.activity import ACTIONS, ActivityEntry, record
-from app.promotion.models import Decision, Employee, Nomination, TeamCover, current_employees
+from app.promotion.models import Decision, Employee, Nomination, PayReview, RecordChange, TeamCover, current_employees
 
 router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 employees_router = APIRouter(prefix="/api/admin/employees", tags=["admin"])
@@ -136,6 +136,15 @@ def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depen
     db.execute(update(Employee).where(Employee.manager_user_id == user.id).values(manager_user_id=None))
     db.execute(delete(TeamCover).where((TeamCover.manager_user_id == user.id) | (TeamCover.cover_user_id == user.id)))
     db.execute(update(ActivityEntry).where(ActivityEntry.user_id == user.id).values(user_id=None))
+    # Their notifications go with them; records that also keep the person's name keep it and lose only the link
+    # (SQLite doesn't enforce these links by default, PostgreSQL does)
+    from app.core.notifications import Notification
+    from app.feedback.models import CorrectionRequest
+    from app.governance.models import ModelRelease
+    db.execute(delete(Notification).where(Notification.user_id == user.id))
+    for model, column in ((PayReview, "by_user"), (RecordChange, "changed_by"), (CorrectionRequest, "requested_by"),
+                          (CorrectionRequest, "decided_by"), (ModelRelease, "released_by")):
+        db.execute(update(model).where(getattr(model, column) == user.id).values({column: None}))
     record(db, admin, "account_deleted", f"{user.username} ({user.role})")
     db.delete(user)
     db.commit()

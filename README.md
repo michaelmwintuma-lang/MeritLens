@@ -535,8 +535,9 @@ run.py                   starts everything
 Main limitations (full list: `docs/LIMITATIONS.md`):
 
 - **Synthetic data.** Real use would need retraining on an organisation's own promotion history, with consent.
-- **Deployment written, not yet run.** Docker with HTTPS (`deploy/`) and the PostgreSQL tests are in CI, but no
-  Docker or PostgreSQL was available to run them here. Backups, migrations, logs and alerts are tested on SQLite.
+- **Deployment written, not yet run.** Docker with HTTPS (`deploy/`) and a Vercel preview set-up
+  (`deploy/VERCEL.md`) are ready, but no Docker was available to run them here. The tests pass on SQLite and on
+  PostgreSQL.
 
 - **No real use yet.** The feedback channel's measures, usability and perceived fairness still have to be
   collected in the user study.
@@ -548,7 +549,7 @@ Future work:
 2. A confidential route for reporting unfair assessments (removed from this version to keep the scope focused;
    see git tag `with-anonymous-reporting` and `docs/future-work/`).
 3. Compare tasks and projects completed within each department, so department doesn't come back through them.
-4. Run the Docker deployment and the PostgreSQL tests for real; a task queue so the API can run several processes.
+4. Run the Docker deployment for real; a task queue so the API can run several processes.
 
 ---
 
@@ -564,6 +565,7 @@ Future work:
 | [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | Limitations of the data, model, feedback channel, system and evaluation; future work |
 | [`docs/BACKUPS.md`](docs/BACKUPS.md) | What a backup holds, when they are made, restoring, PostgreSQL |
 | [`deploy/README.md`](deploy/README.md) | Running MeritLens on a server with Docker and HTTPS |
+| [`deploy/VERCEL.md`](deploy/VERCEL.md) | A preview online: the website on Vercel, the backend on Railway, PostgreSQL |
 | [`docs/USER_TEST.md`](docs/USER_TEST.md) | Usability and perceived-fairness study kit: consent note, 11 tasks, SUS, Colquitt-based items, scoring |
 | [`docs/screenshots/PHASE7.md`](docs/screenshots/PHASE7.md) | Before and after screenshots of 15 pages, with accessibility audits |
 | [`docs/future-work/`](docs/future-work/README.md) | Anonymous reporting, removed from this version: its threat model, evaluation and the original review |

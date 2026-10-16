@@ -30,10 +30,18 @@ if not os.getenv("SKIP_ENV_FILE"):  # tests set this, so they never pick up your
 INSTANCE_DIR = BACKEND_DIR / "instance"
 INSTANCE_DIR.mkdir(exist_ok=True)
 
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{(INSTANCE_DIR / 'app.db').as_posix()}")
+def _with_driver(url: str) -> str:
+    """Hosts (Railway, Render, Neon, Supabase) give "postgres://" or "postgresql://"; SQLAlchemy needs the driver."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+DATABASE_URL = _with_driver(os.getenv("DATABASE_URL", "") or f"sqlite:///{(INSTANCE_DIR / 'app.db').as_posix()}")
 # PostgreSQL only: the promotion code's own, restricted database role (no access to feedback tables). Empty: the
 # promotion code shares DATABASE_URL. See deploy/postgres/README.md.
-PROMOTION_DATABASE_URL = os.getenv("PROMOTION_DATABASE_URL", "")
+PROMOTION_DATABASE_URL = _with_driver(os.getenv("PROMOTION_DATABASE_URL", ""))
 
 # The trained model the app serves (model.joblib, model_info.json, background.csv), and the registry of every
 # trained version with its model card. Tests point these at a temporary copy.

@@ -2,7 +2,7 @@
 import pytest
 from sqlalchemy import inspect
 
-from app.core.database import SessionLocal, engine
+from app.core.database import SessionLocal, engine, is_sqlite
 from app.core.activity import ActivityEntry
 from tests.conftest import login, recommendation
 
@@ -70,6 +70,7 @@ def test_only_the_admin_reads_the_activity_log(client, username):
     assert client.get("/api/admin/activity", headers=login(client, username)).status_code == 403
 
 
+@pytest.mark.skipif(not is_sqlite(), reason="the old version's evidence folder sat next to its SQLite file")
 def test_a_database_from_the_version_with_reporting_is_cleaned_up(client):
     """Anonymous reporting was removed: its tables, log entries and evidence folder go when the app starts."""
     from pathlib import Path

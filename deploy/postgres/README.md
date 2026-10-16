@@ -58,7 +58,9 @@ and by the database itself.
   TEST_DATABASE_URL=postgresql+psycopg://postgres:secret@localhost/meritlens_test python -m pytest -q
   ```
 
-  That job is allowed to fail until it has passed on GitHub once: it was written without a PostgreSQL server to
-  run it on, so this path is still untested.
+  On 2026-10-16 the whole suite ran on PostgreSQL (16-compatible, via the `pgserver` package): 395 passed and 5
+  were skipped (they test SQLite-only behaviour, such as copying the database file). That run found and fixed a
+  bug SQLite hides, because SQLite doesn't enforce links between tables by default: deleting an account that had
+  notifications failed.
 - Updates bring the tables up to date by themselves (Alembic migrations, `backend/migrations`). Run `grants.sql`
   again after an update that adds tables.

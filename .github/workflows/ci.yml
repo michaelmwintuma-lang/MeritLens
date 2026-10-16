@@ -22,11 +22,9 @@ jobs:
         run: python -m pytest -q
 
   # The same tests on PostgreSQL 16 (an empty database each run), the database for a real deployment
-  # (deploy/postgres/README.md). Allowed to fail until it has passed on GitHub once: it could not be run where it was
-  # written (no PostgreSQL there).
+  # (deploy/postgres/README.md). Tests of SQLite-only behaviour (copying the database file) are skipped there.
   backend-tests-postgres:
     runs-on: ubuntu-latest
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16

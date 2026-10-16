@@ -82,8 +82,9 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 ### The system
 
 - **Deployment is written but not yet run end to end.** `deploy/` holds a Docker Compose set-up (PostgreSQL, the
-  API, and Caddy for HTTPS) and the CI builds its images, and the CI runs the tests on PostgreSQL too, but neither
-  Docker nor PostgreSQL was available where it was written, so a real deployment should be tried on a test server
+  API, and Caddy for HTTPS), and `deploy/VERCEL.md` a preview set-up (Vercel and Railway); the CI builds the images.
+  The test suite passes on PostgreSQL (395 passed, 5 SQLite-only tests skipped), but Docker was not available
+  where it was written, so a real deployment should be tried on a test server
   first. Backups (nightly, checksummed, with restore: `docs/BACKUPS.md`), migrations, structured logs and error
   alerts are in place and tested on SQLite. There is still no protection against heavy automated traffic beyond
   limits on sign-in and the demo form, and one API process (the timer runs inside it).
@@ -115,6 +116,6 @@ adapted for the thesis's "Limitations" and "Future work" sections.
    them (`results/proxy_analysis.json`).
 4. **Retrain on real data** with an organisation's consent (the data mapping in `backend/data/mappings/` is the
    way in), and test individual fairness and more combinations of characteristics.
-5. **Production readiness**: run the Docker deployment and the PostgreSQL tests for real, a task queue for the
+5. **Production readiness**: run the Docker deployment for real, a task queue for the
    background work (so the API can run several processes), a transactional email service, and separate
    organisations (multi-tenancy).
