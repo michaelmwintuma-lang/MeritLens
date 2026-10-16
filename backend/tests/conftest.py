@@ -7,7 +7,8 @@ from pathlib import Path
 
 # Point the app at a throwaway database BEFORE the app is imported, so tests never touch instance/app.db
 _tmp = tempfile.mkdtemp()
-os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_tmp, 'test.db')}"
+# TEST_DATABASE_URL runs the same tests on another database, e.g. an empty PostgreSQL one (the CI's postgres job)
+os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL") or f"sqlite:///{os.path.join(_tmp, 'test.db')}"
 # ...and at a copy of the live model and its results, so releasing a model in a test never changes the real ones
 _backend = Path(__file__).resolve().parents[1]
 _models, _results = Path(_tmp) / "models", Path(_tmp) / "results"

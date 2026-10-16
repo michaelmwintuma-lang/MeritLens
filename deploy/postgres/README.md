@@ -50,5 +50,15 @@ and by the database itself.
   (Audit trail page: "Check the chain").
 - Without `PROMOTION_DATABASE_URL`, the promotion code shares `DATABASE_URL`: it works the same, but the isolation
   then rests on the code and its tests, as with SQLite.
-- This path was written for PostgreSQL but not tested against a running PostgreSQL server in this project; the
-  test suite runs on SQLite.
+- The test suite runs on SQLite. The CI also runs it on an empty PostgreSQL 16 database (the
+  `backend-tests-postgres` job in `.github/workflows/ci.yml`); to do the same on your own PostgreSQL:
+
+  ```bash
+  cd backend
+  TEST_DATABASE_URL=postgresql+psycopg://postgres:secret@localhost/meritlens_test python -m pytest -q
+  ```
+
+  That job is allowed to fail until it has passed on GitHub once: it was written without a PostgreSQL server to
+  run it on, so this path is still untested.
+- Updates bring the tables up to date by themselves (Alembic migrations, `backend/migrations`). Run `grants.sql`
+  again after an update that adds tables.
