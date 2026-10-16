@@ -34,6 +34,20 @@ def test_a_manager_and_the_employee_build_the_plan_and_tick_goals_off(client):
     assert tip is not None
 
 
+def test_a_plan_is_in_your_data_and_erased_with_you(client):
+    from app.core.database import SessionLocal
+    from app.development.models import DevelopmentGoal
+    person, employee = team_member(client), login(client, "employee")
+    client.post(f"/api/development/{person}/goals", headers=employee, json={"title": "Mentor a new colleague"})
+    mine = client.get("/api/privacy/my-data", headers=employee).json()
+    assert [g["title"] for g in mine["development_plan"]] == ["Mentor a new colleague"]
+    erased = client.post(f"/api/privacy/employees/{person}/erase", headers=login(client, "hr"),
+                         json={"reason": "Left the company in September; leaving process complete."})
+    assert erased.status_code == 200, erased.text
+    with SessionLocal() as db:
+        assert db.query(DevelopmentGoal).filter_by(employee_id=person).count() == 0
+
+
 def test_only_the_people_concerned_see_or_change_a_plan(client):
     person = team_member(client)
     hr = login(client, "hr")

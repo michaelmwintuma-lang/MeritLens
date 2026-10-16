@@ -35,6 +35,7 @@ from app.core.roles import HR
 from app.core.security import get_current_user, require_roles
 from app.feedback import corrections
 from app.feedback.models import CorrectionRequest, ExplanationRating
+from app.development.models import DevelopmentGoal
 from app.governance.models import EqualityMonitoring
 from app.promotion.models import CycleScore, Decision, Employee, Nomination, RecordChange, ReviewCycle
 
@@ -82,6 +83,7 @@ def my_data(user: User = Depends(get_current_user), db: Session = Depends(get_db
         data["nominations_about_you"] = rows(db.scalars(select(Nomination).where(Nomination.employee_id == employee.id)))
         data["decisions_about_you"] = rows(db.scalars(select(Decision).where(Decision.employee_id == employee.id)))
         data["equality_monitoring"] = rows(db.scalars(select(EqualityMonitoring).where(EqualityMonitoring.employee_id == employee.id)))
+        data["development_plan"] = rows(db.scalars(select(DevelopmentGoal).where(DevelopmentGoal.employee_id == employee.id)))
     record(db, user, "data_downloaded", "")
     db.commit()
     name = f"meritlens-my-data-{datetime.now(timezone.utc).date().isoformat()}.json"
@@ -112,6 +114,7 @@ def erase(employee_id: int, body: EraseIn, user: User = Depends(require_roles(HR
     db.execute(delete(CorrectionRequest).where(CorrectionRequest.employee_id == employee.id))
     db.execute(delete(ExplanationRating).where(ExplanationRating.employee_id == employee.id))
     db.execute(delete(EqualityMonitoring).where(EqualityMonitoring.employee_id == employee.id))
+    db.execute(delete(DevelopmentGoal).where(DevelopmentGoal.employee_id == employee.id))
     # Saved inputs: scores stay (closed cycles' totals mustn't change), the inputs they came from don't
     db.execute(update(CycleScore).where(CycleScore.employee_id == employee.id).values(record_json="{}"))
     db.execute(update(RecordChange).where(RecordChange.employee_id == employee.id).values(changes_json="[]", reason=None))
