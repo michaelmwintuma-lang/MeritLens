@@ -20,20 +20,17 @@ from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
 from app.core import approvals, notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
 from app.core.config import APP_NAME, APP_URL
-from app.core.database import (Base, SessionLocal, add_missing_columns, drop_removed_reporting, engine,
-                               move_deferrals_to_holds)
+from app.core import migrations
+from app.core.database import SessionLocal
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """
-    On start-up: create any missing tables and bring an older database up to date, add demo accounts and employees
-    to an empty database, and make sure the live model is in the model registry.
+    On start-up: bring the database up to date (migrations: app/core/migrations.py), add demo accounts and
+    employees to an empty database, and make sure the live model is in the model registry.
     """
-    Base.metadata.create_all(engine)
-    add_missing_columns()
-    drop_removed_reporting()
-    move_deferrals_to_holds()
+    migrations.upgrade()
     with SessionLocal() as db:
         seed_demo_accounts(db)
         seed_demo_employees(db)

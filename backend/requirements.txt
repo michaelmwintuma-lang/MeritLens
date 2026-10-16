@@ -4,6 +4,7 @@ uvicorn>=0.29
 sqlalchemy>=2.0,<2.1  # 2.1 has no pure-Python fallback, which Windows Smart App Control needs
 pyjwt>=2.8
 python-multipart>=0.0.9  # file uploads (evidence for record corrections)
+alembic>=1.13,<2  # database migrations (backend/migrations)
 
 # Tests
 pytest>=8.0

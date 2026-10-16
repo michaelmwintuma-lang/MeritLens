@@ -64,6 +64,8 @@ def client():
     jobs.clear()  # no background results carried over from another test
     throttle.clear()  # nor failed sign-ins counted against the test client's address
     Base.metadata.drop_all(engine)
+    with engine.begin() as connection:  # and the record of migrations applied, so start-up builds it all again
+        connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
     with TestClient(app) as c:
         yield c
 
