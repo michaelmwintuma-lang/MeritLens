@@ -8,14 +8,15 @@ Browsers never touch the database: every read and write goes through an API rout
 **Roles:** employee, manager, HR, admin, finance, auditor (compliance auditor, read-only).
 
 **Never stored anywhere:** marital status, an exact age or birth date, salaries, the time of a sign-in or other
-everyday action (the activity log keeps only the day), and IP addresses. Gender, an age band and education are
+everyday action (the activity log keeps only the day), and IP addresses (failed sign-ins are counted per address in
+memory only, for 15 minutes, to slow down guessing). Gender, an age band and education are
 kept only in `equality_monitoring`, apart from the employee directory, for live fairness totals.
 
 ## Accounts and the audit trail (`app/accounts`, `app/core`)
 
 | Table | Holds | Read by | Changed by |
 |---|---|---|---|
-| `users` | One row per login: username, name, email, password hash (PBKDF2), role, active, must-change-password, linked employee record, profile details, the admin's "can view employee data" permission, wrong-password count and lock time, token version (raised on password change, reset and sign-out) | Each user sees themselves; the admin sees all | The user (own profile and password); the admin (accounts, resets, permissions); sign-in (wrong-password count and lock) |
+| `users` | One row per login: username, name, email, password hash (PBKDF2), role, active, must-change-password, linked employee record, profile details, the admin's "can view employee data" permission, wrong-password count and lock time, token version (raised on password change, reset and sign-out), two-factor secret and whether it is on, whether the first-time guide was closed | Each user sees themselves; the admin sees all | The user (own profile and password); the admin (accounts, resets, permissions); sign-in (wrong-password count and lock) |
 | `activity_log` | Important actions: day (never the time), who, what, details. | Admin | Written by the routes as actions happen. Entries are never edited, except that deleting an account removes the link to it (the name stays). |
 | `demo_requests` | "Book a demo" requests from the website | Admin | Anyone can send one (rate-limited); the admin ticks them off |
 | `audit_events` | The audit trail: each nomination, decision (with the model's score, threshold, version and top factors), pay step, record change, correction, hold and model release, with who, exactly when, and a SHA-256 hash chained to the event before. Never holds what an employee wrote. | Auditor, admin | Appended by the routes as things happen; **never changed or deleted** (refused by the code; with PostgreSQL, by the database roles) |
@@ -25,7 +26,7 @@ kept only in `equality_monitoring`, apart from the employee directory, for live 
 
 | Table | Holds | Read by | Changed by |
 |---|---|---|---|
-| `employees` | Name, department, manager, and the work record: the model's 20 inputs, as JSON | HR all; a manager their team; an employee themselves; an admin with permission (read-only). The auditor reads none. | HR (add, edit, import) |
+| `employees` | Name, department, manager, and the work record: the model's 20 inputs, as JSON; `left_at` once HR has erased someone who left (name pseudonymised, record blanked) | HR all; a manager their team; an employee themselves; an admin with permission (read-only). The auditor reads none. | HR (add, edit, import) |
 | `record_changes` | Every change to a work record's model inputs: who, when, each old and new value, the reason, readiness before and after, model version, and whether HR edited it or confirmed a correction | HR, auditor | Written when HR edits a record or confirms a correction; **never edited or deleted** |
 | `nominations` | A manager's recommendation: role, start date, ratings with examples, reason, proposed pay rise (a percentage), and the reason for disagreeing with the model if it didn't recommend the person | HR all; a manager their own | Managers (create); HR (decide) |
 | `decisions` | HR's decision on a nomination, with the model's score, threshold, recommendation and **version** at that moment, whether HR agreed, the reason (required to disagree), the pay rise and Finance's status | HR, auditor; a manager sees their own nominations' outcomes | HR (decide, resubmit a pay rise); Finance (status) |
@@ -54,6 +55,15 @@ Holds used to be kept here (`nomination_deferrals`), where the decision code cou
 | `model_releases` | Every release of a model version: version, the version it replaced, who released it, when, and their note | HR, admin, auditor (Model registry) | HR (release); never edited |
 | `equality_monitoring` | Gender, age band (under 40 / 40+) and education per employee, for live fairness only. **The promotion code never reads it** (static and run-time checks; with PostgreSQL, its role has no access). Never shown per person; groups under 5 never shown. | The live fairness check, in aggregate only | Filled for the demo employees from the synthetic dataset |
 
+## Approvals, development plans and the user study
+
+| Table | Holds | Read by | Changed by |
+|---|---|---|---|
+| `approvals` | With FOUR_EYES=1: an action waiting for a second HR person (a model release, or a correction that crosses the threshold), what it needs to be carried out, who asked and when, and who approved or declined it, when and why | HR | HR (ask, by acting; approve or decline another's request) |
+| `development_goals` | An employee's development plan: each goal, the input and target a tip gave it (if any), an optional date, who added it, who ticked it off and when. **The promotion code never reads it** (static and run-time checks). | The employee, their manager (or cover), HR; an admin with permission (read-only) | The employee, their manager, HR |
+| `study_sessions`, `study_tasks`, `study_answers` | The in-app user study: a participant code (never a name), consent, each task's time and outcome, the questionnaire answers | Admin | The facilitator's link (one per participant, stops working when finished); the admin |
+| `alembic_version` | Which database migration the database is at (`backend/migrations`) | Start-up | Start-up (migrations) |
+
 ## Removed: anonymous reporting
 
 An earlier version had three more tables (`reports`, `report_messages`, `report_evidence`) for anonymous
@@ -71,5 +81,6 @@ those tables, their activity-log entries and their evidence folder (`drop_remove
 | `backend/instance/correction_evidence/` | Documents attached to correction requests, served only through the API, never cached |
 | `backend/instance/outbox/` | Emails saved instead of sent when no mail server is set up |
 | `backend/instance/secret.key` | The key that signs login tokens (or `APP_SECRET_KEY`) |
+| `backend/instance/backups/` | Nightly and hand-made backups: the database, correction evidence and model registry, with checksums (`docs/BACKUPS.md`; `BACKUP_DIR` to move them) |
 
 `backend/instance/` and `backend/.env` are never committed.

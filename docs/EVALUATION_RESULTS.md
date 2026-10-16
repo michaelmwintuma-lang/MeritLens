@@ -115,6 +115,34 @@ synthetic data: a score is a rate for similar employees, not a promise about one
 
 A model that fails this check is never saved as the live model.
 
+### Accuracy per group (test set)
+
+**Source:** `results/fairness.json` (`checks` and `combinations`)
+**Reproduce:** `cd backend && python -m evaluation.fairness_detail`
+
+Reported on the model card next to the four-fifths rule, which alone decides pass or fail. True-positive rate: of
+the people actually promoted, the share the model recommends. False-positive rate: of those not promoted, the share
+it still recommends. Precision: of those it recommends, the share actually promoted.
+
+| Group | Test employees | Recommended | True-positive rate | False-positive rate | Precision |
+|---|---|---|---|---|---|
+| Female | 10,075 | 14.6% | 61.0% | 9.7% | 40.2% |
+| Male | 9,925 | 14.4% | 58.1% | 9.3% | 41.9% |
+| Under 40 | 9,312 | 14.8% | 63.0% | 9.6% | 41.8% |
+| 40+ | 10,688 | 14.3% | 56.6% | 9.5% | 40.3% |
+| Bachelor | 12,926 | 14.3% | 58.6% | 9.5% | 39.9% |
+| Master | 6,038 | 14.7% | 61.2% | 9.3% | 42.9% |
+| PhD | 1,036 | 16.1% | 60.0% | 10.4% | 43.1% |
+| Female, under 40 | 4,702 | 15.0% | 64.0% | 10.0% | 39.4% |
+| Female, 40+ | 5,373 | 14.4% | 58.6% | 9.4% | 40.9% |
+| Male, under 40 | 4,610 | 14.6% | 62.0% | 9.1% | 44.3% |
+| Male, 40+ | 5,315 | 14.1% | 54.6% | 9.5% | 39.7% |
+
+Lowest-to-highest ratios: selection 0.982 (gender), 0.963 (age group), 0.887 (education), **0.945 (gender within
+age group)**; true-positive rate 0.952, 0.899, 0.958 and **0.853**. False-positive rates differ by at most 1.0
+point. The weakest figure is the true-positive rate of men aged 40 and over (54.6%) against women under 40 (64.0%):
+the model finds fewer of the older men who were in fact promoted. It is above 0.8, but worth watching on real data.
+
 ### Equal opportunity and proxies
 
 **Source:** `results/proxy_analysis.json`
@@ -131,6 +159,13 @@ better than guessing.
 - predicting department from the 20 inputs reaches ROC-AUC 0.67;
 - the model recommends 24.7% of Engineering against 7.9% of HR (selection ratio 0.32), where historically it was
   33.2% against 2.9%.
+
+### Pay rises (live fairness)
+
+The average approved pay rise per group (gender, age band, education, gender within age band), with the 80% rule on
+the averages and a Mann-Whitney test before a gap is flagged; groups with fewer than 5 rises are never shown. The
+demo database has no approved promotions yet, so there is no result to report; it is tested with generated
+decisions (`backend/tests/test_governance.py`).
 
 ### Drift (admin dashboard, live)
 
@@ -191,9 +226,9 @@ numbers are to be collected during the usability study (section 5) and reported 
 
 | Check | Result | How |
 |---|---|---|
-| Backend tests | 359 passed | `cd backend && python -m pytest`, in about 5 minutes |
+| Backend tests | 400 passed | `cd backend && python -m pytest`, in about 5 minutes |
 | Browser checks: sessions, the feedback channel end to end, dashboards, landing page, review cycles, Finance's bulk sign-off and payroll, HR assigning a manager, pagination, every menu page for six roles (with no mention of the removed reporting) | 10 passed | `python scripts/browser_test.py`, against a throwaway copy of the app |
-| Accessibility: axe-core, WCAG 2.1 A/AA, 42 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
+| Accessibility: axe-core, WCAG 2.1 A/AA, 45 pages, light and dark themes | 0 findings | `python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/<folder>` |
 | Pages wider than a phone screen (390 px) | none | same script |
 
 Performance, measured on the running app with 120 demo employees (`docs/CHANGELOG_UPGRADE.md`, Phase 8):
@@ -203,6 +238,26 @@ Performance, measured on the running app with 120 demo employees (`docs/CHANGELO
 | Employee list | 0.26 s | 0.02–0.06 s |
 | Scoring 5,000 employees | 11.25 s (one at a time) | 13 ms (one call) |
 | Website's first download | 482 kB | 309 kB |
+
+**Load test** (`results/load_test.json`; `cd backend && python -m evaluation.load_test`): a throwaway database
+with 5,000 employees and 300 decided nominations, each call timed five times (median), with its database queries
+counted.
+
+| Call | Queries (120 → 5,000) | Median time at 5,000 |
+|---|---|---|
+| All employees (HR) | 3 → 3 | 0.20 s (0.27 s while a cycle is open) |
+| My team (manager) | 8 → 8 | 0.02 s |
+| Nominations (HR) | 3 → 6 (was 1,204 before the fix) | 0.05 s |
+| Decision log | 2 → 6 (was 903) | 0.03 s |
+| Finance's pay reviews | 6 → 8 (was 604) | 0.02 s |
+| A review cycle's progress | 8 → 9 | 0.19 s |
+| Teams | 10 → 10 | 0.18 s |
+| Live fairness | 5 → 5 | 0.11 s (0.20 s for a cycle) |
+| Admin system health (with drift) | 4 → 4 | 0.13 s |
+| Opening a review cycle (score and save everyone) | 22 → 23 (was 5,022) | 0.69 s |
+
+The query counts no longer grow with the number of rows; `backend/tests/test_query_counts.py` keeps it so. Measured
+on the development laptop with SQLite.
 
 ## 5. Usability and perceived fairness (to be collected)
 

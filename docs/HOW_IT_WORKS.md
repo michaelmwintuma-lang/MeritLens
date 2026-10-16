@@ -718,6 +718,100 @@ Code: `backend/app/promotion/routes_finance.py`, the page `frontend/src/pages/fi
   (`payroll_sent_at`, and a `payroll_sent` audit event), so nothing is applied twice or forgotten. Still only
   percentages, never salaries.
 
+## Data protection, security and running it for real
+
+### People's rights over their data (`app/privacy/`)
+
+- **A copy of your data** (My profile → Your data, `GET /api/privacy/my-data`): the account, the work record and
+  readiness scores, nominations and decisions about you, your ratings and correction requests, notifications and
+  activity, as one JSON file.
+- **Erasure after someone leaves** (HR, on the employee's page; `POST /api/privacy/employees/{id}/erase`, once no
+  nomination or pay rise of theirs is still open): the name becomes "Former employee no. X"; their ratings,
+  correction requests with the evidence files, equality-monitoring data and development plan are deleted; the work
+  record and the inputs saved with cycle scores and record changes are blanked; a sign-in is unlinked from the
+  record; and the person drops out of every list (`Employee.left_at`). Decisions, pay steps and the hash-chained
+  audit trail keep their meaning (they never held more than the id).
+- **Retention** (`app/privacy/retention.py`): rating comments after 2 years, notifications after 6 months, the
+  email log after a year, the activity log after 3 years; applied every morning, shown on the public Privacy page
+  (`GET /api/privacy/retention`). Each period is a setting (`RETAIN_*_DAYS`).
+
+### Signing in safely
+
+- **Slowing down guessing** (`app/core/throttle.py`): 20 failed sign-ins from one network address in 15 minutes
+  and that address waits, whichever accounts it tried; the per-account lock-out after 5 stays.
+- **Two-factor sign-in** (`app/core/totp.py`, My profile): an authenticator app's six-digit code (RFC 6238) after
+  the password. `REQUIRE_2FA_ROLES=hr,finance,admin` makes those roles set it up before anything else. Turning it
+  off needs the password and a code, and emails the person.
+- **Headers**: every API answer says no sniffing, no framing, no caching of personal data (and HTTPS only when
+  served over HTTPS); the built website adds a Content-Security-Policy (`vite.config.js`, `deploy/Caddyfile`).
+- **Signing out when idle** (`components/IdleSignOut.jsx`): after 30 minutes without use, a 2-minute warning, then
+  the session ends on the server too.
+
+### A second person for the riskiest actions (`app/core/approvals.py`)
+
+With `FOUR_EYES=1`, releasing a model version, and confirming a record correction that moves someone across the
+threshold, become requests (HTTP 202). Another HR person approves (the action is carried out then, with both names
+in the audit trail) or declines with a reason, on the Approvals page. Nobody approves their own request, and one
+request per action can be open. Rejecting the correction itself closes its waiting request. Off by default: with
+one HR account nothing could ever be approved.
+
+### Fairness in more depth
+
+- **Model card** (`app/promotion/fairness.py`, `evaluation/fairness_detail.py`): each group's true-positive rate,
+  false-positive rate and precision next to its selection rate, and the same for gender within each age group
+  (groups under 30 test employees left out). The four-fifths rule on the three single characteristics still alone
+  decides pass or fail. The proxy analysis's summary (can the inputs predict a characteristic?) is on the card too.
+- **Live fairness** adds gender and age band combined, and **pay rises**: the average approved rise per group,
+  with the 80% rule on the averages and a Mann-Whitney test before flagging a gap. Groups with fewer than 5 rises
+  are never shown.
+- **Before a release** (`app/governance/compare.py`, `GET /api/governance/models/{version}/compare`, HR only): the
+  candidate and the live model both score today's employees; the model registry shows how many each recommends,
+  who would gain or lose a recommendation, and per department. Nothing is saved.
+
+### Development plans (`app/development/`)
+
+Goals an employee works on with their manager, on the readiness page: one click turns a tip into a goal ("Increase
+training hours to 35"), or a goal is written freely, with an optional date. The employee, their manager (or cover)
+and HR add goals and tick them off; the other side is told on their bell. An admin who may view employees reads
+plans. The promotion code never imports this module or names its table (`tests/test_isolation.py`), so a plan can't
+change a score.
+
+### Running it on a server
+
+- **Migrations** (`app/core/migrations.py`, `backend/migrations/`): start-up applies every Alembic revision the
+  database hasn't had. A database made before migrations existed first gets the old one-off repairs. A table change
+  is a new revision (`alembic revision --autogenerate`), written with `migrations/helpers.py` so it works on old and
+  new databases alike.
+- **Backups** (`app/core/backups.py`, `docs/BACKUPS.md`): nightly at `BACKUP_HOUR` and by hand; the database
+  (SQLite's online backup, or `pg_dump`), correction evidence and model registry, with SHA-256 checksums; the newest
+  `BACKUP_KEEP` kept; restore checks everything first and keeps today's data aside.
+- **Deployment** (`deploy/`, `deploy/README.md`): Docker Compose with PostgreSQL 16, the API (one process: the
+  timer runs inside it) and Caddy (the website, HTTPS certificates, security headers). CI builds both images and
+  checks the API answers, and runs the backend tests on PostgreSQL.
+- **Logs and alerts** (`app/core/logs.py`): one line per request with an id (`X-Request-ID`), never a query string
+  or body; `LOG_FORMAT=json` for a log service. An unexpected error, in a request or in the timer, is logged in
+  full; the person sees a short message with its reference; admins get an email and a bell notification at most
+  once an hour per kind of error, and the admin home page lists the latest.
+- **Load** (`evaluation/load_test.py`): with 5,000 employees and 300 decisions, every list makes a fixed number of
+  queries (at most 10) and answers in under 0.3 s; opening a cycle scores and saves everyone in about
+  0.7 s. `tests/test_query_counts.py` keeps the counts flat.
+
+### Smaller things
+
+- **First-time guide** (`components/FirstTimeGuide.jsx`): a few steps per role on the overview, each linking to
+  its page; closing it is kept on the account (`PUT /api/auth/guide`), and My profile brings it back.
+- **Printable cycle report** (`/cycles/:id/report`): the cycle, totals, departments, movement and fairness with
+  pay, laid out for printing or saving as PDF. HR's copy names the people recommended but not nominated; the
+  auditor's has totals only.
+- **The user study in the app** (Admin → User study, `app/study/`): see `docs/USER_TEST.md`.
+
+### How it was tested
+
+`test_privacy.py`, `test_security_hardening.py`, `test_approvals.py`, `test_migrations.py`, `test_backups.py`,
+`test_logs.py`, `test_query_counts.py`, `test_development.py` and `test_study.py`, plus new cases in
+`test_governance.py` (comparison, pay fairness), `test_training.py` (per-group accuracy, combinations) and
+`test_isolation.py` (development plans).
+
 ## Design system
 
 Every page is built from one small design system, so the whole interface looks and behaves the same. It is a
@@ -932,29 +1026,45 @@ keeps dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **359 tests**, all passing, in about three
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **400 tests**, all passing, in about three
 minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |
 |---|---|---|
 | `test_auth_and_roles.py` | 26 | Passwords are hashed with a salt (200,000 rounds in the app); sign-in; wrong password and unknown user look the same; 5 wrong passwords lock an account for 15 minutes; tokens stop working after a password change, reset or sign-out; only the admin manages accounts; deactivation locks people out at once |
-| `test_training.py` | 17 | Protected characteristics, pay and department are never model inputs; the 70/10/20 split; the model-choice rule with the common-sense check; the threshold; the four-fifths fairness check; the saved threshold and metrics load |
-| `test_explanations.py` | 26 | The contributions add up exactly to the model's output; department never changes a score; improving any input never lowers it; LIME and its fit; the summary ("under 1%" for tiny scores); what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; batch scoring gives identical scores; who may see whom |
+| `test_training.py` | 19 | Protected characteristics, pay and department are never model inputs; the 70/10/20 split; the model-choice rule with the common-sense check; the threshold; the four-fifths fairness check; the saved threshold and metrics load |
+| `test_explanations.py` | 29 | The contributions add up exactly to the model's output; department never changes a score; improving any input never lowers it; LIME and its fit; the summary ("under 1%" for tiny scores); what-if changes only improvable inputs and saves nothing; tips never suggest making anything worse; batch scoring gives identical scores; who may see whom |
 | `test_decisions.py` | 18 | Managers nominate only their team; HR decides; disagreeing with the model needs 20 characters; every decision is logged with the model's view; managers' teams |
 | `test_feedback.py` | 28 | Rating explanations (stored with the model version and score; never changes a score; aggregates only, never managers); record corrections (only record values; evidence; HR confirms with a re-score and a log entry, or rejects with a reason; notifications); employees can't edit records; the committee note and hold |
-| `test_isolation.py` | 4 | **Isolation**: every prediction answer byte-for-byte identical after ratings, corrections and a held decision; a confirmed correction changes it and is logged; the static check; no SQL on feedback tables at run time |
+| `test_isolation.py` | 5 | **Isolation**: every prediction answer byte-for-byte identical after ratings, corrections and a held decision; a confirmed correction changes it and is logged; the static check (feedback, equality monitoring and development plans); no SQL on those tables at run time |
 | `test_dashboards.py` | 24 | The feedback dashboard's measures, filters, small-group protection, CSV and export script; only HR and the auditor see it; drift and its chance level; the admin's system health |
 | `test_auditor.py` | 12 | The compliance auditor reads decisions and the model; never individual feedback, records or changes; demo-account rules |
 | `test_finance.py` | 20 | An approval waits for Finance and nobody is told; a rejection never goes to Finance; Finance sees only what a pay decision needs; sign-off makes the promotion final and emails the manager and employee; sending back needs a reason and tells only HR; HR revises and resubmits; every step is kept; only Finance signs off and only HR resubmits; managers see "being finalised" until sign-off |
-| `test_accounts_and_notifications.py` | 9 | Welcome emails; editing accounts; changing your username; the public summary reveals no one and shows only measured numbers |
+| `test_accounts_and_notifications.py` | 10 | The first-time guide; welcome emails; editing accounts; changing your username; the public summary reveals no one and shows only measured numbers |
 | `test_emails.py` | 12 | Security alerts; nomination and decision emails go to the right people; only the admin uses the Email page; every email has plain and HTML versions |
-| `test_employee_records.py` | 23 | HR adds an employee who can be scored at once; values are stored as the model expects; impossible values are refused and unusual ones flagged; no one is added twice; one bad CSV row means nobody is imported; no protected characteristics are accepted; only HR manages records |
+| `test_employee_records.py` | 24 | HR adds an employee who can be scored at once; values are stored as the model expects; impossible values are refused and unusual ones flagged; no one is added twice; one bad CSV row means nobody is imported; no protected characteristics are accepted; only HR manages records |
 | `test_demo_requests.py` | 10 | Anyone can book a demo; it's emailed with Reply-To set to the visitor; the admin lists and ticks off requests; robots and repeats are kept out; visitors' text can't inject HTML; only the admin sees requests |
 | `test_profiles_and_permissions.py` | 15 | People update their profile (an email change alerts the old address; only small images as photos); Admin and HR accounts can't be linked to employee records; an admin sees employee data only once allowed, read-only, never feedback; managers are emailed about new team members, and only about new ones |
 | `test_evaluation_data.py` | 2 | The usability questionnaire and the perceived-fairness scales (with Cronbach's alpha) are scored correctly |
 | `test_recommendations_and_pay.py` | 16 | Managers' recommendations need a rating and example for all four areas, a start date within a year, a rise within HR's policy, and a reason when the model disagrees; HR must set the rise on approval and explain one outside the policy; only HR sets the policy; employees see only their approved promotion; pay is not a model input and changes no prediction |
 | `test_accounts_categories.py` | 10 | The admin deletes accounts (never their own, never one in the decision log), a deleted account can't sign in, a deleted manager's team stays in the directory; job titles on new accounts and in the welcome email |
 | `test_activity.py` | 9 | Sign-ins and actions are logged by date; passwords never are; only the admin reads the log; a database from the version with reporting is cleaned up |
+| `test_calibration.py` | 7 | The calibration measures recognise known cases (perfect, over-confident, too high everywhere); the live model is well calibrated on the test set; the model card shows it |
+| `test_cycles.py` | 14 | Opening and closing review cycles, saved scores, re-scoring after a record change, no release while a cycle is open, the CSV export, the auditor's totals only |
+| `test_teams.py` | 7 | HR's teams and the queue without a manager; a branch seen read-only, only the own manager nominates; no loops; cover for its dates |
+| `test_email_delivery.py` | 10 | Every email logged and on the bell; retries, then resending, content dropped once delivered; daily digests never hold account emails; reminders sent once; working days |
+| `test_finance_operations.py` | 6 | Bulk sign-off, the cycle filter, the payroll hand-over |
+| `test_governance.py` | 28 | The audit trail's chain; the model registry and human release; blocked models; what a release would change; live fairness at three stages, combinations and pay; the data mapping |
+| `test_sessions.py` | 5 | The website gets a cookie, never the token; API clients get a token; the cross-site header; signing out; a password change renews the cookie |
+| `test_privacy.py` | 3 | Your data as one file; erasure of someone who has left; retention |
+| `test_security_hardening.py` | 5 | Security headers; slowing down guessing per address; two-factor sign-in; a role made to use it; the code standard (RFC 6238) |
+| `test_approvals.py` | 5 | The four-eyes rule: off changes nothing; a release and a threshold-crossing correction wait for a second HR person; nobody approves their own; declining needs a reason; rejecting a correction closes its request |
+| `test_development.py` | 3 | Development plans: built and ticked off by employee and manager, the other side told, the score unchanged; only the people concerned; part of your data, erased with you |
+| `test_migrations.py` | 5 | A new database is built by the migrations; an older one keeps its data and gets new columns; later migrations apply; running twice changes nothing; every table is known |
+| `test_backups.py` | 4 | A backup holds the database and a manifest; only the newest are kept; a damaged one is refused; a restore brings data back and keeps today's aside |
+| `test_logs.py` | 4 | Every answer has a request id; an unexpected error is reported and alerts admins once; JSON logs; timer failures alert |
+| `test_query_counts.py` | 1 | Lists make the same number of queries for 4 rows or 40 |
+| `test_study.py` | 4 | The user study inside the app: sessions by code; the link needs consent and stops when finished; answers 1–5; saving writes the files the analysis reads, with its report |
 
 How each requirement in the brief is tested:
 
@@ -966,7 +1076,7 @@ How each requirement in the brief is tested:
 | Isolation: prediction code never reads feedback tables; predictions unchanged by feedback | `test_isolation` |
 | Feedback channel: ratings, corrections, committee note and hold | `test_feedback` |
 
-Besides the automated tests, `python scripts/browser_test.py` runs 6 checks in headless Chrome against a throwaway
+Besides the automated tests, `python scripts/browser_test.py` runs 11 checks in headless Chrome against a throwaway
 copy of the app (including every menu page for all six roles and the feedback channel end to end), and CI runs
 everything on every push (`.github/workflows/ci.yml`).
 

@@ -67,6 +67,10 @@
     "overflow": {},
     "axe": []
   },
+  "hr-cycle-report": {
+    "overflow": {},
+    "axe": []
+  },
   "hr-teams": {
     "overflow": {},
     "axe": []
@@ -108,6 +112,10 @@
     "axe": []
   },
   "hr-live-fairness": {
+    "overflow": {},
+    "axe": []
+  },
+  "hr-approvals": {
     "overflow": {},
     "axe": []
   },
@@ -160,6 +168,10 @@
     "axe": []
   },
   "admin-demo-requests": {
+    "overflow": {},
+    "axe": []
+  },
+  "admin-user-study": {
     "overflow": {},
     "axe": []
   },

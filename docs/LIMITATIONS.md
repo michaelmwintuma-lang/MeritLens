@@ -16,9 +16,10 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   including unfair ones. Leaving gender, age, education and pay out of the inputs, and checking group rates, reduces
   this but cannot remove it: other inputs (e.g. training hours, leadership scores given by managers) can carry bias
   of their own.
-- **Group fairness, one check.** The four-fifths rule compares recommendation rates between groups. It doesn't
-  show whether the model is equally *accurate* for each group, or fair to individuals, and it checks each
-  characteristic separately rather than in combination (e.g. older women).
+- **Group fairness, not individual fairness.** The four-fifths rule on recommendation rates is the gate. Each
+  group's accuracy (true- and false-positive rates, precision) and gender within each age group are now reported
+  on the model card, but they inform rather than block a release, and none of these checks says whether the model
+  is fair to an individual. Combinations beyond gender and age group aren't checked.
 - **Fairness costs accuracy.** Department was removed from the model because it scored people by where they work.
   Test PR-AUC fell from 0.633 (an earlier logistic regression with department) to 0.474. The model predicts past
   decisions less well because it no longer repeats their departmental pattern.
@@ -49,8 +50,9 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 - **No confidential route.** Rating an explanation and asking for a correction are both done under the employee's
   own name. That lets HR fix the right record, but someone who fears consequences may stay silent. A confidential
   route was built and then removed to keep the scope focused (see Future work).
-- **One HR person decides each correction.** There is no second-person rule; every decision is logged with who
-  made it.
+- **A second HR person is optional.** With FOUR_EYES=1, a correction that moves someone across the threshold waits
+  for a second HR person; it is off by default because the demo has one HR account, and corrections that don't
+  cross the threshold are always decided by one person (logged with who).
 - **Small groups limit what the dashboard can show.** Rates need 5 ratings and departments 5 people, so a small
   organisation sees few numbers. This trades detail for privacy.
 - **Rating comments are free text.** They are never shown, not even in aggregate, but they are stored, and an
@@ -66,8 +68,9 @@ adapted for the thesis's "Limitations" and "Future work" sections.
   deployment would collect it voluntarily, with "prefer not to say", and explain its purpose.
 - **Live fairness on a small directory says little.** With 120 employees and a handful of decisions, most stages
   show "not enough data yet". Groups under 5 are never shown, by design.
-- **One person releases a model.** A release needs a named HR person and a written note, but not a second
-  approver; the release, the note and the version it replaced are kept in the audit trail.
+- **A second approver for releases is optional.** A release needs a named HR person and a written note; with
+  FOUR_EYES=1 a second HR person must also approve it. It is off by default (the demo has one HR account). Before
+  releasing, HR sees what would change for today's employees.
 - **The audit trail proves, it doesn't prevent.** Its hash chain shows that an event was changed or deleted, and
   where; with SQLite, someone with access to the database file could still change it (the chain would show it).
   With PostgreSQL, the app's roles can't change or delete events (`deploy/postgres/grants.sql`), though the
@@ -78,20 +81,23 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 
 ### The system
 
-- **A prototype, not a production service.** SQLite and a single server suit a demonstration, not many users at
-  once. PostgreSQL is supported, with database roles that enforce the isolation (`deploy/postgres/`), but that
-  path was written without a running PostgreSQL server to test it on: the test suite runs on SQLite. There are no
-  backups, no HTTPS set-up, and no protection against heavy automated traffic beyond simple limits on the demo form.
+- **Deployment is written but not yet run end to end.** `deploy/` holds a Docker Compose set-up (PostgreSQL, the
+  API, and Caddy for HTTPS) and the CI builds its images, and the CI runs the tests on PostgreSQL too, but neither
+  Docker nor PostgreSQL was available where it was written, so a real deployment should be tried on a test server
+  first. Backups (nightly, checksummed, with restore: `docs/BACKUPS.md`), migrations, structured logs and error
+  alerts are in place and tested on SQLite. There is still no protection against heavy automated traffic beyond
+  limits on sign-in and the demo form, and one API process (the timer runs inside it).
 - **Only the API layer is TypeScript.** Types are generated from the backend's OpenAPI contract and checked on every
   build, but the pages are still JavaScript, so a page can still misuse an answer the API layer leaves loosely
   typed (many older endpoints describe their answers only loosely).
 - **Emails go through one Gmail account** with an app password, which has daily sending limits.
 - **Windows Smart App Control** blocks parts of the machine-learning libraries on the development computer, so the
   backend runs in WSL (Ubuntu) there. On a normal Linux server this doesn't arise.
-- **Pay rises aren't checked for fairness across groups.** Live fairness covers recommendations, nominations and
-  approvals, not the size of pay rises. Only percentages are kept, never salaries.
-- **Tested mostly by its developer.** 359 automated tests and 10 browser checks verify behaviour and privacy rules,
-  and an accessibility audit found nothing on 15 pages. But usability and perceived fairness with real users
+- **Pay-rise fairness compares averages only.** Live fairness compares the average promotion pay rise per group
+  (groups with 5 or more rises). It doesn't adjust for role or level, and only percentages are kept, never
+  salaries.
+- **Tested mostly by its developer.** 400 automated tests and 11 browser checks verify behaviour and privacy
+  rules, and an accessibility audit found nothing on 45 pages. But usability and perceived fairness with real users
   depend on the user test (`docs/USER_TEST.md`).
 - **CI hasn't run on GitHub yet.** The workflow is written and each of its steps passes locally, but the
   repository has no remote.
@@ -108,7 +114,7 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 3. **Compare tasks and projects within each department**, so department doesn't come back into the scores through
    them (`results/proxy_analysis.json`).
 4. **Retrain on real data** with an organisation's consent (the data mapping in `backend/data/mappings/` is the
-   way in), and extend the fairness checks: accuracy per group, combinations of characteristics, and pay rises.
-5. **Production readiness**: test the PostgreSQL path on a running server, HTTPS, backups, a task queue for the
-   background work, a transactional email service, a second approver for model releases, and separate
+   way in), and test individual fairness and more combinations of characteristics.
+5. **Production readiness**: run the Docker deployment and the PostgreSQL tests for real, a task queue for the
+   background work (so the API can run several processes), a transactional email service, and separate
    organisations (multi-tenancy).

@@ -751,6 +751,7 @@ th.wide-col { width: 30%; }
 /* ─── A printable report (review cycle report) ─────────────────────────────── */
 .print-report { max-width: 860px; }
 .print-report section { margin-top: var(--s-6); break-inside: avoid; }
+.report-scroll { overflow-x: auto; }
 .print-report h2 { font-size: 1.15rem; margin-bottom: var(--s-2); }
 .report-head h1 { margin: var(--s-1) 0; }
 .report-kicker { color: var(--text-muted); font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; margin: var(--s-4) 0 0; }

@@ -46,7 +46,7 @@ export default function CycleReport() {
 
       <section>
         <h2>In numbers</h2>
-        <table className="report-table"><tbody>
+        <div className="report-scroll" tabIndex={0} role="region" aria-label="In numbers"><table className="report-table"><tbody>
           <tr><th scope="row">People scored</th><td className="num">{totals.people}</td></tr>
           <tr><th scope="row">Recommended by the model</th><td className="num">{totals.recommended}</td></tr>
           <tr><th scope="row">Nominated by managers</th><td className="num">{totals.nominated}</td></tr>
@@ -55,18 +55,18 @@ export default function CycleReport() {
           <tr><th scope="row">HR decisions against the model's advice</th><td className="num">{totals.against_model}</td></tr>
           <tr><th scope="row">Recommended, not nominated</th><td className="num">{totals.recommended_not_nominated}</td></tr>
           <tr><th scope="row">Scores updated after a record change</th><td className="num">{totals.rescored}</td></tr>
-        </tbody></table>
+        </tbody></table></div>
       </section>
 
       <section>
         <h2>By department</h2>
-        <table className="report-table">
+        <div className="report-scroll" tabIndex={0} role="region" aria-label="By department"><table className="report-table">
           <thead><tr><th>Department</th><th className="num">People</th><th className="num">Recommended</th><th className="num">Nominated</th><th className="num">Approved</th></tr></thead>
           <tbody>{departments.map((d) => (
             <tr key={d.department}><td>{d.department}</td><td className="num">{d.people}</td><td className="num">{d.recommended || 0}</td>
               <td className="num">{d.nominated || 0}</td><td className="num">{d.approved || 0}</td></tr>
           ))}</tbody>
-        </table>
+        </table></div>
       </section>
 
       <section>
@@ -81,7 +81,7 @@ export default function CycleReport() {
       <section>
         <h2>Fairness (four-fifths rule)</h2>
         <p className="muted">Each group's rate should be at least 80% of the highest group's. Groups under {fairness.min_group} are not shown.</p>
-        <table className="report-table">
+        <div className="report-scroll" tabIndex={0} role="region" aria-label="Fairness"><table className="report-table">
           <thead><tr><th>Characteristic</th><th>Stage</th><th className="num">Lowest ÷ highest</th><th>Result</th></tr></thead>
           <tbody>
             {fairness.checks.flatMap((c) => c.stages.map((s, i) => (
@@ -93,18 +93,18 @@ export default function CycleReport() {
                 <td className="num">{p.ratio == null ? "–" : p.ratio.toFixed(2)}</td><td>{statusText(p.status)}</td></tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </section>
 
       {notNominated?.length > 0 && (
         <section>
           <h2>Recommended by the model, not nominated</h2>
-          <table className="report-table">
+          <div className="report-scroll" tabIndex={0} role="region" aria-label="Recommended, not nominated"><table className="report-table">
             <thead><tr><th>Name</th><th>Department</th><th>Manager</th><th className="num">Score</th></tr></thead>
             <tbody>{notNominated.map((p) => (
               <tr key={p.employee_id}><td>{p.full_name}</td><td>{p.department}</td><td>{p.manager || "No manager"}</td><td className="num">{percent(p.score)}</td></tr>
             ))}</tbody>
-          </table>
+          </table></div>
         </section>
       )}
 

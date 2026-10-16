@@ -359,3 +359,30 @@ reminders and digests" and "Finance at work".
 
 Checked: 359 backend tests, 10 browser checks, and 0 axe findings on 42 pages in both themes.
 
+
+## Improvements after a full review (2026-10-16)
+
+A review of the whole system produced 17 suggestions that keep its core (predict → explain → respond; the model
+advises, people decide). All were built except pushing to GitHub, which waits for the owner. Each is one commit on
+the `improvements` branch.
+
+| Change | Why |
+|---|---|
+| **Whole-number counts in work records.** The demo seed rounds counts; older databases are repaired once at start-up (audit event `records_normalised`). | Every demo record had fractional tasks, so editing a record failed its own validation. |
+| **User study inside the app** (Admin → User study; `app/study/`). A facilitator link per participant code (no names): consent, timed tasks, SUS and fairness questions; "Save and analyse" writes the evaluation CSVs and runs `evaluation/user_test.py`. | Running the study on paper meant copying answers by hand. |
+| **Data protection** (`app/privacy/`). Everyone can download what the platform holds about them (My profile → Your data). HR erases the personal data of someone who has left (pseudonymised; decisions and the audit trail keep their meaning). Retention periods, applied automatically each morning, shown on the Privacy page. | The rights to access and erasure, and storage limitation, were promised but not built. |
+| **Security.** Failed sign-ins slowed per network address (20 in 15 minutes); two-factor sign-in with an authenticator app, which a role can be made to use (`REQUIRE_2FA_ROLES`); security headers on every answer, and a Content-Security-Policy for the website; sign-out after 30 minutes without use, with a warning. | Per-account lock-out alone let one address try many accounts; a stolen password was enough to sign in. |
+| **Four-eyes rule** (`FOUR_EYES=1`; `app/core/approvals.py`, Approvals page). A model release, or a correction that moves someone across the threshold, waits for a second HR person, who carries it out or declines with a reason. Off by default (the demo has one HR account). | One person could change every score, or one person's recommendation, alone. |
+| **Fairness in depth.** Per-group accuracy (true- and false-positive rates, precision) and gender within each age group on the model card; the proxy analysis on the card; live fairness for gender and age band combined, and for the average pay rise per group. The four-fifths gate is unchanged. | Equal selection rates can hide unequal accuracy, gaps between combinations, or smaller rises for one group. |
+| **What a release would change.** Before releasing, both models score today's employees: counts, who would gain or lose a recommendation, per department. | HR released on test-set numbers without seeing the effect on their own people. |
+| **Database migrations** (Alembic, `backend/migrations/`, applied at start-up). A database made before them gets the old repairs, then is marked up to date. | Only new optional columns could be added to an existing database. |
+| **Tests on PostgreSQL in CI** (`TEST_DATABASE_URL`; `backend-tests-postgres` job). Allowed to fail until it has passed once on GitHub. | The PostgreSQL path had never been run. |
+| **Backups** (`app/core/backups.py`, `docs/BACKUPS.md`). Nightly and by hand; database, correction evidence and model registry with checksums; rotation; a restore that checks everything first and keeps today's data aside. Shown on the admin home page. | There were none. |
+| **Deployment** (`deploy/`). Docker Compose with PostgreSQL, the API, and Caddy for automatic HTTPS and the security headers. CI builds the images. Not run end to end (no Docker where it was written). | `python run.py` suits one computer, not a server. |
+| **Logs and error alerts** (`app/core/logs.py`). Every request logged with an id (`X-Request-ID`), JSON if asked; an unexpected error gets a short message with its reference, and admins an email at most once an hour per kind of error. | Errors showed only as a stack trace in a terminal nobody watched. |
+| **First-time guide** per role on the overview, closed for good per account (My profile brings it back). | New users had to find their way alone. |
+| **Printable review-cycle report** (print or save as PDF). | The cycle's results could only be read on screen or exported as raw CSV. |
+| **No per-row queries in lists; load test** (`evaluation/load_test.py`, `results/load_test.json`). With 5,000 employees and 300 decisions: nominations 1,204 → 6 queries, decision log 903 → 6, Finance's pay reviews 604 → 8, opening a cycle 5,022 → 23. A test keeps the counts flat. The load test also caught a bug in the new pay-fairness check, fixed before release. | Lists slowed down with every decision made. |
+| **Development plans** (`app/development/`). Goals from the tips in one click, or written freely; employee, manager and HR tick them off; the other side is told. The promotion code never reads them (the isolation test covers the table). | Tips ended at advice; nothing followed them up. |
+
+Checked: 400 backend tests, 11 browser checks, and 0 axe findings on 45 pages in both themes.

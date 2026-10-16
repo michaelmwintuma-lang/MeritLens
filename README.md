@@ -86,8 +86,17 @@ check is enforced by the backend, not just hidden in the interface.
 - **Notifications and email you can rely on**: every email in a delivery log, retried automatically and
   resendable; the bell's notification centre from the same events (read and unread); reminders before things are
   late (each sent once); and an optional daily digest. Account emails always go out at once.
-- **Accounts and oversight**: profiles with photos, permissions, sign-in lock-out after 5 wrong passwords, an
-  activity log (dates only), an admin dashboard with system health and drift, and a public landing page.
+- **Development plans**: goals taken from the tips in one click (or written freely), which the employee, their
+  manager and HR tick off. Kept apart from the model: a goal never changes a score.
+- **A second approver when it matters** (optional, `FOUR_EYES=1`): a model release, or a record correction that
+  moves someone across the threshold, waits for a second HR person.
+- **Your data, your rights**: everyone can download what the platform holds about them; HR erases the personal data
+  of someone who has left; personal data is removed automatically after set periods.
+- **Accounts and oversight**: profiles with photos, permissions, two-factor sign-in (which a role can be made to
+  use), sign-in lock-out and slowing down of guessing, sign-out when idle, an activity log (dates only), an admin
+  dashboard with system health, drift, backups and errors, a first-time guide per role, and a public landing page.
+- **Ready to run for real**: database migrations, nightly checksummed backups with restore, structured logs with
+  error alerts to admins, a Docker set-up with automatic HTTPS (`deploy/`), and the user study run inside the app.
 
 ---
 
@@ -111,8 +120,12 @@ check is enforced by the backend, not just hidden in the interface.
    │      └ reads only the neutral decision_holds table to refuse held decisions│  (promotion code can
    ├─ feedback/    ratings, corrections, dashboard; places and lifts holds ────┤   use its own role with
    ├─ governance/  model registry and release, live fairness, audit-trail API  │   no access to feedback)
-   ├─ core/        settings, security, email, activity log, holds,             │
-   │               audit trail (append-only, hash-chained), background jobs    │
+   ├─ development/ development plans (never read by promotion/: checked)       │
+   ├─ privacy/     your data, erasure, retention                               │
+   ├─ study/       the user study, run inside the app                          │
+   ├─ core/        settings, security (2FA, throttling), email, activity log,  │
+   │               holds, approvals (four-eyes), audit trail (append-only,     │
+   │               hash-chained), background jobs, migrations, backups, logs   │
    ├─ public/      landing-page facts from results/                            │
    └─ demo/        public "Book a demo" requests                               │
         │  background worker: LIME second opinions, kept per model version + record
@@ -122,10 +135,11 @@ check is enforced by the backend, not just hidden in the interface.
 
 | Layer | Technologies |
 |---|---|
-| Backend | Python 3.11, FastAPI, SQLAlchemy 2.0, SQLite (default) or PostgreSQL, PyJWT |
+| Backend | Python 3.11, FastAPI, SQLAlchemy 2.0 with Alembic migrations, SQLite (default) or PostgreSQL, PyJWT |
 | Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Frontend | React 19, React Router 7, Vite 7, TypeScript (API layer, generated from the backend's OpenAPI contract), lucide-react icons |
-| Testing | pytest (359 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI |
+| Testing | pytest (400 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI (also on PostgreSQL) |
+| Deployment | Docker Compose: PostgreSQL 16, the API, Caddy (automatic HTTPS, security headers) |
 
 **Why it is built this way.** One backend with clearly separated modules is right for one organisation's HR
 team: simpler to run, test and reason about than many services. The redesign keeps that, and adds what a
@@ -207,6 +221,10 @@ and the numbers above are what it costs.
 | Age group (under 40 / 40+) | 0.963 | Passes |
 | Education | 0.887 | Passes |
 
+The model card also shows each group's accuracy (true-positive rates: gender 0.952, age group 0.899, education
+0.958 lowest-to-highest) and gender within each age group (selection ratio 0.945), and the proxy check: none of
+the 20 inputs together predicts gender, age group or education better than guessing.
+
 ### Explanations
 
 | Explanation | How it works |
@@ -275,7 +293,10 @@ routes. Neither changes a score.
 |---|---|---|
 | **Model registry** | HR releases; admin and auditor read | `train.py` registers each trained model as a *candidate* with a **model card** (data and mapping, method, test results, fairness, intended use, limitations). It goes live only when an HR person reads the card and releases it with a written note; the app switches without a restart. A model that failed the fairness check is *blocked* and can never be released. Releasing an older version rolls back. |
 | **Audit trail** | Auditor and admin, read-only | Every nomination, decision (with the model's score, threshold, version and top factors at that moment), pay step, record change, correction, hold and model release. Append-only and **hash-chained**: "Check the chain" proves nothing was changed or deleted. Never copies what an employee wrote. |
-| **Live fairness** | HR, admin, auditor | The four-fifths rule on today's directory and decisions, at three stages: what the **model** recommends, whom **managers** nominate, whom **HR** approves. Shows where a gap appears. Uses equality-monitoring data kept apart from the directory, never given to the model; groups under 5 are never shown. |
+| **Live fairness** | HR, admin, auditor | The four-fifths rule on today's directory and decisions, at three stages: what the **model** recommends, whom **managers** nominate, whom **HR** approves; also gender and age band combined, and the **average pay rise** per group. Shows where a gap appears. Uses equality-monitoring data kept apart from the directory, never given to the model; groups under 5 are never shown. |
+| **What a release would change** | HR | Before a release, both models score today's employees: how many each recommends, who would gain or lose a recommendation, per department. |
+| **Approvals (four-eyes)** | HR | With `FOUR_EYES=1`, releases and threshold-crossing corrections wait for a second HR person, who carries them out or declines with a reason. |
+| **Printable cycle report** | HR, auditor | A review cycle's results laid out for printing or saving as PDF. |
 
 A confidential route for reporting an unfair assessment was built in an earlier version and removed to keep the
 scope focused. It is future work: see `docs/future-work/` and the git tag `with-anonymous-reporting`.
@@ -297,6 +318,8 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
   a hash-chained, append-only audit trail.
 - **Separation of duties:** HR decides on a promotion and Finance confirms its cost; neither can do the other's
   part, and Finance sees no model scores or performance ratings.
+- **People's rights:** a copy of everything held about you (My profile); erasure of someone who has left
+  (pseudonymised, decisions keep their meaning); retention periods applied automatically (Privacy page).
 - **Privacy of feedback:** ratings are seen only as totals, from 5 ratings up, and never by managers; correction
   evidence is stored under random names and shown only to the employee and HR.
 - **Security:**
@@ -304,7 +327,10 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
     on a password change, a reset or signing out;
   - the website's sign-in lives in an httpOnly, SameSite=Strict cookie that page scripts can't read, and
     state-changing requests made with it must carry a header another site can't add (cross-site request forgery);
-  - lock-out after 5 wrong passwords;
+  - lock-out after 5 wrong passwords, and 20 failed sign-ins from one address in 15 minutes make it wait;
+  - two-factor sign-in with an authenticator app, which HR, Finance and Admin can be made to use;
+  - sign-out after 30 minutes without use; security headers and a Content-Security-Policy;
+  - optionally, a second HR person for model releases and threshold-crossing corrections;
   - role checks on every request;
   - rate limits and a honeypot on the public form;
   - secrets kept in an uncommitted `.env` file.
@@ -318,15 +344,16 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 | Evaluation | Where | Status |
 |---|---|---|
 | Promotion model: test-set metrics, curves, model comparison | `results/metrics.json`, `results/*.png`, `results/model_comparison.json` | Done |
-| Fairness (four-fifths rule) | `results/fairness.json` | Done, passes |
+| Fairness (four-fifths rule), accuracy per group, gender within age group | `results/fairness.json` | Done, passes |
 | Calibration (does a score of 30% mean about 30%?) | `results/calibration.json`, `results/calibration_curve.png` | Done: well calibrated (ECE 0.0056, slope 0.998) |
 | Proxies for gender, age, education and department; equal opportunity | `results/proxy_analysis.json` | Done |
 | Explanations: exactness, common sense, LIME fit and agreement, tips | `results/explanation_evaluation.json` | Done |
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
-| Automated tests | `backend/tests/`, 359 tests | All passing |
-| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 10 checks passing; 0 accessibility findings on 42 pages |
-| Continuous integration | `.github/workflows/ci.yml` | Tests, build and browser checks on every push |
+| Load: 5,000 employees, 300 decisions; queries per call | `results/load_test.json`, `python -m evaluation.load_test` | Done: every list a fixed number of queries, at most 0.27 s |
+| Automated tests | `backend/tests/`, 400 tests | All passing |
+| Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 11 checks passing; 0 accessibility findings on 45 pages |
+| Continuous integration | `.github/workflows/ci.yml` | Tests (SQLite and PostgreSQL), build, Docker images and browser checks on every push; not yet run on GitHub |
 
 Every number, with its source: **`docs/EVALUATION_RESULTS.md`**.
 
@@ -337,7 +364,9 @@ The automated tests cover:
 - Finance sign-off: nobody is told before it, sending back and resubmitting, the audit trail, and what Finance may see;
 - the feedback channel, and the separation of feedback from promotion;
 - dashboards with small-group protection, and system health with drift;
-- emails, accounts, profiles and the activity log.
+- emails, accounts, profiles and the activity log;
+- data rights and retention, two-factor sign-in and throttling, the four-eyes rule, development plans;
+- migrations, backups and restore, error alerts, and flat query counts as lists grow.
 
 `docs/HOW_IT_WORKS.md` lists what each test file proves.
 
@@ -427,10 +456,13 @@ python train.py                                  # trains, compares, tests once,
 python train.py --mapping data/mappings/X.json   # the same, on another organisation's export (see example_other_organisation.json)
 python -m evaluation.calibration                 # calibration of the live model (or a version: ... calibration v2026...)
 python -m evaluation.proxy_analysis              # proxies for gender, age, education, department; equal opportunity
+python -m evaluation.fairness_detail             # per-group accuracy, gender x age group, proxy summary → the model card
+python -m evaluation.load_test                   # 5,000 employees: time and queries per call → results/load_test.json
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 359 automated tests, in about 5 minutes
+python -m pytest                                 # the 400 automated tests, in about 5 minutes
+python -m app.core.backups create                # a backup now (docs/BACKUPS.md; also: list, restore <file>)
 python export_openapi.py                         # the API contract → frontend/openapi.json (then: npm run gen:api)
 ```
 
@@ -447,7 +479,7 @@ From the project folder, the browser checks and screenshots run against a throwa
 database:
 
 ```bash
-python scripts/browser_test.py                                        # 10 checks in headless Chrome
+python scripts/browser_test.py                                        # 11 checks in headless Chrome
 python scripts/browser_test.py scripts/ui_capture.js docs/screenshots/latest   # screenshots + accessibility audit
 python scripts/browser_test.py scripts/capture_landing.js             # the website's screenshots
 python scripts/browser_test.py scripts/capture_thesis.js              # the thesis figures (docs/screenshots/thesis)
@@ -461,11 +493,16 @@ python scripts/browser_test.py scripts/capture_thesis.js              # the thes
 backend/
   app/
     main.py              starts the API and connects the parts
-    core/                settings, database, security, roles, emails, activity log, audit trail, holds, jobs
+    core/                settings, database, security (2FA, throttling), roles, emails, activity log, audit trail,
+                         holds, approvals, jobs, migrations, backups, logs
     accounts/            users, sign-in, profiles, permissions, admin
     promotion/           features, data mapping, training helpers, fairness, explanations, drift, decisions, pay
     feedback/            ratings, record corrections, committee note, feedback dashboard
-    governance/          model registry and release, live fairness (equality monitoring), audit-trail API
+    governance/          model registry and release, live fairness (equality monitoring), audit-trail API,
+                         what a release would change
+    development/         development plans (never read by the promotion code)
+    privacy/             your data, erasure, retention
+    study/               the user study inside the app
     public/              facts for the landing page, read from results/
     demo/                public "Book a demo" requests
   train.py               trains, tests and fairness-checks a model, and registers it with its model card
@@ -473,9 +510,10 @@ backend/
   evaluation/            explanation evaluation, proxy analysis, feedback export, user test
   data/                  the synthetic employee dataset (100,000 rows); mappings/ for other organisations' data
   models/                the live promotion model; registry/ every trained version (not committed)
-  tests/                 359 automated tests
+  migrations/            database migrations (Alembic), applied at start-up
+  tests/                 400 automated tests
   instance/              database, secret key, outbox, correction evidence (created automatically, never committed)
-deploy/postgres/         running on PostgreSQL, with database roles that enforce the isolation
+deploy/                  Docker Compose with Caddy (HTTPS) and PostgreSQL; postgres/: database roles that enforce the isolation
 frontend/
   openapi.json           the API contract (from export_openapi.py); src/api-types.ts is generated from it
   src/api.ts, auth.tsx   the typed API layer and sign-in (TypeScript)
@@ -497,8 +535,8 @@ run.py                   starts everything
 Main limitations (full list: `docs/LIMITATIONS.md`):
 
 - **Synthetic data.** Real use would need retraining on an organisation's own promotion history, with consent.
-- **Prototype infrastructure.** It runs on SQLite by default, on a single server, with no HTTPS set-up and no
-  backups. PostgreSQL is supported (`deploy/postgres/`) but was not tested against a running server here.
+- **Deployment written, not yet run.** Docker with HTTPS (`deploy/`) and the PostgreSQL tests are in CI, but no
+  Docker or PostgreSQL was available to run them here. Backups, migrations, logs and alerts are tested on SQLite.
 
 - **No real use yet.** The feedback channel's measures, usability and perceived fairness still have to be
   collected in the user study.
@@ -510,7 +548,7 @@ Future work:
 2. A confidential route for reporting unfair assessments (removed from this version to keep the scope focused;
    see git tag `with-anonymous-reporting` and `docs/future-work/`).
 3. Compare tasks and projects completed within each department, so department doesn't come back through them.
-4. Extend fairness checks to combinations of characteristics.
+4. Run the Docker deployment and the PostgreSQL tests for real; a task queue so the API can run several processes.
 
 ---
 
@@ -524,6 +562,8 @@ Future work:
 | [`docs/CHANGELOG_UPGRADE.md`](docs/CHANGELOG_UPGRADE.md) | Every change made in the upgrade, phase by phase |
 | [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) | Plain-English explanation of every part, step by step, with design decisions and API endpoints |
 | [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | Limitations of the data, model, feedback channel, system and evaluation; future work |
+| [`docs/BACKUPS.md`](docs/BACKUPS.md) | What a backup holds, when they are made, restoring, PostgreSQL |
+| [`deploy/README.md`](deploy/README.md) | Running MeritLens on a server with Docker and HTTPS |
 | [`docs/USER_TEST.md`](docs/USER_TEST.md) | Usability and perceived-fairness study kit: consent note, 11 tasks, SUS, Colquitt-based items, scoring |
 | [`docs/screenshots/PHASE7.md`](docs/screenshots/PHASE7.md) | Before and after screenshots of 15 pages, with accessibility audits |
 | [`docs/future-work/`](docs/future-work/README.md) | Anonymous reporting, removed from this version: its threat model, evaluation and the original review |

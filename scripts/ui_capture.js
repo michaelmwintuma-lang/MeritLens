@@ -17,7 +17,7 @@ const OUT = path.resolve(__dirname, "..", process.argv[2] || "docs/screenshots/l
 const AXE_URL = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js";
 
 // [name, who signs in (null: nobody), address, optional script run on the page first]
-// {held} and {employee} in an address are filled in from the demo set-up (demo_setup.js).
+// {held}, {employee} and {cycle} in an address are filled in from the demo set-up (demo_setup.js).
 const PAGES = [
   ["landing", null, "/"],
   ["public-approach", null, "/approach"],
@@ -36,6 +36,7 @@ const PAGES = [
   ["hr-home", "hr", "/"],
   ["hr-employees", "hr", "/employees"],
   ["hr-review-cycles", "hr", "/cycles"],
+  ["hr-cycle-report", "hr", "/cycles/{cycle}/report"],
   ["hr-teams", "hr", "/teams"],
   ["hr-predict-explain", "hr", "/employees/{employee}", RUN],
   ["hr-employee-new", "hr", "/employees/new"],
@@ -47,6 +48,7 @@ const PAGES = [
   ["hr-decisions", "hr", "/decisions"],
   ["hr-model-registry", "hr", "/models"],
   ["hr-live-fairness", "hr", "/fairness"],
+  ["hr-approvals", "hr", "/approvals"],
   ["finance-home", "finance", "/"],
   ["finance-sign-off", "finance", "/finance"],
   ["auditor-home", "auditor", "/"],
