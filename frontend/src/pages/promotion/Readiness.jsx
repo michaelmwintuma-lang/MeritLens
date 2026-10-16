@@ -14,6 +14,7 @@ import Contributions, { ExactNumbers } from "../../components/promotion/Contribu
 import Lime from "../../components/promotion/Lime";
 import WhatIf from "../../components/promotion/WhatIf";
 import Tips from "../../components/promotion/Tips";
+import DevelopmentPlan from "../../components/promotion/DevelopmentPlan";
 import NominateBox from "../../components/promotion/NominateBox";
 import RunPrediction from "../../components/promotion/RunPrediction";
 import RecordHistory from "../../components/promotion/RecordHistory";
@@ -112,6 +113,8 @@ export default function Readiness() {
           <Card id="tips" title={own ? "Your path to promotion" : "Tips to improve"}>
             {result.tips ? <Tips data={result.tips} threshold={data.threshold} /> : <Loading label="Finding realistic steps…" />}
           </Card>
+
+          <DevelopmentPlan employeeId={data.id} own={own} tips={result.tips} />
 
           {trend.length > 0 && (
             <Card id="trend" title={own ? "Your readiness over time" : "Readiness over time"}

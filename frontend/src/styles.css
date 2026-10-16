@@ -770,3 +770,9 @@ th.wide-col { width: 30%; }
   .report-table th, .report-table td { border-color: #bbb; }
   a { color: inherit; text-decoration: none; }
 }
+
+/* ─── Development plan ─────────────────────────────────────────────────────── */
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-1); }
+.plan-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); padding: var(--s-2) 0; border-bottom: 1px solid var(--border); }
+.plan-list li.done .strong { text-decoration: line-through; color: var(--text-muted); }
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--s-2); }

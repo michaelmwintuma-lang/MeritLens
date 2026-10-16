@@ -24,7 +24,8 @@ from tests.conftest import login, recommendation, wait_for_lime
 PROMOTION = Path(__file__).resolve().parents[1] / "app" / "promotion"
 FEEDBACK_TABLES = {"explanation_ratings", "correction_requests"}
 PROTECTED_TABLES = {"equality_monitoring"}  # for the fairness monitor only, never for the model
-FORBIDDEN_TABLES = FEEDBACK_TABLES | PROTECTED_TABLES
+PLAN_TABLES = {"development_goals"}  # development plans: never an input to the model
+FORBIDDEN_TABLES = FEEDBACK_TABLES | PROTECTED_TABLES | PLAN_TABLES
 
 
 def employee_id(client):
@@ -93,8 +94,8 @@ def test_the_promotion_code_never_imports_or_names_feedback():
     A static check over every file in app/promotion: imports, table names and model names. Neither the feedback
     code nor the governance code (which holds the equality-monitoring data) may be imported.
     """
-    forbidden_names = FORBIDDEN_TABLES | {"ExplanationRating", "CorrectionRequest", "EqualityMonitoring"}
-    forbidden_modules = ("app.feedback", "app.governance")
+    forbidden_names = FORBIDDEN_TABLES | {"ExplanationRating", "CorrectionRequest", "EqualityMonitoring", "DevelopmentGoal"}
+    forbidden_modules = ("app.feedback", "app.governance", "app.development")
     for file in PROMOTION.glob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -118,6 +119,8 @@ def test_the_tables_checked_are_all_the_feedback_tables():
         return {obj.__tablename__ for obj in vars(module).values() if isinstance(obj, type) and "__tablename__" in vars(obj)}
     assert owned(feedback) == FEEDBACK_TABLES
     assert owned(governance) - {"model_releases"} == PROTECTED_TABLES
+    from app.development import models as development
+    assert owned(development) == PLAN_TABLES
 
 
 def test_the_hold_table_says_nothing_an_employee_wrote():

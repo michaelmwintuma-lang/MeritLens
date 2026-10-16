@@ -16,6 +16,7 @@ from app.feedback import dashboard as feedback_dashboard
 from app.governance import routes as governance_routes
 from app.study import routes as study_routes
 from app.privacy import routes as privacy_routes
+from app.development import routes as development_routes
 from app.governance.monitoring import seed_demo_monitoring
 from app.governance.registry import ensure_live_registered
 from app.core import approvals, notifications, reminders, scheduler  # noqa: F401 (reminders: its table)
@@ -118,6 +119,7 @@ app.include_router(governance_routes.router)
 app.include_router(study_routes.router)
 app.include_router(privacy_routes.router)
 app.include_router(approvals.router)
+app.include_router(development_routes.router)
 app.include_router(demo_routes.router)
 app.include_router(demo_routes.admin_router)
 

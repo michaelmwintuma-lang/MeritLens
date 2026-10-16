@@ -19,7 +19,7 @@ from app.core.database import engine
 
 MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "migrations"
 TABLE_MODULES = ("app.accounts.models", "app.core.activity", "app.core.approvals", "app.core.audit", "app.core.holds",
-                 "app.core.mailer", "app.core.notifications", "app.core.reminders", "app.demo.models",
+                 "app.core.mailer", "app.core.notifications", "app.core.reminders", "app.demo.models", "app.development.models",
                  "app.feedback.models", "app.governance.models", "app.promotion.models", "app.study.models")
 
 

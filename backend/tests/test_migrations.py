@@ -10,7 +10,7 @@ from tests.conftest import login
 
 
 def test_a_new_database_is_built_by_the_migrations_and_marked_up_to_date(client):
-    assert migrations.current_revision() == migrations.head_revision() == "0002_first_time_guide"
+    assert migrations.current_revision() == migrations.head_revision() == "0003_development_plans"
     tables = set(inspect(engine).get_table_names())
     assert {"users", "employees", "audit_events", "approvals", "alembic_version"} <= tables
 
@@ -35,7 +35,7 @@ def test_a_database_at_the_baseline_gets_the_later_migrations(client):
         connection.exec_driver_sql('ALTER TABLE users DROP COLUMN "guide_done"')
         connection.exec_driver_sql("UPDATE alembic_version SET version_num = '0001_baseline'")
     migrations.upgrade()
-    assert migrations.current_revision() == "0002_first_time_guide"
+    assert migrations.current_revision() == migrations.head_revision()
     assert "guide_done" in {c["name"] for c in inspect(engine).get_columns("users")}
 
 
