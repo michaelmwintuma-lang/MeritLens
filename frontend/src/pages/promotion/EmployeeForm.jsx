@@ -133,9 +133,11 @@ function NumberField({ field, value, onChange, problem, extra }) {
   const unit = field.percent ? "%" : "";
   const number = Number(value);
   const unusual = value !== "" && field.typical && !Number.isNaN(number) && (number < field.typical[0] || number > field.typical[1]);
+  // Word joiners keep a range on one line: "0–80", never "0–" then "80"
+  const range = (low, high) => `${low}⁠–⁠${high}${unit}`;
   const hint = unusual
-    ? `Unusual: the model saw ${field.typical[0]}–${field.typical[1]}${unit}, so the score will be less reliable.`
-    : `${field.min}–${field.max}${unit}${field.whole ? ", whole number" : ""}${field.typical ? ` · typical ${field.typical[0]}–${field.typical[1]}${unit}` : ""}`;
+    ? `Unusual: the model saw ${range(...field.typical)}, so the score will be less reliable.`
+    : `${range(field.min, field.max)}${field.whole ? ", whole number" : ""}${field.typical ? ` · typical ${range(...field.typical)}` : ""}`;
   return (
     <label className="field">
       {field.label}{unit && ` (${unit})`}
