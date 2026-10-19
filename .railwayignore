@@ -1,0 +1,14 @@
+# What `railway up` leaves out: the backend image (deploy/backend.Dockerfile) needs only backend/ and results/
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+backend/instance
+backend/.env
+backend/models/registry
+frontend
+docs
+presentation
+scripts
+.github
+.git
