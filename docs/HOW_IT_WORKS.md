@@ -1026,7 +1026,7 @@ keeps dates only; the alternatives are worth discussing as future work.
 
 ### All the tests
 
-Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **400 tests**, all passing, in about three
+Run them with `cd backend` then `.venv\Scripts\python -m pytest`. There are **416 tests**, all passing, in about three
 minutes (the tests hash passwords with fewer rounds than the app; a test checks the app's own setting):
 
 | File | Tests | What they prove |

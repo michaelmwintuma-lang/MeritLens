@@ -138,7 +138,7 @@ check is enforced by the backend, not just hidden in the interface.
 | Backend | Python 3.11, FastAPI, SQLAlchemy 2.0 with Alembic migrations, SQLite (default) or PostgreSQL, PyJWT |
 | Machine learning | InterpretML (monotonic Explainable Boosting Machine), scikit-learn (logistic regression, random forest), XGBoost, LIME, pandas, NumPy, Matplotlib |
 | Frontend | React 19, React Router 7, Vite 7, TypeScript (API layer, generated from the backend's OpenAPI contract), lucide-react icons |
-| Testing | pytest (400 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI (also on PostgreSQL) |
+| Testing | pytest (416 tests), headless-Chrome checks and axe-core accessibility audits, GitHub Actions CI (also on PostgreSQL) |
 | Deployment | Docker Compose: PostgreSQL 16, the API, Caddy (automatic HTTPS, security headers) |
 
 **Why it is built this way.** One backend with clearly separated modules is right for one organisation's HR
@@ -351,7 +351,7 @@ scope focused. It is future work: see `docs/future-work/` and the git tag `with-
 | Feedback channel in use: clarity, contest share, corrections | `python -m evaluation.export_feedback_measures` | Script ready; numbers come from use |
 | Usability and perceived fairness (11 tasks, SUS, Colquitt-based items) | `docs/USER_TEST.md`, `python -m evaluation.user_test` | Kit ready; to run with participants |
 | Load: 5,000 employees, 300 decisions; queries per call | `results/load_test.json`, `python -m evaluation.load_test` | Done: every list a fixed number of queries, at most 0.27 s |
-| Automated tests | `backend/tests/`, 400 tests | All passing |
+| Automated tests | `backend/tests/`, 416 tests | All passing |
 | Browser checks and accessibility (axe-core, light and dark) | `python scripts/browser_test.py` | 11 checks passing; 0 accessibility findings on 45 pages |
 | Continuous integration | `.github/workflows/ci.yml` | Tests (SQLite and PostgreSQL), build, Docker images and browser checks on every push; not yet run on GitHub |
 
@@ -473,7 +473,7 @@ python -m evaluation.load_test                   # 5,000 employees: time and que
 python -m evaluation.evaluate_explanations       # exactness, common sense, LIME and tips → results/explanation_evaluation.json
 python -m evaluation.export_feedback_measures    # the feedback dashboard's measures → results/feedback_measures.json
 python -m evaluation.user_test                   # scores the usability test once answers are entered
-python -m pytest                                 # the 400 automated tests, in about 5 minutes
+python -m pytest                                 # the 416 automated tests, in about 5 minutes
 python -m app.core.backups create                # a backup now (docs/BACKUPS.md; also: list, restore <file>)
 python export_openapi.py                         # the API contract → frontend/openapi.json (then: npm run gen:api)
 ```
@@ -523,7 +523,7 @@ backend/
   data/                  the synthetic employee dataset (100,000 rows); mappings/ for other organisations' data
   models/                the live promotion model; registry/ every trained version (not committed)
   migrations/            database migrations (Alembic), applied at start-up
-  tests/                 400 automated tests
+  tests/                 416 automated tests
   instance/              database, secret key, outbox, correction evidence (created automatically, never committed)
 deploy/                  Docker Compose with Caddy (HTTPS) and PostgreSQL; postgres/: database roles that enforce the isolation
 frontend/

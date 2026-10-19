@@ -97,7 +97,7 @@ adapted for the thesis's "Limitations" and "Future work" sections.
 - **Pay-rise fairness compares averages only.** Live fairness compares the average promotion pay rise per group
   (groups with 5 or more rises). It doesn't adjust for role or level, and only percentages are kept, never
   salaries.
-- **Tested mostly by its developer.** 400 automated tests and 11 browser checks verify behaviour and privacy
+- **Tested mostly by its developer.** 416 automated tests and 11 browser checks verify behaviour and privacy
   rules, and an accessibility audit found nothing on 45 pages. But usability and perceived fairness with real users
   depend on the user test (`docs/USER_TEST.md`).
 - **CI hasn't run on GitHub yet.** The workflow is written and each of its steps passes locally, but the

@@ -211,7 +211,7 @@ All 45 pages were checked automatically for all six roles. There were zero acces
 
 How do I know it works? Four pieces of evidence.
 
-400 automated tests check everything from who can see what, to the pay rules, to the privacy features. They all pass, on two different kinds of database.
+416 automated tests check everything from who can see what, to the pay rules, to the privacy features. They all pass, on two different kinds of database.
 
 The model was measured once, on 20,000 records it had never seen.
 
