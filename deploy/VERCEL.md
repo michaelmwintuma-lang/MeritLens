@@ -62,6 +62,11 @@ passwords, or create real ones and deactivate those you don't need.
 
 ## Checking it works
 
+From the project folder, run `python scripts/check_deployment.py https://your-app.vercel.app`. It asks for the
+`DEMO_PASSWORD`, then checks through the website's address, as a browser does: the site loads, `/api` reaches the
+backend, and each role signs in with a safe cookie, is recognised, and signs out. Each failure says what to fix.
+By hand:
+
 - `https://your-app.vercel.app/api/health` → `{"status":"ok"}` (the rewrite reaches the backend)
 - Signing in keeps you signed in when you reload (the cookie works)
 - Admin home page: the model is loaded, email status, no errors
