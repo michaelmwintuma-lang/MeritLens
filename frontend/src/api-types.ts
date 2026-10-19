@@ -17,6 +17,8 @@ export interface paths {
          * Login
          * @description Check the username and password and start a session. After MAX_FAILED_LOGINS wrong passwords in a row, the
          *     account is locked for LOCK_MINUTES: even the right password is refused until then.
+         *     A second step follows the right password for some accounts: the code from their authenticator app, or for the
+         *     roles in EMAIL_CODE_ROLES a code emailed to them (core/email_codes.py). Asking again without a code sends a new one.
          */
         post: operations["login_api_auth_login_post"];
         delete?: never;

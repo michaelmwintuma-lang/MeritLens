@@ -1,7 +1,7 @@
 // Sign-in page: the wordmark, then a clean centred form.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "../auth";
 import { Button, Wordmark } from "../components/ui";
 import { BRAND, TAGLINE } from "../brand";
@@ -14,8 +14,25 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState("");
   const [needsCode, setNeedsCode] = useState(false); // two-factor sign-in: the password was right
+  const [byEmail, setByEmail] = useState(false);     // ...and the code was emailed (not from an authenticator app)
+  const [info, setInfo] = useState("");              // where the code went
+  const [retryIn, setRetryIn] = useState(0);         // seconds until a new code may be sent
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (retryIn <= 0) return undefined;
+    const timer = setTimeout(() => setRetryIn(retryIn - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [retryIn]);
+
+  // The server asked for a code (the next step, not an error): note how it was sent
+  function askForCode(err) {
+    setNeedsCode(true);
+    setByEmail(err.codeMethod === "email");
+    if (err.codeMethod === "email") setInfo(err.message);
+    setRetryIn(err.retryIn || 0);
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -25,10 +42,26 @@ export default function Login() {
       await login(username, password, needsCode ? code : undefined);  // the app then moves on from /login (App.jsx: AfterSignIn)
     } catch (err) {
       if (err.codeRequired && !needsCode) {
-        setNeedsCode(true);  // not an error: the next step
+        askForCode(err);
         return;
       }
+      if (err.retryIn !== undefined) setRetryIn(err.retryIn);
       setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Signing in again without a code sends a new one (the server allows one a minute)
+  async function sendNewCode() {
+    setBusy(true);
+    setError("");
+    setCode("");
+    try {
+      await login(username, password);
+    } catch (err) {
+      if (err.codeRequired) askForCode(err);
+      else setError(err.message);
     } finally {
       setBusy(false);
     }
@@ -44,7 +77,8 @@ export default function Login() {
           <h1 id="login-title">Sign in</h1>
           <p className="login-sub">Welcome back to {BRAND}.</p>
 
-          {notice && !error && <p className="login-notice" role="status">{notice}</p>}
+          {notice && !error && !info && <p className="login-notice" role="status">{notice}</p>}
+          {info && !error && <p className="login-notice" role="status">{info}</p>}
           {error && <p className="login-error" role="alert">{error}</p>}
 
           <label className="login-field" htmlFor="login-username">Username</label>
@@ -67,12 +101,22 @@ export default function Login() {
 
           {needsCode && (
           <>
-            <label className="login-field" htmlFor="login-code">Code from your authenticator app</label>
+            <label className="login-field" htmlFor="login-code">
+              {byEmail ? "Sign-in code from your email" : "Code from your authenticator app"}
+            </label>
             <div className="login-input">
-              <ShieldCheck size={18} aria-hidden="true" />
+              {byEmail ? <Mail size={18} aria-hidden="true" /> : <ShieldCheck size={18} aria-hidden="true" />}
               <input id="login-code" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric"
                 autoComplete="one-time-code" pattern="[0-9 ]{6,7}" placeholder="123 456" required autoFocus />
             </div>
+            {byEmail && (
+              <p className="login-resend">
+                {retryIn > 0
+                  ? <span aria-live="polite">You can send a new code in {retryIn} s.</span>
+                  : <>Didn't get it? Check your spam folder, or{" "}
+                    <button type="button" onClick={sendNewCode} disabled={busy}>send a new code</button>.</>}
+              </p>
+            )}
           </>
         )}
         <Button busy={busy} busyText="Signing in…" className="login-btn">{needsCode ? "Confirm and sign in" : "Sign in"}</Button>

@@ -1,6 +1,6 @@
 /* Sign-in page: the wordmark above a clean, centred card on the page background. Uses the app's tokens, so light
    and dark both work and every text colour meets WCAG AA. */
-.login-page { position: relative; min-height: 100vh; display: grid; place-items: center; padding: var(--s-12) var(--s-4) var(--s-8); background: var(--bg); color: var(--text); }
+.login-page { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--s-12) var(--s-4) var(--s-8); background: var(--bg); color: var(--text); }
 .login-main { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: var(--s-6); }
 .login-logo .brand-name { font-size: var(--text-20); }
 .login-logo .brand-logo { width: 40px; height: 40px; font-size: var(--text-14); }
@@ -32,5 +32,9 @@
 .login-notice { background: var(--info-bg); color: var(--info); }
 .login-foot { text-align: center; margin: var(--s-6) 0 0; color: var(--text-muted); }
 .login-foot a { font-weight: 600; }
+.login-resend { margin: calc(-1 * var(--s-2)) 0 var(--s-4); font-size: 0.875rem; color: var(--text-muted); }
+.login-resend button { padding: 0; border: none; background: none; font: inherit; font-weight: 600; color: var(--link); cursor: pointer; }
+.login-resend button:hover { text-decoration: underline; }
+.login-resend button:disabled { color: var(--text-muted); cursor: default; text-decoration: none; }
 .login-tagline { text-align: center; color: var(--text-muted); margin: 0; max-width: 36ch; }
 @media (max-width: 480px) { .login-box { padding: var(--s-6) var(--s-4); } }

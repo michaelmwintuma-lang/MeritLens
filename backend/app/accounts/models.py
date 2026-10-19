@@ -30,6 +30,12 @@ class User(Base):
     # Two-factor sign-in (core/totp.py): the shared secret, and whether it has been confirmed and is in use
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     totp_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
+    # The sign-in code last emailed (core/email_codes.py): only its hash, when it stops working, when it was sent,
+    # and how many wrong tries it has had. A new code replaces it, so only the newest one works.
+    email_code_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    email_code_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_code_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_code_attempts: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     # The first-time guide on the overview (frontend: FirstTimeGuide) was closed; My profile can show it again
     guide_done: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
 

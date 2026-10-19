@@ -65,6 +65,20 @@ def username_changed(full_name: str, old: str, new: str, by_admin: bool) -> dict
     }
 
 
+def sign_in_code(full_name: str, code: str, minutes: int) -> dict:
+    return {
+        "subject": f"Your {APP_NAME} sign-in code",
+        "kind": "security",
+        "single_use": True,  # mailer.py: one attempt, and the code isn't kept once it has gone (it expires anyway)
+        "heading": "Your sign-in code",
+        "greeting": f"Hello {full_name},",
+        "paragraphs": [f"Enter this code on the sign-in page to finish signing in. It works once, for {minutes} minutes."],
+        "details": [("Sign-in code", f"{code[:3]} {code[3:]}")],
+        "note": "Never share this code: nobody from your company will ask for it. If you weren't signing in, someone "
+                "may know your password: change it and tell your administrator straight away.",
+    }
+
+
 def two_factor_off(full_name: str) -> dict:
     return {
         "subject": "Two-factor sign-in was turned off",

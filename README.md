@@ -434,6 +434,18 @@ To send real email through Gmail:
 4. Restart the app and send a test email from **Administration → Email**.
 
 `DEMO_INBOX` sets where "Book a demo" requests go, and `APP_URL` sets the link used in emails.
+Email to example addresses (such as the demo accounts' `example.org`) is always saved to the outbox, never sent:
+those addresses have no inbox.
+
+### Sign-in codes by email (optional)
+
+For the roles listed in `EMAIL_CODE_ROLES` in `backend/.env` (for example `admin,hr,finance,auditor`), the right
+password is followed by a six-digit code emailed to the account. A code works once, for 10 minutes, and only while it
+is the newest one; five wrong tries cancel it, and wrong codes count towards locking the account, like wrong
+passwords. A new code can be sent once a minute. Codes are stored only as a keyed hash and are not kept in the email
+log. Someone who has set up an authenticator app enters its code instead. An account in these roles needs an email
+address. The demo accounts' `example.org` addresses can't receive mail, so their codes are in the newest file in
+`backend/instance/outbox/`.
 
 ### Note for Windows
 

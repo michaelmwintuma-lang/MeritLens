@@ -65,7 +65,8 @@ def my_data(user: User = Depends(get_current_user), db: Session = Depends(get_db
         "about": "Everything MeritLens holds about you, on the day you downloaded it. Scores are readiness scores: "
                  "the model only advises, and people make every decision.",
         "downloaded_at": plain(datetime.now(timezone.utc)),
-        "account": rows([user], "password_hash", "token_version", "failed_logins", "locked_until", "photo")[0],
+        "account": rows([user], "password_hash", "token_version", "failed_logins", "locked_until", "photo",
+                        "email_code_hash", "email_code_expires", "email_code_sent_at", "email_code_attempts")[0],
         "notifications": rows(db.scalars(select(Notification).where(Notification.user_id == user.id))),
         "activity_log": rows(db.scalars(select(ActivityEntry).where(ActivityEntry.user_id == user.id))),
         "emails_sent_to_you": rows(db.scalars(select(EmailLog).where(EmailLog.to_address == (user.email or ""))), "mail_json"),

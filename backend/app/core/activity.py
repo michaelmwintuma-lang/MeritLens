@@ -18,6 +18,7 @@ from app.core.database import Base
 ACTIONS = {
     "sign_in": "Signed in",
     "sign_in_failed": "Failed sign-in",
+    "sign_in_code_sent": "Was emailed a sign-in code",
     "account_locked": "Account locked after too many wrong passwords",
     "password_changed": "Changed their password",
     "username_changed": "Changed their username",

@@ -48,6 +48,7 @@ class FakeServer:
 def mail_server(monkeypatch):
     monkeypatch.setattr(mailer, "is_configured", lambda: True)
     monkeypatch.setattr(smtplib, "SMTP", FakeServer)
+    monkeypatch.setattr(mailer, "cannot_receive", lambda address: False)  # the demo accounts' example.org too
     FakeServer.refuse, FakeServer.sent = False, []
     return FakeServer
 

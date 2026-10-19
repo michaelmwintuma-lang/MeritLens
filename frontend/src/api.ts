@@ -20,6 +20,9 @@ export interface ApiError extends Error {
   status?: number;
   fields: Record<string, string>; // per-field problems, so a form can show each next to its box
   codeRequired?: boolean;         // sign-in: the password is right; now the two-factor code
+  codeMethod?: "app" | "email";   // ...from the authenticator app, or emailed
+  sentTo?: string;                // emailed codes: the address it went to, mostly hidden
+  retryIn?: number;               // emailed codes: seconds until a new code may be sent
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -72,6 +75,9 @@ function toError(data: any, status: number, fallback: string): ApiError {
   error.status = status;
   error.fields = data?.detail?.fields || {};
   error.codeRequired = Boolean(data?.detail?.code_required);
+  error.codeMethod = data?.detail?.method;
+  error.sentTo = data?.detail?.sent_to;
+  error.retryIn = data?.detail?.retry_in;
   return error;
 }
 

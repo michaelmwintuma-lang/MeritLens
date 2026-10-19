@@ -2,9 +2,11 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 from app.accounts.models import User
 from app.accounts.schemas import ChangePasswordIn, ChangeUsernameIn, LoginIn, LoginOut, PhotoIn, ProfileIn, UserOut
@@ -14,7 +16,7 @@ from app.core.database import get_db
 from app.core.security import (CSRF_HEADER, CSRF_VALUE, LOCK_MINUTES, MAX_FAILED_LOGINS, clear_session_cookie,
                                create_token, get_current_user, hash_password, set_session_cookie, verify_password,
                                withdraw_tokens)
-from app.core import throttle, totp
+from app.core import email_codes, throttle, totp
 from app.core.activity import record
 from app.core import email_templates as templates
 from app.core import mailer
@@ -45,6 +47,8 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
     """
     Check the username and password and start a session. After MAX_FAILED_LOGINS wrong passwords in a row, the
     account is locked for LOCK_MINUTES: even the right password is refused until then.
+    A second step follows the right password for some accounts: the code from their authenticator app, or for the
+    roles in EMAIL_CODE_ROLES a code emailed to them (core/email_codes.py). Asking again without a code sends a new one.
     """
     address = request.client.host if request.client else "unknown"
     if throttle.blocked(address):
@@ -62,8 +66,16 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
     if password_ok and user.totp_enabled and not body.code:
         # The password is right; now the code from the authenticator app (nothing counted against the account yet)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, {"message": "Enter the six-digit code from your authenticator app.",
-                                                            "code_required": True})
-    if not password_ok or (user.totp_enabled and not totp.verify(user.totp_secret, body.code)):
+                                                            "code_required": True, "method": "app"})
+    by_email = password_ok and email_codes.required(user)
+    if by_email and not user.email:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your account needs a sign-in code sent by email, but it has no "
+                                                       "email address. Ask your administrator to add one.")
+    if by_email and not body.code:
+        return email_code_step(db, user)  # the password is right; now the code sent to their email
+    code_ok = (totp.verify(user.totp_secret, body.code) if user.totp_enabled
+               else email_codes.check(user, body.code) if by_email else True)
+    if not password_ok or not code_ok:
         user.failed_logins = (user.failed_logins or 0) + 1
         record(db, user, "sign_in_failed")  # a wrong password (or code) on a real account is worth knowing about
         if user.failed_logins >= MAX_FAILED_LOGINS:
@@ -71,12 +83,41 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
             record(db, user, "account_locked")
         db.commit()
         throttle.failed(address)
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED if not password_ok else
-                            {"message": "That code isn't right. Check your authenticator app and try again.", "code_required": True})
+        if not password_ok:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, SIGN_IN_FAILED)
+        if by_email:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, {
+                "message": "That code isn't right, or it has expired or been replaced. Check the newest email from us, "
+                           "or send a new code.",
+                "code_required": True, "method": "email", "sent_to": email_codes.masked(user.email),
+                "retry_in": email_codes.wait_seconds(user)})
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, {"message": "That code isn't right. Check your authenticator app and try again.",
+                                                            "code_required": True, "method": "app"})
     user.failed_logins, user.locked_until = 0, None
     record(db, user, "sign_in")
     db.commit()
     return signed_in(request, response, user)
+
+
+def email_code_step(db: Session, user: User) -> JSONResponse:
+    """
+    Email a new sign-in code (unless one was sent less than RESEND_SECONDS ago) and ask for it. Answered like a
+    request for the authenticator code (401, code_required), plus where the code went and when another may be sent.
+    """
+    sent_to, wait = email_codes.masked(user.email), email_codes.wait_seconds(user)
+    detail = {"code_required": True, "method": "email", "sent_to": sent_to}
+    if wait:
+        message = (f"We've emailed a sign-in code to {sent_to}. Didn't get it? You can send a new one in {wait} seconds."
+                   if email_codes.has_live_code(user) else f"Please wait {wait} seconds, then send a new code.")
+        return JSONResponse({"detail": {**detail, "message": message, "retry_in": wait}}, status.HTTP_401_UNAUTHORIZED)
+    code = email_codes.issue(user)
+    record(db, user, "sign_in_code_sent")
+    db.commit()
+    # Sent after the answer, like every email (mailer.send logs it, and saves it to the outbox without a mail server)
+    mail = templates.sign_in_code(user.full_name, code, email_codes.CODE_MINUTES)
+    return JSONResponse({"detail": {**detail, "retry_in": email_codes.RESEND_SECONDS,
+                                    "message": f"We've emailed a sign-in code to {sent_to}. Enter it below to finish signing in."}},
+                        status.HTTP_401_UNAUTHORIZED, background=BackgroundTask(mailer.send, user.email, mail))
 
 
 # ─── Two-factor sign-in ───────────────────────────────────────────────────────

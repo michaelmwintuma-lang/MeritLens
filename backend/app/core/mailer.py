@@ -33,6 +33,9 @@ from app.core.database import Base, SessionLocal
 
 # After a failed attempt, wait this many minutes before the next; after the last, give up (the admin can resend)
 RETRY_MINUTES = [1, 5, 15, 60, 240]
+# Domains reserved for examples, which have no inboxes: mail to them is saved to the outbox, never sent
+RESERVED_DOMAINS = {"example.org", "example.com", "example.net"}
+RESERVED_ENDINGS = {"test", "example", "invalid", "localhost"}
 
 
 def now() -> datetime:
@@ -84,7 +87,7 @@ def _html(mail: dict) -> str:
     if mail.get("details"):
         rows = "".join(
             f'<tr><td style="padding:6px 16px 6px 0;color:#64748b;white-space:nowrap">{e(label)}</td>'
-            f'<td style="padding:6px 0;font-weight:600;font-family:{"Consolas,monospace" if label in ("Username", "Temporary password", "Case") else "inherit"}">{e(value)}</td></tr>'
+            f'<td style="padding:6px 0;font-weight:600;font-family:{"Consolas,monospace" if label in ("Username", "Temporary password", "Case", "Sign-in code") else "inherit"}">{e(value)}</td></tr>'
             for label, value in mail["details"])
         details = f'<table style="margin:4px 0 18px;border-collapse:collapse;background:#f8fafc;border:1px solid #e6e9ef;border-radius:10px"><tbody><tr><td style="padding:10px 16px"><table>{rows}</table></td></tr></tbody></table>'
     button = ""
@@ -158,13 +161,34 @@ def connect() -> smtplib.SMTP:
     return server
 
 
+def cannot_receive(address: str) -> bool:
+    """An address at a domain reserved for examples (RFC 2606/6761), like the demo accounts' example.org: no inbox."""
+    domain = address.rsplit("@", 1)[-1].lower()
+    return domain in RESERVED_DOMAINS or domain.rsplit(".", 1)[-1] in RESERVED_ENDINGS
+
+
 def deliver(entry: EmailLog) -> dict:
     """One attempt at delivering a logged email. Updates the entry; the caller commits."""
-    message = build(entry.to_address, json.loads(entry.mail_json))
+    mail = json.loads(entry.mail_json)
+    if mail.get("single_use"):  # e.g. a sign-in code: one attempt, and its content isn't kept afterwards
+        entry.mail_json = None
+        result = _attempt(entry, build(entry.to_address, mail))
+        if entry.status == "failed":  # no retries: the code would have expired by then
+            entry.status, entry.next_attempt_at = "gave_up", None
+            result["detail"] = result["detail"].replace(" It will be tried again automatically.", "")
+        return result
+    return _attempt(entry, build(entry.to_address, mail))
+
+
+def _attempt(entry: EmailLog, message: EmailMessage) -> dict:
     entry.attempts += 1
     if not is_configured():
         entry.status, entry.next_attempt_at = "saved", None
         return {"sent": False, "detail": f"No mail server is set up, so the email was saved to {_save(message)}."}
+    if cannot_receive(entry.to_address):
+        entry.status, entry.next_attempt_at = "saved", None
+        return {"sent": False, "detail": f"{entry.to_address} can't receive email (an example address), so the email "
+                                         f"was saved to {_save(message)}."}
     try:
         with connect() as server:
             server.login(SMTP["user"], SMTP["password"])
