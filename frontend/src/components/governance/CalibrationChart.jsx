@@ -7,6 +7,8 @@ import { percent } from "../../format";
 
 const W = 440, H = 300, PAD = { left: 48, right: 16, top: 14, bottom: 42 };
 const pct1 = (v) => `${(v * 100).toFixed(1)}%`;
+// Near either side, the tooltip opens inwards so it stays on a narrow screen
+const edge = (share) => (share < 0.3 ? " edge-start" : share > 0.7 ? " edge-end" : "");
 
 export function CalibrationSummary({ calibration: c }) {
   const tag = { "well calibrated": "tag tag-yes", "roughly calibrated": "tag tag-info" }[c.verdict] || "tag tag-warn";
@@ -61,7 +63,7 @@ export default function CalibrationChart({ calibration: c }) {
           ))}
         </svg>
         {point && (
-          <div className="cal-tooltip" role="status"
+          <div className={`cal-tooltip${edge(x(point.mean_score) / W)}`} role="status"
             style={{ left: `${(x(point.mean_score) / W) * 100}%`, top: `${(y(point.promoted) / H) * 100}%` }}>
             <strong>Scores {pct1(point.from)}–{pct1(point.to)}</strong>
             <span>Average score {pct1(point.mean_score)}</span>

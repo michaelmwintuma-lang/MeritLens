@@ -1,6 +1,6 @@
 /* Sign-in page: the wordmark above a clean, centred card on the page background. Uses the app's tokens, so light
    and dark both work and every text colour meets WCAG AA. */
-.login-page { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--s-12) var(--s-4) var(--s-8); background: var(--bg); color: var(--text); }
+.login-page { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: calc(var(--s-12) + var(--s-4)) var(--s-4) var(--s-8); background: var(--bg); color: var(--text); }
 .login-main { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: var(--s-6); }
 .login-logo .brand-name { font-size: var(--text-20); }
 .login-logo .brand-logo { width: 40px; height: 40px; font-size: var(--text-14); }

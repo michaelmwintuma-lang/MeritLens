@@ -5,6 +5,8 @@ import { useState } from "react";
 import { percent } from "../../format";
 
 const W = 560, H = 200, PAD = { left: 44, right: 16, top: 24, bottom: 36 };
+// Near either side, the tooltip opens inwards so it stays on a narrow screen
+const edge = (share) => (share < 0.3 ? " edge-start" : share > 0.7 ? " edge-end" : "");
 
 export default function TrendChart({ points }) {
   const [active, setActive] = useState(null);
@@ -38,7 +40,7 @@ export default function TrendChart({ points }) {
           ))}
         </svg>
         {point && (
-          <div className="cal-tooltip" role="status" style={{ left: `${(x(active) / W) * 100}%`, top: `${(y(point.score) / H) * 100}%` }}>
+          <div className={`cal-tooltip${edge(x(active) / W)}`} role="status" style={{ left: `${(x(active) / W) * 100}%`, top: `${(y(point.score) / H) * 100}%` }}>
             <strong>{point.name}</strong>
             <span>Readiness {percent(point.score)}{point.recommended ? " · recommended" : ""}</span>
             {point.rescored && <span className="muted">Updated after a record change (was {percent(point.score_at_opening)})</span>}
