@@ -2,7 +2,7 @@
 // your username and password. New accounts are sent here first, because their password came from the welcome email.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Camera, Download, KeyRound, Lock, ShieldCheck, Trash2 } from "lucide-react";
+import { Bell, Camera, Download, Eye, EyeOff, KeyRound, Lock, ShieldCheck, Trash2 } from "lucide-react";
 import QRCode from "qrcode";
 import { api, apiBlob } from "../api";
 import { useAuth } from "../auth";
@@ -323,6 +323,20 @@ function EmailPreference() {
   );
 }
 
+/** A password box with an eye button to show or hide what's typed, like the sign-in page's. */
+function PasswordInput(props) {
+  const [shown, setShown] = useState(false);
+  return (
+    <span className="password-input">
+      <input {...props} type={shown ? "text" : "password"} />
+      <button type="button" className="password-eye" onClick={() => setShown(!shown)}
+        aria-label={shown ? "Hide password" : "Show password"} aria-pressed={shown}>
+        {shown ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+      </button>
+    </span>
+  );
+}
+
 function ChangePassword() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
@@ -354,13 +368,13 @@ function ChangePassword() {
       <form onSubmit={(e) => withWorking(() => submit(e))}>
         {message.text && <p className={`alert ${message.ok ? "alert-success" : "alert-error"}`} role="status">{message.text}</p>}
         <label className="field">{firstTime ? "Temporary password (from your welcome email)" : "Current password"}
-          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required />
+          <PasswordInput value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required />
         </label>
         <label className="field">New password
-          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" minLength={8} required />
+          <PasswordInput value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" minLength={8} required />
         </label>
         <label className="field">Repeat new password
-          <input type="password" value={repeat} onChange={(e) => setRepeat(e.target.value)} autoComplete="new-password" minLength={8} required />
+          <PasswordInput value={repeat} onChange={(e) => setRepeat(e.target.value)} autoComplete="new-password" minLength={8} required />
         </label>
         <Button busy={working} busyText="Saving…">Save password</Button>
       </form>

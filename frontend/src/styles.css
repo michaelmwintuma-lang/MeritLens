@@ -252,6 +252,15 @@ select {
 }
 [data-theme="dark"] select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239ba9ba' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
 textarea { resize: vertical; line-height: var(--lh-body); }
+/* A password box with a show/hide eye button inside its right edge */
+.password-input { position: relative; display: block; }
+.password-input input { padding-right: 44px; }
+.password-eye {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%); display: grid; place-items: center;
+  width: 34px; height: 34px; border: none; border-radius: var(--radius-btn); background: none; color: var(--text-muted); cursor: pointer;
+}
+.password-eye:hover { background: var(--surface-sunken); color: var(--text); }
+.password-eye:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
 .check { display: flex; align-items: center; gap: var(--s-2); font-weight: 400; cursor: pointer; }
 .choices { display: flex; gap: var(--s-3) var(--s-6); flex-wrap: wrap; margin-bottom: var(--s-4); }
 .filters { display: flex; gap: var(--s-3); flex-wrap: wrap; align-items: center; }
