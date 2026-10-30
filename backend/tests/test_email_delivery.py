@@ -196,13 +196,14 @@ def test_working_days_skip_weekends():
 class FakeBrevo:
     """Stands in for Brevo's email API: accepts every email, or answers with an error status."""
     status = 201
+    message = ""
     bodies: list = []
 
     @staticmethod
     def post(url, json, headers, timeout):
         assert url == mailer.BREVO_URL and headers["api-key"] == "test-key"
         FakeBrevo.bodies.append(json)
-        return httpx.Response(FakeBrevo.status, json={"message": "Sender not verified"} if FakeBrevo.status >= 400 else {})
+        return httpx.Response(FakeBrevo.status, json={"message": FakeBrevo.message} if FakeBrevo.status >= 400 else {})
 
 
 @pytest.fixture
@@ -210,7 +211,7 @@ def brevo(monkeypatch):
     monkeypatch.setattr(config, "BREVO_API_KEY", "test-key")
     monkeypatch.setattr(httpx, "post", FakeBrevo.post)
     monkeypatch.setattr(mailer, "cannot_receive", lambda address: False)
-    FakeBrevo.status, FakeBrevo.bodies = 201, []
+    FakeBrevo.status, FakeBrevo.message, FakeBrevo.bodies = 201, "", []
     return FakeBrevo
 
 
@@ -226,14 +227,14 @@ def test_with_a_brevo_key_emails_go_through_its_api(client, brevo):
 
 
 def test_an_email_brevo_refuses_is_tried_again_with_its_reason(client, brevo):
-    brevo.status = 400
+    brevo.status, brevo.message = 400, "Sender not verified"
     nominate(client)
     [entry] = [e for e in log(client)["items"] if e["to"] == "hr@example.org"]
     assert entry["status"] == "failed" and "Sender not verified" in entry["last_error"]
-    brevo.status = 401
+    brevo.status, brevo.message = 401, "We have detected you are using an unrecognised IP address"
     with SessionLocal() as db:
         db.execute(update(mailer.EmailLog).where(mailer.EmailLog.id == entry["id"]).values(next_attempt_at=datetime(2000, 1, 1)))
         db.commit()
     mailer.retry_due()
     [entry] = [e for e in log(client)["items"] if e["id"] == entry["id"]]
-    assert entry["last_error"] == "Brevo refused the API key"
+    assert entry["last_error"] == "Brevo refused the API key (We have detected you are using an unrecognised IP address)"

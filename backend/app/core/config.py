@@ -99,7 +99,7 @@ SMTP = {
 }
 # Brevo's email API: sends over HTTPS, for hosts that block the mail ports above (such as Render's free plan). When
 # set, it is used instead of the mail server; the sender (SMTP_SENDER, or SMTP_USER) must be a sender verified in Brevo.
-BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip().strip("\"'").strip()  # quotes pasted with it aren't part of it
 # Where "Book a demo" requests are emailed (default: the Gmail address that sends the platform's emails)
 DEMO_INBOX = os.getenv("DEMO_INBOX", "") or os.getenv("SMTP_USER", "")
 OUTBOX_DIR = Path(os.getenv("OUTBOX_DIR", str(INSTANCE_DIR / "outbox")))

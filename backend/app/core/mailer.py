@@ -187,14 +187,13 @@ def send_brevo(message: EmailMessage) -> None:
         body["replyTo"] = {"email": str(message["Reply-To"])}
     response = httpx.post(BREVO_URL, json=body, headers={"api-key": config.BREVO_API_KEY, "accept": "application/json"},
                           timeout=20)
-    if response.status_code in (401, 403):
-        raise BrevoRefused("Brevo refused the API key")
     if response.status_code >= 400:
-        try:
+        try:  # Brevo's own reason, e.g. "Key not found", "unrecognised IP address" or "Sender not verified"
             why = response.json().get("message", "")
         except ValueError:
             why = ""
-        raise BrevoRefused(f"Brevo didn't accept the email ({why or response.status_code})"[:250])
+        what = "refused the API key" if response.status_code in (401, 403) else "didn't accept the email"
+        raise BrevoRefused(f"Brevo {what} ({why or response.status_code})"[:250])
 
 
 def cannot_receive(address: str) -> bool:
