@@ -4,9 +4,10 @@ Sending emails.
 Each email is described once (subject, heading, short paragraphs, a few details, an optional button) and sent in two
 versions: a branded HTML one and a plain-text one for simple mail programs.
 
-With a mail server configured in backend/.env (for example Gmail with an app password), emails are sent. Without
-one, each email is saved in backend/instance/outbox/ instead, so nothing is lost and the admin is told which
-happened.
+With a mail server configured in backend/.env (for example Gmail with an app password), emails are sent. With
+BREVO_API_KEY set, they go through Brevo's email API instead (over HTTPS, for hosts that block the mail ports).
+Without either, each email is saved in backend/instance/outbox/ instead, so nothing is lost and the admin is told
+which happened.
 
 Every email is recorded in the delivery log (EmailLog): who it went to, its subject, whether it was sent, and any
 error. One the mail server didn't accept is tried again later, waiting longer each time (RETRY_MINUTES), and the
@@ -23,11 +24,12 @@ from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import formataddr
 
+import httpx
 from sqlalchemy import DateTime, Integer, String, Text, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.accounts.models import User
-from app.core import notifications
+from app.core import config, notifications
 from app.core.config import APP_NAME, APP_URL, OUTBOX_DIR, SMTP
 from app.core.database import Base, SessionLocal
 
@@ -60,8 +62,19 @@ class EmailLog(Base):
     mail_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # the content, until it is delivered
 
 
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
+
+
+class BrevoRefused(Exception):
+    """Brevo answered but didn't accept the email; the message says why, in words the admin can read."""
+
+
+def uses_brevo() -> bool:
+    return bool(config.BREVO_API_KEY)
+
+
 def is_configured() -> bool:
-    return bool(SMTP["host"] and SMTP["user"] and SMTP["password"])
+    return uses_brevo() or bool(SMTP["host"] and SMTP["user"] and SMTP["password"])
 
 
 def _text(mail: dict) -> str:
@@ -161,6 +174,29 @@ def connect() -> smtplib.SMTP:
     return server
 
 
+def send_brevo(message: EmailMessage) -> None:
+    """Hand one built email to Brevo's API: the same sender, subject, plain-text and HTML versions, and Reply-To."""
+    body = {
+        "sender": {"name": SMTP["sender_name"], "email": SMTP["sender"]},
+        "to": [{"email": str(message["To"])}],
+        "subject": str(message["Subject"]),
+        "textContent": message.get_body(("plain",)).get_content(),
+        "htmlContent": message.get_body(("html",)).get_content(),
+    }
+    if message["Reply-To"]:
+        body["replyTo"] = {"email": str(message["Reply-To"])}
+    response = httpx.post(BREVO_URL, json=body, headers={"api-key": config.BREVO_API_KEY, "accept": "application/json"},
+                          timeout=20)
+    if response.status_code in (401, 403):
+        raise BrevoRefused("Brevo refused the API key")
+    if response.status_code >= 400:
+        try:
+            why = response.json().get("message", "")
+        except ValueError:
+            why = ""
+        raise BrevoRefused(f"Brevo didn't accept the email ({why or response.status_code})"[:250])
+
+
 def cannot_receive(address: str) -> bool:
     """An address at a domain reserved for examples (RFC 2606/6761), like the demo accounts' example.org: no inbox."""
     domain = address.rsplit("@", 1)[-1].lower()
@@ -190,12 +226,21 @@ def _attempt(entry: EmailLog, message: EmailMessage) -> dict:
         return {"sent": False, "detail": f"{entry.to_address} can't receive email (an example address), so the email "
                                          f"was saved to {_save(message)}."}
     try:
-        with connect() as server:
-            server.login(SMTP["user"], SMTP["password"])
-            server.send_message(message)
-    except (smtplib.SMTPException, OSError) as error:
-        reason = ("the mail server refused the username or app password" if isinstance(error, smtplib.SMTPAuthenticationError)
-                  else f"the mail server couldn't be reached ({error.__class__.__name__})")
+        if uses_brevo():
+            send_brevo(message)
+        else:
+            with connect() as server:
+                server.login(SMTP["user"], SMTP["password"])
+                server.send_message(message)
+    except (smtplib.SMTPException, OSError, httpx.HTTPError, BrevoRefused) as error:
+        if isinstance(error, BrevoRefused):
+            reason = str(error)
+        elif isinstance(error, smtplib.SMTPAuthenticationError):
+            reason = "the mail server refused the username or app password"
+        elif isinstance(error, httpx.HTTPError):
+            reason = f"Brevo couldn't be reached ({error.__class__.__name__})"
+        else:
+            reason = f"the mail server couldn't be reached ({error.__class__.__name__})"
         entry.last_error = reason
         if entry.attempts <= len(RETRY_MINUTES):
             entry.status = "failed"

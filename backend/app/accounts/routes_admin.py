@@ -260,6 +260,9 @@ email_router = APIRouter(prefix="/api/admin/email", tags=["admin"])
 def email_status(_: User = Depends(admin_only)):
     """Whether a mail server is set up (never the password itself), and how many emails are in the outbox."""
     outbox = sorted(OUTBOX_DIR.glob("*.eml")) if OUTBOX_DIR.exists() else []
+    if mailer.uses_brevo():
+        return {"configured": True, "host": "api.brevo.com", "port": 443, "sender": SMTP["sender"],
+                "outbox_count": len(outbox)}
     return {"configured": mailer.is_configured(), "host": SMTP["host"] or None, "port": SMTP["port"],
             "sender": SMTP["sender"] if mailer.is_configured() else None, "outbox_count": len(outbox)}
 

@@ -6,10 +6,11 @@ them (never for account emails); and reminders before things are late, each sent
 import smtplib
 from datetime import date, datetime, timedelta
 
+import httpx
 import pytest
 from sqlalchemy import select, update
 
-from app.core import digests, mailer, reminders
+from app.core import config, digests, mailer, reminders
 from app.core.database import SessionLocal
 from app.feedback.models import CorrectionRequest
 from app.promotion.models import PayReview, ReviewCycle
@@ -190,3 +191,49 @@ def test_working_days_skip_weekends():
     friday = date(2026, 10, 16)
     assert reminders.working_days_between(friday, friday + timedelta(days=3)) == 1  # to Monday
     assert reminders.working_days_between(friday, friday + timedelta(days=5)) == 3  # to Wednesday
+
+
+class FakeBrevo:
+    """Stands in for Brevo's email API: accepts every email, or answers with an error status."""
+    status = 201
+    bodies: list = []
+
+    @staticmethod
+    def post(url, json, headers, timeout):
+        assert url == mailer.BREVO_URL and headers["api-key"] == "test-key"
+        FakeBrevo.bodies.append(json)
+        return httpx.Response(FakeBrevo.status, json={"message": "Sender not verified"} if FakeBrevo.status >= 400 else {})
+
+
+@pytest.fixture
+def brevo(monkeypatch):
+    monkeypatch.setattr(config, "BREVO_API_KEY", "test-key")
+    monkeypatch.setattr(httpx, "post", FakeBrevo.post)
+    monkeypatch.setattr(mailer, "cannot_receive", lambda address: False)
+    FakeBrevo.status, FakeBrevo.bodies = 201, []
+    return FakeBrevo
+
+
+def test_with_a_brevo_key_emails_go_through_its_api(client, brevo):
+    status = client.get("/api/admin/email", headers=login(client, "admin")).json()
+    assert status["configured"] and status["host"] == "api.brevo.com"
+    nominate(client)
+    [entry] = [e for e in log(client)["items"] if e["to"] == "hr@example.org"]
+    assert entry["status"] == "sent"
+    [body] = [b for b in brevo.bodies if b["to"] == [{"email": "hr@example.org"}]]
+    assert body["subject"].startswith("New nomination") and body["htmlContent"].startswith("<!doctype html>")
+    assert body["textContent"] and body["sender"]["email"]
+
+
+def test_an_email_brevo_refuses_is_tried_again_with_its_reason(client, brevo):
+    brevo.status = 400
+    nominate(client)
+    [entry] = [e for e in log(client)["items"] if e["to"] == "hr@example.org"]
+    assert entry["status"] == "failed" and "Sender not verified" in entry["last_error"]
+    brevo.status = 401
+    with SessionLocal() as db:
+        db.execute(update(mailer.EmailLog).where(mailer.EmailLog.id == entry["id"]).values(next_attempt_at=datetime(2000, 1, 1)))
+        db.commit()
+    mailer.retry_due()
+    [entry] = [e for e in log(client)["items"] if e["id"] == entry["id"]]
+    assert entry["last_error"] == "Brevo refused the API key"
