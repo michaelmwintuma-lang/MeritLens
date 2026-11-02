@@ -193,7 +193,10 @@ def send_brevo(message: EmailMessage) -> None:
         except ValueError:
             why = ""
         what = "refused the API key" if response.status_code in (401, 403) else "didn't accept the email"
-        raise BrevoRefused(f"Brevo {what} ({why or response.status_code})"[:250])
+        reason = f"Brevo {what} ({why or response.status_code})"
+        if config.BREVO_API_KEY.startswith("xsmtpsib-"):  # Brevo lists both kinds of key on the same page
+            reason += ": BREVO_API_KEY holds an SMTP key; it needs an API key (starts xkeysib-)"
+        raise BrevoRefused(reason[:250])
 
 
 def cannot_receive(address: str) -> bool:

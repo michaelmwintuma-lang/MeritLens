@@ -201,7 +201,7 @@ class FakeBrevo:
 
     @staticmethod
     def post(url, json, headers, timeout):
-        assert url == mailer.BREVO_URL and headers["api-key"] == "test-key"
+        assert url == mailer.BREVO_URL and headers["api-key"] == config.BREVO_API_KEY
         FakeBrevo.bodies.append(json)
         return httpx.Response(FakeBrevo.status, json={"message": FakeBrevo.message} if FakeBrevo.status >= 400 else {})
 
@@ -224,6 +224,15 @@ def test_with_a_brevo_key_emails_go_through_its_api(client, brevo):
     [body] = [b for b in brevo.bodies if b["to"] == [{"email": "hr@example.org"}]]
     assert body["subject"].startswith("New nomination") and body["htmlContent"].startswith("<!doctype html>")
     assert body["textContent"] and body["sender"]["email"]
+
+
+def test_an_smtp_key_given_as_the_api_key_is_named_as_the_cause(client, brevo, monkeypatch):
+    monkeypatch.setattr(config, "BREVO_API_KEY", "xsmtpsib-test")
+    brevo.status, brevo.message = 401, "Key not found"
+    nominate(client)
+    [entry] = [e for e in log(client)["items"] if e["to"] == "hr@example.org"]
+    assert entry["last_error"] == ("Brevo refused the API key (Key not found): BREVO_API_KEY holds an SMTP key; "
+                                   "it needs an API key (starts xkeysib-)")
 
 
 def test_an_email_brevo_refuses_is_tried_again_with_its_reason(client, brevo):
