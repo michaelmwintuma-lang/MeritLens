@@ -41,8 +41,8 @@ function CyclePanel({ cycle, total, isHr }) {
   );
 }
 
-/** The card above the list (no review cycle open): the button, the run in progress, or what the last run did. */
-function RunPanel({ run, start, total, scored, hint }) {
+/** The card above the list (no review cycle open): shows automatic scoring status, with quick action to re-calculate or start a cycle. */
+function RunPanel({ run, start, total, scored, isHr, modelVersion, lastRunAt }) {
   if (run.status === "running") {
     const pct = Math.round(run.progress * 100);
     return (
@@ -50,7 +50,7 @@ function RunPanel({ run, start, total, scored, hint }) {
         <div className="run-all-head">
           <span className="run-all-icon working"><Brain size={22} aria-hidden="true" /></span>
           <div>
-            <h2>Running predictions…</h2>
+            <h2>Re-scoring predictions…</h2>
             <p className="muted">Scoring employee {Math.min(Math.max(scored, 1), total)} of {total}</p>
           </div>
           <strong className="run-all-pct">{pct}%</strong>
@@ -66,24 +66,22 @@ function RunPanel({ run, start, total, scored, hint }) {
       <div className="run-all-head">
         <span className="run-all-icon"><Brain size={22} aria-hidden="true" /></span>
         <div>
-          {run.status === "done" ? (
-            <>
-              <h2>Predictions for {run.result.employees.length} employees</h2>
-              <p className="muted" role="status">
-                Worked out at {time(run.result.run_at)} by the live model (version {run.result.model_version}) from
-                each current record. Nothing is saved, and the model only advises.
-              </p>
-            </>
-          ) : (
-            <>
-              <h2>Run the readiness predictions</h2>
-              <p className="muted">The live model scores all {total} employees from their current records. Nothing is saved. {hint}</p>
-            </>
-          )}
+          <h2>System-wide readiness predictions</h2>
+          <p className="muted" role="status">
+            All {total} employees are automatically scored by live model ({modelVersion ? `v${modelVersion}` : ""}) from their latest records.
+            {lastRunAt ? ` Re-calculated at ${time(lastRunAt)}.` : " Scores are live and ready."}
+          </p>
         </div>
-        <Button onClick={start} icon={run.status === "done" ? RotateCcw : Play} look={run.status === "done" ? "secondary" : "primary"}>
-          {run.status === "done" ? "Run again" : `Run predictions for all ${total}`}
-        </Button>
+        <div className="form-actions" style={{ margin: 0, gap: 8 }}>
+          {isHr && (
+            <Link to="/cycles" className="btn btn-primary">
+              <CalendarRange size={16} aria-hidden="true" /> Start promotion round
+            </Link>
+          )}
+          <Button onClick={start} icon={RotateCcw} look="secondary">
+            Re-calculate all
+          </Button>
+        </div>
       </div>
       {run.status === "error" && <Callout tone="error" className="section-gap">{run.error}</Callout>}
     </section>
@@ -108,15 +106,15 @@ export default function EmployeeList() {
   if (error) return <LoadError message={error} onRetry={load} />;
   if (!data) return <PageLoading />;
 
-  // A review cycle is open: the server sends everyone's saved score, so there is nothing to run
+  // When a review cycle is open, scores are the cycle's snapshot; otherwise live predictions returned by server
   const cycle = data.cycle;
-  const done = Boolean(cycle) || run.status === "done";
-  // The run works down the list in name order (the order the server sends); each row's place in it
-  const people = cycle ? data.employees : done ? run.result.employees : data.employees;
+  const done = true;
+  const people = run.result?.employees || data.employees;
   const place = new Map(data.employees.map((e, i) => [e.id, i]));
-  const scores = new Map((cycle ? data.employees : run.result?.employees || []).map((e) => [e.id, e]));
+  const scores = new Map(people.map((e) => [e.id, e]));
   const scored = Math.floor(run.progress * data.employees.length);
-  const threshold = cycle ? data.threshold : run.result?.threshold ?? data.threshold;
+  const threshold = cycle ? data.threshold : (run.result?.threshold ?? data.threshold);
+  const modelVersion = cycle ? cycle.model_version : (run.result?.model_version ?? data.model_version);
 
   const departments = [...new Set(people.map((e) => e.department))].sort();
   const hasBranch = isManager && data.employees.some((e) => e.relation !== "direct");
@@ -125,17 +123,16 @@ export default function EmployeeList() {
     .filter((e) => scope === "all" || relation.get(e.id)?.relation !== "branch")
     .filter((e) => e.full_name.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => !department || e.department === department)
-    .filter((e) => !done || !onlyRecommended || e.recommended);
-  const sorted = sortRows(rows, sort.by === "score" && !done ? { by: "full_name", dir: "asc" } : sort);
-  const recommendedCount = done ? people.filter((e) => e.recommended).length : null;
+    .filter((e) => !onlyRecommended || e.recommended);
+  const sorted = sortRows(rows, sort);
+  const recommendedCount = people.filter((e) => e.recommended).length;
   const shown = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  /** The readiness cells of one row: its score once the run has reached it, otherwise a placeholder. */
+  /** The readiness cells of one row: its score and verdict. */
   function readiness(e) {
-    const reached = done || (run.status === "running" && place.get(e.id) < scored);
     const result = scores.get(e.id);
-    if (reached && result) {
-      const fresh = done ? "" : "just-scored";
+    if (result && result.score != null) {
+      const fresh = run.status === "running" && place.get(e.id) < scored ? "just-scored" : "";
       return (
         <>
           <td className={`num strong ${fresh}`}>{percent(result.score)}</td>
@@ -147,7 +144,7 @@ export default function EmployeeList() {
     if (run.status === "running") {
       return <><td className="num"><span className="score-pending" /></td><td><span className="score-pending wide" /></td><td /></>;
     }
-    return <><td className="num muted">Not run yet</td><td /><td /></>;
+    return <><td className="num muted">Calculating…</td><td /><td /></>;
   }
 
   return (
@@ -167,7 +164,7 @@ export default function EmployeeList() {
       {cycle
         ? <CyclePanel cycle={cycle} total={data.employees.length} isHr={user.role === "hr"} />
         : <RunPanel run={run} start={start} total={data.employees.length} scored={scored}
-            hint={user.role === "hr" ? "To keep scores for a promotion round, start a review cycle." : ""} />}
+            isHr={user.role === "hr"} modelVersion={modelVersion} lastRunAt={run.result?.run_at} />}
       <div className="card flush">
         <div className="card-head filters">
           <input placeholder="Search by name" value={search} onChange={filter(setSearch)} aria-label="Search by name" />

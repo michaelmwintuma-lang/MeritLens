@@ -57,9 +57,19 @@ SESSION_COOKIE = "meritlens_session"
 TOKEN_MINUTES = int(os.getenv("TOKEN_MINUTES", "480"))
 # Roles that must use two-factor sign-in (an authenticator app), e.g. "hr,finance,admin". Empty: anyone may choose to.
 REQUIRE_2FA_ROLES = {r.strip() for r in os.getenv("REQUIRE_2FA_ROLES", "").split(",") if r.strip()}
-# Roles that get a one-time code by email at every sign-in (core/email_codes.py), e.g. "admin,hr,finance,auditor".
-# Someone who uses an authenticator app enters its code instead. Empty: no email codes.
-EMAIL_CODE_ROLES = {r.strip() for r in os.getenv("EMAIL_CODE_ROLES", "").split(",") if r.strip()}
+# Roles that get a one-time code by email at every sign-in (core/email_codes.py).
+# Defaults to "admin,hr,finance,auditor". Someone with an authenticator app enters its code instead.
+# Set EMAIL_CODE_ROLES=none or 0 in the environment to switch off.
+def _load_email_code_roles() -> set[str]:
+    raw = os.getenv("EMAIL_CODE_ROLES")
+    if raw is not None:
+        if raw.lower().strip() in ("0", "none", "off", "false", ""):
+            return set()
+        return {r.strip() for r in raw.split(",") if r.strip()}
+    return {"admin", "hr", "finance", "auditor"}
+
+
+EMAIL_CODE_ROLES = _load_email_code_roles()
 
 # Password for the fictional demo accounts created on first start
 DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "demo1234")

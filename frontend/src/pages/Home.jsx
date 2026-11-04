@@ -2,7 +2,7 @@
 // your role, then the list you work from.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarRange, Play } from "lucide-react";
 import { api, governance } from "../api";
 import { useAuth } from "../auth";
 import { percent } from "../format";
@@ -72,6 +72,43 @@ function PromotionOverview({ data, isHr }) {
   return (
     <>
       <Attention items={attention} />
+      {isHr && !cycle && (
+        <Card
+          id="launch-cycle"
+          icon={Play}
+          title="Start Promotion Round (Score Everyone)"
+          subtitle="Score the whole company at once with the live model, freeze the baseline, and invite managers to nominate."
+          actions={
+            <Link to="/cycles" className="btn btn-primary">
+              <Play size={16} aria-hidden="true" /> Launch Promotion Round
+            </Link>
+          }
+        >
+          <p className="muted" style={{ margin: 0 }}>
+            All {people.employees.length} employees will be officially evaluated against the {percent(people.threshold)} threshold.
+            Baseline scores are recorded for auditability, and team managers are automatically emailed with their eligible team members.
+          </p>
+        </Card>
+      )}
+      {isHr && cycle && (
+        <Card
+          id="active-cycle"
+          icon={CalendarRange}
+          title={`Active Promotion Round: ${cycle.name}`}
+          subtitle={`Evaluated by model ${cycle.model_version}. ${cycle.nominations_open ? `Nominations close on ${cycle.nominations_close || "no deadline"}` : "Nominations closed: ready for final decisions"}.`}
+          actions={
+            <Link to="/cycles" className="btn btn-secondary btn-sm">
+              View Cycle Progress
+            </Link>
+          }
+        >
+          <div className="stat-grid" style={{ marginBottom: 0 }}>
+            <StatCard label="Ready for promotion" value={recommended} note={`Score ≥ ${percent(people.threshold)}`} />
+            <StatCard label="Nominations submitted" value={waiting + decisions.length} note="From managers" />
+            <StatCard label="Awaiting your decision" value={waiting} note="Pending HR review" />
+          </div>
+        </Card>
+      )}
       <div className="stat-grid">
         <StatCard label={isHr ? "Employees" : "Team members"} value={people.employees.length} note={isHr ? "In the directory" : "People you manage"} />
         <StatCard label="Recommended" value={recommended} note={`Above the ${percent(people.threshold)} threshold`} />
