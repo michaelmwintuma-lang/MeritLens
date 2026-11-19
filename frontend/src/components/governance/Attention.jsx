@@ -30,7 +30,30 @@ export default function Attention({ items }) {
                     {r.detail && <div className="muted">{r.detail}</div>}
                   </div>
                 </div>
-                <Link className="btn btn-secondary btn-sm" to={r.to}>{r.action} <ArrowRight size={16} aria-hidden="true" /></Link>
+                {r.onClick || r.to?.startsWith("#") ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={(e) => {
+                      if (r.onClick) {
+                        r.onClick(e);
+                      } else if (r.to?.startsWith("#")) {
+                        const target = document.querySelector(r.to);
+                        if (target) {
+                          target.scrollIntoView({ behavior: "smooth", block: "start" });
+                          target.classList.add("highlight");
+                          setTimeout(() => target.classList.remove("highlight"), 2000);
+                        }
+                      }
+                    }}
+                  >
+                    {r.action} <ArrowRight size={16} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <Link className="btn btn-secondary btn-sm" to={r.to}>
+                    {r.action} <ArrowRight size={16} aria-hidden="true" />
+                  </Link>
+                )}
               </li>
             );
           })}

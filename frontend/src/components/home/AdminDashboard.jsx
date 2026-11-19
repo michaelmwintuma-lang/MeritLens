@@ -30,7 +30,22 @@ export default function AdminDashboard({ system, employees, fairness: live, mode
   const candidates = models.filter((m) => m.status === "candidate");
   const attention = [
     accounts.locked && { key: "locked", text: `${plural(accounts.locked, "account")} locked after wrong passwords`, detail: "Unlocks after 15 minutes, or reset the password.", to: "/admin/users", action: "Users", tone: "warn" },
-    drift && drift.status !== "stable" && drift.status !== "too few records" && { key: "drift", text: `Drift: ${drift.status}`, detail: "Today's employees differ from the ones the model learned from.", to: "/", action: "See below", tone: "warn" },
+    drift && drift.status !== "stable" && drift.status !== "too few records" && {
+      key: "drift",
+      text: `Drift: ${drift.status}`,
+      detail: "Today's employees differ from the ones the model learned from.",
+      to: "#drift",
+      action: "See below",
+      tone: "warn",
+      onClick: () => {
+        const target = document.getElementById("drift");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.classList.add("highlight");
+          setTimeout(() => target.classList.remove("highlight"), 2000);
+        }
+      }
+    },
     live?.overall === "below four-fifths" && { key: "fair", text: "A live fairness check is below four-fifths", to: "/fairness", action: "Open", tone: "warn" },
     candidates.length && { key: "model", text: `A model version is waiting for HR's release (${candidates[0].version})`, detail: "Only HR can release it; you can read its card.", to: "/models", action: "Model registry", tone: "info" },
     !email.configured && { key: "email", text: "Email is saved to the outbox, not sent", detail: "Set up a mail server so people receive their notifications.", to: "/admin/email", action: "Email settings", tone: "info" },
@@ -95,7 +110,7 @@ export default function AdminDashboard({ system, employees, fairness: live, mode
       </div>
 
       {drift && (
-        <Card title="Drift: are today's employees like the ones the model learned from?"
+        <Card id="drift" title="Drift: are today's employees like the ones the model learned from?"
           subtitle={`Population stability index (PSI) of each input, for the ${drift.records} employees in the directory against the training sample.`}
           actions={<span className={LEVEL_TAG[drift.status]}>{drift.status}</span>}>
           {drift.inputs.length > 0 && (
