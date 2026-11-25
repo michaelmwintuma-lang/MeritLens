@@ -253,3 +253,69 @@ def audit_trail(event: str | None = None, subject_type: str | None = None, subje
 def verify_trail(db: Session = Depends(get_db), _: User = Depends(auditors)):
     """Recompute every hash: is the trail exactly as it was written?"""
     return audit.verify(db)
+
+
+# ─── Company Threshold Policy ────────────────────────────────────────────────
+class ThresholdPolicyOut(BaseModel):
+    active_threshold: float
+    default_threshold: float
+    is_custom: bool
+    percent: float
+    default_percent: float
+    updated_at: str | None
+    updated_by_name: str | None
+
+
+class ThresholdPolicyIn(BaseModel):
+    threshold: float = Field(ge=0.01, le=100.0, description="Cut-off percentage (e.g. 25.0) or decimal (e.g. 0.25)")
+
+
+@router.get("/threshold", response_model=ThresholdPolicyOut)
+def get_threshold_setting(db: Session = Depends(get_db), _: User = Depends(readers)):
+    """The active promotion threshold (custom or model default)."""
+    from app.governance import threshold as policy_mod
+    from app.promotion.explain import get_model
+    model = get_model()
+    policy = policy_mod.get_policy(db)
+    is_custom = policy.custom_threshold is not None
+    active = float(policy.custom_threshold) if is_custom else float(model.default_threshold)
+    default = float(model.default_threshold)
+    return {
+        "active_threshold": round(active, 4),
+        "default_threshold": round(default, 4),
+        "is_custom": is_custom,
+        "percent": round(active * 100, 2),
+        "default_percent": round(default * 100, 2),
+        "updated_at": policy.updated_at.isoformat(timespec="seconds") if policy.updated_at else None,
+        "updated_by_name": policy.updated_by_name,
+    }
+
+
+@router.put("/threshold", response_model=ThresholdPolicyOut)
+def update_threshold_setting(body: ThresholdPolicyIn, db: Session = Depends(get_db), user: User = Depends(require_roles(ADMIN, HR))):
+    """Admin or HR sets the company's operational promotion threshold."""
+    from fastapi import HTTPException, status
+    from app.governance import threshold as policy_mod
+    val = body.threshold
+    if val > 1.0:
+        val = val / 100.0
+    if not (0.01 <= val <= 0.99):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Threshold must be between 1% and 99%.")
+
+    policy = policy_mod.set_custom_threshold(db, val, user.full_name)
+    record(db, user, "threshold_changed", f"Set to {val * 100:.1f}%")
+    audit.append(db, "threshold_changed", user, "governance", policy.id, {"threshold": round(val, 4), "percent": round(val * 100, 1)})
+    db.commit()
+    return get_threshold_setting(db=db, _=user)
+
+
+@router.post("/threshold/reset", response_model=ThresholdPolicyOut)
+def reset_threshold_setting(db: Session = Depends(get_db), user: User = Depends(require_roles(ADMIN, HR))):
+    """Reset the company threshold back to the machine learning model's default (F1-optimal)."""
+    from app.governance import threshold as policy_mod
+    policy = policy_mod.set_custom_threshold(db, None, user.full_name)
+    record(db, user, "threshold_reset", "Restored model default")
+    audit.append(db, "threshold_reset", user, "governance", policy.id, {})
+    db.commit()
+    return get_threshold_setting(db=db, _=user)
+

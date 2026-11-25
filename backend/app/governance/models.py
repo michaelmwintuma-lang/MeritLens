@@ -11,7 +11,7 @@ Governance tables: who released which model version, and equality-monitoring dat
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -41,3 +41,16 @@ class EqualityMonitoring(Base):
     age_band: Mapped[str | None] = mapped_column(String(20), nullable=True)        # "under 40" or "40+"
     education_level: Mapped[str | None] = mapped_column(String(40), nullable=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class ThresholdPolicy(Base):
+    """
+    Company-level promotion threshold policy (singleton row, id=1).
+    custom_threshold=None means 'use the ML model default'.
+    """
+    __tablename__ = "threshold_policy"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    custom_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    updated_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)

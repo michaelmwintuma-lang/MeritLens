@@ -60,7 +60,7 @@ class PromotionModel:
             raise ModelNotTrained("The model hasn't been trained yet. Run 'python train.py' in the backend folder.")
         self.pipeline = joblib.load(MODELS / "model.joblib")
         self.info = json.loads((MODELS / "model_info.json").read_text())
-        self.threshold = self.info["threshold"]
+        self.default_threshold = float(self.info["threshold"])
         self.version = version_of(self.info)
         self.stats = self.info["feature_stats"]
         self.background = pd.read_csv(MODELS / "background.csv")
@@ -77,6 +77,18 @@ class PromotionModel:
         # Each input's average term over the training sample: the "average employee" that explanations compare with
         self.average_terms = self.terms(self.background).mean(axis=0)
         self.base_logodds = self.intercept + float(self.average_terms.sum())
+
+    @property
+    def threshold(self) -> float:
+        """The active threshold: company-configured threshold if set, otherwise the model's default."""
+        try:
+            from app.governance.threshold import get_active_custom_threshold
+            custom = get_active_custom_threshold()
+            if custom is not None:
+                return float(custom)
+        except Exception:
+            pass
+        return self.default_threshold
 
     def terms(self, records: pd.DataFrame) -> np.ndarray:
         """Each input's term in the log-odds, one row per record and one column per input (MODEL_FEATURES order)."""

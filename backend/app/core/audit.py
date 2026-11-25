@@ -52,6 +52,8 @@ EVENTS = {
     "approval_requested": "HR asked a second HR person to approve an action (four-eyes rule)",
     "approval_given": "A second HR person approved an action, which was carried out",
     "approval_declined": "A second HR person declined an action",
+    "threshold_changed": "Company promotion readiness threshold changed",
+    "threshold_reset": "Company promotion readiness threshold reset to model default",
 }
 
 

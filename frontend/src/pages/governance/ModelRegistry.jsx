@@ -235,6 +235,126 @@ function ModelCard({ version, rows, onChanged }) {
   );
 }
 
+function ThresholdPolicyCard({ onChanged }) {
+  const { user } = useAuth();
+  const canEdit = user.role === "admin" || user.role === "hr";
+  const [data, setData] = useState(null);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [saving, withSaving] = useAction();
+  const [resetting, withResetting] = useAction();
+
+  const load = () => {
+    governance.threshold()
+      .then((t) => {
+        setData(t);
+        setValue(String(t.percent));
+      })
+      .catch((err) => setError(err.message));
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    const numVal = parseFloat(value);
+    if (isNaN(numVal) || numVal < 1 || numVal > 99) {
+      setError("Please enter a valid percentage between 1% and 99%.");
+      return;
+    }
+    try {
+      const updated = await governance.setThreshold(numVal);
+      setData(updated);
+      setValue(String(updated.percent));
+      setSuccess(`Company threshold updated to ${updated.percent}%. Promotion recommendations now use this cut-off.`);
+      if (onChanged) onChanged();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleReset() {
+    setError("");
+    setSuccess("");
+    try {
+      const updated = await governance.resetThreshold();
+      setData(updated);
+      setValue(String(updated.percent));
+      setSuccess(`Reset to model default threshold (${updated.default_percent}%).`);
+      if (onChanged) onChanged();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  if (!data) return null;
+
+  return (
+    <Card
+      title="Company promotion policy: decision threshold"
+      subtitle="Set the minimum readiness score required for the system to recommend an employee for promotion. Administrators can adjust this cut-off to reflect corporate selectivity or headcount preferences."
+    >
+      <div className="section-gap">
+        <dl className="rec-facts" style={{ marginBottom: "1rem" }}>
+          <div>
+            <dt>Active cut-off</dt>
+            <dd>
+              <span className="strong" style={{ fontSize: "1.2rem" }}>{data.percent}%</span>{" "}
+              {data.is_custom ? (
+                <span className="tag tag-yes" style={{ marginLeft: "0.5rem" }}>Company Custom Policy</span>
+              ) : (
+                <span className="tag" style={{ marginLeft: "0.5rem" }}>Model Default (F1-optimal)</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Trained model baseline</dt>
+            <dd>{data.default_percent}% <span className="muted">(best balance on validation data)</span></dd>
+          </div>
+          {data.updated_by_name && (
+            <div>
+              <dt>Last updated by</dt>
+              <dd>{data.updated_by_name} <span className="muted">{data.updated_at ? `(${data.updated_at.slice(0, 10)})` : ""}</span></dd>
+            </div>
+          )}
+        </dl>
+
+        {canEdit && (
+          <form onSubmit={(e) => withSaving(() => handleSave(e))} className="inline-form" style={{ marginTop: "1rem" }}>
+            <label className="field" style={{ minWidth: "220px" }}>
+              Cut-off percentage (%)
+              <input
+                type="number"
+                min={1}
+                max={99}
+                step="0.1"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                required
+                placeholder="e.g. 25.0"
+              />
+            </label>
+            <Button busy={saving} busyText="Saving…" look="primary">Save threshold</Button>
+            {data.is_custom && (
+              <Button type="button" look="secondary" busy={resetting} busyText="Resetting…" onClick={() => withResetting(handleReset)}>
+                Reset to default ({data.default_percent}%)
+              </Button>
+            )}
+          </form>
+        )}
+
+        {success && <Callout tone="success" style={{ marginTop: "1rem" }}>{success}</Callout>}
+        {error && <Callout tone="error" style={{ marginTop: "1rem" }}>{error}</Callout>}
+      </div>
+    </Card>
+  );
+}
+
 export default function ModelRegistry() {
   const { data: rows, error, reload } = useLoad(() => governance.models(), []);
   const [open, setOpen] = useState(null);
@@ -249,6 +369,7 @@ export default function ModelRegistry() {
   return (
     <>
       {header}
+      <ThresholdPolicyCard onChanged={reload} />
       <Card title="Versions" subtitle="Newest first. Open one to read its card." flush>
         <div className="table-wrap auto-height" tabIndex={0} role="region" aria-label="Model versions"><table>
           <thead><tr><th>Version</th><th>Trained</th><th className="num">Test ROC-AUC</th><th className="num">Lowest fairness ratio</th><th>Status</th><th><span className="visually-hidden">Open</span></th></tr></thead>

@@ -139,4 +139,33 @@ export const governance = {
     return api<AuditPage>(`/governance/audit${query ? `?${query}` : ""}`);
   },
   verify: () => api<ChainCheck>("/governance/audit/verify"),
+  threshold: () => api<{
+    active_threshold: number;
+    default_threshold: number;
+    is_custom: boolean;
+    percent: number;
+    default_percent: number;
+    updated_at: string | null;
+    updated_by_name: string | null;
+  }>("/governance/threshold"),
+  setThreshold: (threshold: number) =>
+    api<{
+      active_threshold: number;
+      default_threshold: number;
+      is_custom: boolean;
+      percent: number;
+      default_percent: number;
+      updated_at: string | null;
+      updated_by_name: string | null;
+    }>("/governance/threshold", { method: "PUT", body: { threshold } }),
+  resetThreshold: () =>
+    api<{
+      active_threshold: number;
+      default_threshold: number;
+      is_custom: boolean;
+      percent: number;
+      default_percent: number;
+      updated_at: string | null;
+      updated_by_name: string | null;
+    }>("/governance/threshold/reset", { method: "POST" }),
 };

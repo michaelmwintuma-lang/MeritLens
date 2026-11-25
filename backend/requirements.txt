@@ -1,6 +1,6 @@
 # Web API and database
-fastapi>=0.110
-uvicorn>=0.29
+fastapi==0.142.2       # pinned: 0.143+ pulls Starlette 1.8+ which drops on_startup from Router
+uvicorn>=0.29,<1
 sqlalchemy>=2.0,<2.1  # 2.1 has no pure-Python fallback, which Windows Smart App Control needs
 pyjwt>=2.8
 python-multipart>=0.0.9  # file uploads (evidence for record corrections)
