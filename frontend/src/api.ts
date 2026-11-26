@@ -148,7 +148,7 @@ export const governance = {
     updated_at: string | null;
     updated_by_name: string | null;
   }>("/governance/threshold"),
-  setThreshold: (threshold: number) =>
+  setThreshold: (threshold: number, reason: string) =>
     api<{
       active_threshold: number;
       default_threshold: number;
@@ -157,7 +157,7 @@ export const governance = {
       default_percent: number;
       updated_at: string | null;
       updated_by_name: string | null;
-    }>("/governance/threshold", { method: "PUT", body: { threshold } }),
+    }>("/governance/threshold", { method: "PUT", body: { threshold, reason } }),
   resetThreshold: () =>
     api<{
       active_threshold: number;

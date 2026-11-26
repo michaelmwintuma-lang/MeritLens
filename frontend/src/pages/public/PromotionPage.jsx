@@ -1,11 +1,7 @@
 // How a promotion decision is made, from the model's score to Finance's sign-off.
-import { useEffect, useState } from "react";
-import { api } from "../../api";
 import { PageIntro, Screenshot } from "./parts";
 
 export default function PromotionPage() {
-  const [facts, setFacts] = useState(null);
-  useEffect(() => { api("/public/summary").then(setFacts).catch(() => setFacts(null)); }, []);
   return (
     <>
       <PageIntro title="How a promotion decision is made">
@@ -18,7 +14,7 @@ export default function PromotionPage() {
           <h3>The model scores readiness</h3>
           <p>
             It uses performance and development data only: ratings, results, training, projects, attendance and time
-            in role{facts?.trained ? `. A score of ${Math.round(facts.threshold * 100)}% or more counts as recommended` : ""}. Opening a score shows each factor's contribution, a second
+            in role. For each review cycle, the company’s configured minimum readiness score determines whether a score counts as recommended. Opening a score shows each factor's contribution, a second
             explanation from a different method (LIME) as a cross-check, and a what-if tool for trying changes.
           </p>
         </li>
@@ -33,8 +29,10 @@ export default function PromotionPage() {
         <li>
           <h3>HR decides</h3>
           <p>
-            HR sees the recommendation next to the model's view. Going against the model needs a written reason, and so
-            does a pay rise outside the range HR has set.
+            HR sees the recommendation next to the model's view. Authorized Admin and HR users can set the company’s
+            recommendation threshold to match its promotion policy; they can preview how it affects the current scores,
+            and each change is recorded for audit. The threshold guides recommendations, while HR makes the promotion
+            decision. Going against the model needs a written reason, as does a pay rise outside the range HR has set.
           </p>
         </li>
         <li>

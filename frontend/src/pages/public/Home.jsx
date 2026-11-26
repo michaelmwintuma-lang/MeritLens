@@ -4,7 +4,7 @@
 // an example number.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ClipboardPen, FileCheck2, Gauge, ListChecks, MessageSquareText, Route, Scale, ScanSearch, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { ArrowRight, ClipboardPen, FileCheck2, Gauge, ListChecks, MessageSquareText, Route, Scale, ScanSearch, ShieldCheck, SlidersHorizontal, UserCheck, Users } from "lucide-react";
 import { api } from "../../api";
 import { BRAND, TAGLINE } from "../../brand";
 import { Screenshot } from "./parts";
@@ -18,6 +18,7 @@ const STEPS = [
 const FEATURES = [
   { icon: ScanSearch, title: "Explainable predictions", text: "Each score splits exactly into what raised it and what lowered it (equal to its SHAP values), with LIME as an independent second opinion." },
   { icon: Route, title: "Path to promotion", text: "The smallest realistic improvements that would reach the threshold, plus a what-if tool for trying changes. Nothing is saved." },
+  { icon: SlidersHorizontal, title: "Company-set promotion threshold", text: "Authorized Admin and HR users set the minimum readiness score to match company promotion policy, preview its effect, and keep an audit record of the change." },
   { icon: Scale, title: "Fairness audit", text: "Before a model goes live it must pass the four-fifths rule for gender, age and education. A model that fails is never used." },
   { icon: MessageSquareText, title: "Employee feedback channel", text: "Rate the explanation, flag factors that seem wrong or unfair, and ask HR to correct your record with evidence." },
   { icon: FileCheck2, title: "Accountable records", text: "Every change to a record is kept: who made it, the old and new value, why, and the score before and after." },

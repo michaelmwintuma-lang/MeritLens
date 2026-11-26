@@ -268,6 +268,7 @@ class ThresholdPolicyOut(BaseModel):
 
 class ThresholdPolicyIn(BaseModel):
     threshold: float = Field(ge=0.01, le=100.0, description="Cut-off percentage (e.g. 25.0) or decimal (e.g. 0.25)")
+    reason: str = Field(min_length=3, max_length=500, description="Company promotion policy basis for this change")
 
 
 @router.get("/threshold", response_model=ThresholdPolicyOut)
@@ -302,9 +303,12 @@ def update_threshold_setting(body: ThresholdPolicyIn, db: Session = Depends(get_
     if not (0.01 <= val <= 0.99):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Threshold must be between 1% and 99%.")
 
+    reason = body.reason.strip()
+    if len(reason) < 3:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Please describe the company promotion policy behind this change.")
     policy = policy_mod.set_custom_threshold(db, val, user.full_name)
-    record(db, user, "threshold_changed", f"Set to {val * 100:.1f}%")
-    audit.append(db, "threshold_changed", user, "governance", policy.id, {"threshold": round(val, 4), "percent": round(val * 100, 1)})
+    record(db, user, "threshold_changed", f"Set to {val * 100:.1f}%: {reason}")
+    audit.append(db, "threshold_changed", user, "governance", policy.id, {"threshold": round(val, 4), "percent": round(val * 100, 1), "reason": reason})
     db.commit()
     return get_threshold_setting(db=db, _=user)
 

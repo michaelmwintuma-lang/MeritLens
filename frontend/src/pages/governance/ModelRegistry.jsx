@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Rocket, RotateCcw, ShieldAlert } from "lucide-react";
-import { governance } from "../../api";
+import { api, governance } from "../../api";
 import { useAuth } from "../../auth";
 import { useAction } from "../../useAction";
 import { useLoad } from "../../useLoad";
@@ -240,6 +240,8 @@ function ThresholdPolicyCard({ onChanged }) {
   const canEdit = user.role === "admin" || user.role === "hr";
   const [data, setData] = useState(null);
   const [value, setValue] = useState("");
+  const [reason, setReason] = useState("");
+  const [impact, setImpact] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, withSaving] = useAction();
@@ -258,6 +260,11 @@ function ThresholdPolicyCard({ onChanged }) {
     load();
   }, []);
 
+  useEffect(() => {
+    if (user.role !== "hr" && !(user.role === "admin" && user.can_view_employees)) return;
+    api("/promotion/employees").then(setImpact).catch(() => setImpact(null));
+  }, [user.role, user.can_view_employees]);
+
   async function handleSave(e) {
     e.preventDefault();
     setError("");
@@ -268,9 +275,10 @@ function ThresholdPolicyCard({ onChanged }) {
       return;
     }
     try {
-      const updated = await governance.setThreshold(numVal);
+      const updated = await governance.setThreshold(numVal, reason.trim());
       setData(updated);
       setValue(String(updated.percent));
+      setReason("");
       setSuccess(`Company threshold updated to ${updated.percent}%. Promotion recommendations now use this cut-off.`);
       if (onChanged) onChanged();
     } catch (err) {
@@ -297,7 +305,7 @@ function ThresholdPolicyCard({ onChanged }) {
   return (
     <Card
       title="Company promotion policy: decision threshold"
-      subtitle="Set the minimum readiness score required for the system to recommend an employee for promotion. Administrators can adjust this cut-off to reflect corporate selectivity or headcount preferences."
+      subtitle="Set the minimum readiness score required for a promotion recommendation, in line with your company’s promotion policy. The model score informs HR; it does not make the promotion decision."
     >
       <div className="section-gap">
         <dl className="rec-facts" style={{ marginBottom: "1rem" }}>
@@ -327,7 +335,7 @@ function ThresholdPolicyCard({ onChanged }) {
         {canEdit && (
           <form onSubmit={(e) => withSaving(() => handleSave(e))} className="inline-form" style={{ marginTop: "1rem" }}>
             <label className="field" style={{ minWidth: "220px" }}>
-              Cut-off percentage (%)
+              Company policy cut-off (%)
               <input
                 type="number"
                 min={1}
@@ -339,6 +347,11 @@ function ThresholdPolicyCard({ onChanged }) {
                 placeholder="e.g. 25.0"
               />
             </label>
+            <label className="field" style={{ minWidth: "260px" }}>
+              Company promotion policy basis
+              <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} required minLength={3} maxLength={500}
+                placeholder="e.g. minimum standard in the promotion framework" />
+            </label>
             <Button busy={saving} busyText="Saving…" look="primary">Save threshold</Button>
             {data.is_custom && (
               <Button type="button" look="secondary" busy={resetting} busyText="Resetting…" onClick={() => withResetting(handleReset)}>
@@ -346,6 +359,14 @@ function ThresholdPolicyCard({ onChanged }) {
               </Button>
             )}
           </form>
+        )}
+
+        {canEdit && impact && Number.isFinite(Number(value)) && Number(value) >= 1 && Number(value) <= 99 && (
+          <Callout style={{ marginTop: "1rem" }}>
+            Preview at {Number(value)}%: {impact.employees.filter((employee) => employee.score >= Number(value) / 100).length} of {impact.employees.length} employees would meet this cut-off
+            {impact.cycle ? ` in the current “${impact.cycle.name}” review cycle` : " using current scores"}.
+            {impact.cycle && <> This cycle keeps its saved {percent(impact.threshold)}% cut-off; the company policy applies to the next cycle.</>}
+          </Callout>
         )}
 
         {success && <Callout tone="success" style={{ marginTop: "1rem" }}>{success}</Callout>}
