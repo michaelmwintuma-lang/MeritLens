@@ -300,7 +300,20 @@ function ThresholdPolicyCard({ onChanged }) {
     }
   }
 
-  if (!data) return null;
+  if (!data) return (
+    <Card
+      title="Company promotion policy: decision threshold"
+      subtitle="The company cutoff guides recommendations; HR makes the promotion decision."
+    >
+      {error ? (
+        <Callout tone="error" title="Could not load the company threshold">
+          {error} Try reloading this page. If the problem continues, contact your system administrator.
+        </Callout>
+      ) : (
+        <Callout>Loading the company promotion threshold…</Callout>
+      )}
+    </Card>
+  );
 
   return (
     <Card
