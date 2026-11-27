@@ -58,9 +58,9 @@ function breadcrumb(menu, pathname, role) {
   return [...(parent ? find(parent) || [] : []), { label: detail[1] }];
 }
 
-function NavItem({ to, label, icon: Icon }) {
+function NavItem({ to, label, icon: Icon, showTooltip = false }) {
   return (
-    <NavLink to={to} end={to === "/"} className="nav-link" data-tip={label}>
+    <NavLink to={to} end={to === "/"} className="nav-link" data-tip={label} title={showTooltip ? label : undefined}>
       <Icon size={18} aria-hidden="true" /><span className="nav-label">{label}</span>
     </NavLink>
   );
@@ -88,9 +88,9 @@ function RailMenu({ menu }) {
   return menu.map((entry, i) => (entry.group
     ? <div key={entry.group} className="rail-group" role="group" aria-label={entry.group}>
         {i > 0 && <hr className="rail-divider" />}
-        {entry.items.map((item) => <NavItem key={item.to} {...item} />)}
+        {entry.items.map((item) => <NavItem key={item.to} {...item} showTooltip />)}
       </div>
-    : <NavItem key={entry.to} {...entry} />));
+    : <NavItem key={entry.to} {...entry} showTooltip />));
 }
 
 /** Your name and role in the top bar; opens a menu with your profile and signing out. */
@@ -163,7 +163,7 @@ export default function Layout() {
           </nav>
           {!phone && !tablet && (
             <div className="sidebar-foot">
-              <button type="button" className="nav-link" onClick={toggleRail} aria-label={rail ? "Expand the menu" : "Collapse the menu"} data-tip="Expand the menu">
+              <button type="button" className="nav-link" onClick={toggleRail} aria-label={rail ? "Expand the menu" : "Collapse the menu"} data-tip={rail ? "Expand the menu" : "Collapse the menu"} title={rail ? "Expand the menu" : "Collapse the menu"}>
                 {rail ? <ChevronsRight size={18} aria-hidden="true" /> : <ChevronsLeft size={18} aria-hidden="true" />}
                 <span className="nav-label">Collapse the menu</span>
               </button>
