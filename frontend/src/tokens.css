@@ -2,8 +2,7 @@
    light and dark themes. styles.css uses only these names.
 
    Colour families, never mixed:
-   - Interface: navy for primary actions and the sidebar, a deeper blue for links. Teal is a small highlight only
-     (the active menu marker, focus rings).
+   - Interface: Academic City red for primary actions and highlights, white surfaces, and slate text/navigation.
    - Data (the model's view): teal raises readiness, orange lowers it, grey for "not yet". These are never button
      or link colours, so "this helps your score" never looks like "tap this".
    - Status (system messages): green success, amber warning, red danger, blue info. Always shown with a word or an
@@ -35,25 +34,25 @@
 
 /* Light: the default, and whenever the computer asks for light */
 :root, [data-theme="light"] {
-  --bg: #f4f6f9;              /* the page */
+  --bg: #f8f8f8;              /* the page */
   --surface: #ffffff;         /* cards: surface-raised */
-  --surface-sunken: #eef1f5;  /* insets, table headers, quiet fills */
-  --border: #dfe4ea;
-  --border-strong: #7b8696;   /* form fields: 3:1 against white, so their edges are always visible */
-  --text: #17212e;
-  --text-muted: #526072;
-  --primary: #1e3a5f;         /* navy: the one main action */
-  --primary-hover: #0f2a44;
+  --surface-sunken: #f2f3f5;  /* insets, table headers, quiet fills */
+  --border: #e5e2e2;
+  --border-strong: #7b7475;   /* form fields: 3:1 against white, so their edges are always visible */
+  --text: #263746;
+  --text-muted: #526477;
+  --primary: #d83b36;         /* Academic City red: the main action */
+  --primary-hover: #b92f2b;
   --on-primary: #ffffff;
-  --link: #1d4f91;
-  --focus: #0b7a6e;           /* teal focus ring */
-  --highlight: #0b7a6e;       /* teal: active menu marker */
-  --selected: #e7eef8;        /* behind chosen rows and options */
+  --link: #c6322e;
+  --focus: #c6322e;           /* Academic City red focus ring */
+  --highlight: #d83b36;       /* red: active menu marker */
+  --selected: #fff0ef;        /* behind chosen rows and options */
 
   --success: #1e7038; --success-bg: #e6f4ea;
   --warning: #8a5300; --warning-bg: #fdf2dc;
   --danger: #b42318;  --danger-bg: #fdecea;
-  --info: #1d4f91;    --info-bg: #e7eef8;
+  --info: #3e607a;    --info-bg: #edf2f6;
 
   /* Data colours: the model's view only */
   --up: #0b7a6e;   --up-bg: #e3f3f1;     /* raises readiness */
@@ -62,11 +61,12 @@
   --track: #e3e8ee;
   /* Charts (dashboards): categorical slots in fixed order, validated for colour-vision deficiency on these surfaces;
      slot 1 is also the single-series colour. Values are always written beside the marks as well. */
-  --chart-1: #2a78d6; --chart-2: #eb6834; --chart-3: #1baf7a; --chart-4: #8a95a5;
+  --chart-1: #d83b36; --chart-2: #41647f; --chart-3: #1baf7a; --chart-4: #8a95a5;
 
-  /* The sidebar: navy in both themes */
-  --sidebar: #0f2a44; --sidebar-text: #c9d5e3; --sidebar-active: #1e4269; --sidebar-hover: #183856;
-  --sidebar-focus: #8fd8cc;
+  /* White navigation and slate text, like Academic City's clean academic site */
+  --sidebar: #ffffff; --sidebar-text: #43586b; --sidebar-brand-text: #263746; --sidebar-active: #fff0ef; --sidebar-hover: #f8f4f4;
+  --sidebar-focus: #d83b36;
+  --brand-deep: #3f596f;
 
   color-scheme: light;
 }
@@ -80,13 +80,13 @@
   --border-strong: #6c7a8c;
   --text: #e6ebf2;
   --text-muted: #9ba9ba;
-  --primary: #3a73b5;
-  --primary-hover: #2f62a0;
+  --primary: #c6322e;
+  --primary-hover: #a52825;
   --on-primary: #ffffff;
-  --link: #8dbbf2;
-  --focus: #3cc4b2;
-  --highlight: #3cc4b2;
-  --selected: #1a2c42;
+  --link: #ff8c86;
+  --focus: #ff817a;
+  --highlight: #ef625d;
+  --selected: #3b2425;
 
   --success: #6fd08f; --success-bg: #12301d;
   --warning: #f2bd5a; --warning-bg: #33260c;
@@ -97,10 +97,11 @@
   --down: #ff9a5c; --down-bg: #3a2312;
   --not-yet: #6c7a8c;
   --track: #223042;
-  --chart-1: #3987e5; --chart-2: #d95926; --chart-3: #199e70; --chart-4: #6c7a8c;
+  --chart-1: #ef625d; --chart-2: #8ea9bd; --chart-3: #199e70; --chart-4: #6c7a8c;
 
-  --sidebar: #08131f; --sidebar-text: #b7c4d4; --sidebar-active: #1c3553; --sidebar-hover: #12253a;
-  --sidebar-focus: #8fd8cc;
+  --sidebar: #141d27; --sidebar-text: #c7d0d9; --sidebar-brand-text: #ffffff; --sidebar-active: #3b2425; --sidebar-hover: #222e3a;
+  --sidebar-focus: #ff817a;
+  --brand-deep: #1a2937;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.55);

@@ -78,15 +78,15 @@ html { scroll-behavior: smooth; }
 .results dd { margin: var(--s-1) 0 0; color: var(--text-muted); }
 
 /* Closing band */
-.closing { margin-top: var(--s-6); padding: var(--s-12) var(--s-8); border-radius: var(--radius); background: #0f2a44; color: #ffffff; text-align: center; }
+.closing { margin-top: var(--s-6); padding: var(--s-12) var(--s-8); border-radius: var(--radius); background: var(--brand-deep); color: #ffffff; text-align: center; }
 .closing h2 { color: #ffffff; }
-.closing p { color: #c9d5e3; margin: 0; }
+.closing p { color: #d2dbe3; margin: 0; }
 .closing .intro-actions { justify-content: center; }
-.closing :focus-visible { outline-color: #8fd8cc; }
-.btn-on-dark { background: #ffffff; color: #0f2a44; }
-.btn-on-dark:hover { background: #e7eef8; }
-.btn-outline-dark { background: transparent; color: #ffffff; border-color: #c9d5e3; }
-.btn-outline-dark:hover { background: #1e4269; }
+.closing :focus-visible { outline-color: #ff9a95; }
+.btn-on-dark { background: #ffffff; color: var(--brand-deep); }
+.btn-on-dark:hover { background: #fff0ef; }
+.btn-outline-dark { background: transparent; color: #ffffff; border-color: #d2dbe3; }
+.btn-outline-dark:hover { background: #526b80; }
 
 @media (max-width: 960px) {
   .how-steps, .promise-grid { grid-template-columns: 1fr; }
