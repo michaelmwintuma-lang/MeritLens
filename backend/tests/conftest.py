@@ -22,6 +22,7 @@ os.environ["MODEL_REGISTRY_DIR"] = str(_models / "registry")
 os.environ["WARM_EXPLANATIONS"] = "0"  # no background LIME after every record edit in tests
 os.environ["SCHEDULER"] = "0"          # no timer: tests run email retries, reminders and digests directly
 os.environ["DEMO_PASSWORD"] = "demo1234"
+os.environ["EMAIL_CODE_ROLES"] = "none"  # MFA is exercised explicitly in test_email_codes.py
 os.environ["OUTBOX_DIR"] = os.path.join(_tmp, "outbox")   # welcome emails go to a temporary folder
 os.environ["SMTP_HOST"] = ""                              # and are never sent during tests
 os.environ["FEEDBACK_FILES_DIR"] = os.path.join(_tmp, "correction_evidence")

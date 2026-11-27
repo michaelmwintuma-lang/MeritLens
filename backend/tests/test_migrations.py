@@ -10,9 +10,9 @@ from tests.conftest import login
 
 
 def test_a_new_database_is_built_by_the_migrations_and_marked_up_to_date(client):
-    assert migrations.current_revision() == migrations.head_revision() == "0004_email_sign_in_codes"
+    assert migrations.current_revision() == migrations.head_revision() == "0005_company_threshold_policy"
     tables = set(inspect(engine).get_table_names())
-    assert {"users", "employees", "audit_events", "approvals", "alembic_version"} <= tables
+    assert {"users", "employees", "audit_events", "approvals", "threshold_policy", "alembic_version"} <= tables
 
 
 def test_a_database_from_before_migrations_keeps_its_data_and_gets_new_columns(client):

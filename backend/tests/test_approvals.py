@@ -75,7 +75,7 @@ def crossing_correction(client, monkeypatch):
     live = model()
     before, after = live.score(old), live.score(new)
     assert before != after
-    monkeypatch.setattr(live, "threshold", (before + after) / 2)
+    monkeypatch.setattr(type(live), "threshold", property(lambda _model: (before + after) / 2))
     return request
 
 

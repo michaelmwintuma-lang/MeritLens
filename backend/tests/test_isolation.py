@@ -6,7 +6,8 @@ Isolation: feedback never changes a prediction. Only HR confirming a record corr
    byte-for-byte identical. Then HR confirms a correction: the prediction must change, and the change must be
    logged.
 2. Static: no file in the promotion code imports, or even names, the feedback code and tables, or the
-   equality-monitoring data (gender, age band, education) kept for the fairness monitor.
+   equality-monitoring data (gender, age band, education) kept for the fairness monitor. The scalar company
+   threshold policy is permitted; it contains no employee or protected-group data.
 3. At run time: the prediction endpoints run no SQL that touches a feedback or equality-monitoring table.
 
 A held decision is stored in the neutral decision_holds table (app/core/holds.py), which the promotion code may read:
@@ -92,10 +93,10 @@ def test_feedback_never_changes_a_prediction_but_a_confirmed_correction_does(cli
 def test_the_promotion_code_never_imports_or_names_feedback():
     """
     A static check over every file in app/promotion: imports, table names and model names. Neither the feedback
-    code nor the governance code (which holds the equality-monitoring data) may be imported.
+    code nor the governance monitoring/models modules may be imported. The scalar threshold-policy service is allowed.
     """
     forbidden_names = FORBIDDEN_TABLES | {"ExplanationRating", "CorrectionRequest", "EqualityMonitoring", "DevelopmentGoal"}
-    forbidden_modules = ("app.feedback", "app.governance", "app.development")
+    forbidden_modules = ("app.feedback", "app.development", "app.governance.monitoring", "app.governance.models")
     for file in PROMOTION.glob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -118,7 +119,8 @@ def test_the_tables_checked_are_all_the_feedback_tables():
     def owned(module):
         return {obj.__tablename__ for obj in vars(module).values() if isinstance(obj, type) and "__tablename__" in vars(obj)}
     assert owned(feedback) == FEEDBACK_TABLES
-    assert owned(governance) - {"model_releases"} == PROTECTED_TABLES
+    assert owned(governance) - {"model_releases", "threshold_policy"} == PROTECTED_TABLES
+    assert "threshold_policy" in owned(governance)
     from app.development import models as development
     assert owned(development) == PLAN_TABLES
 
