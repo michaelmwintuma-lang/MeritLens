@@ -67,7 +67,7 @@ def wait_for(url: str, seconds: int = 90) -> None:
 
 def main() -> int:
     data = Path(tempfile.mkdtemp(prefix="meritlens-browser-"))
-    env = {**os.environ, "SKIP_ENV_FILE": "1", "SMTP_HOST": "",
+    env = {**os.environ, "SKIP_ENV_FILE": "1", "SMTP_HOST": "", "EMAIL_CODE_ROLES": "none",
            "DATABASE_URL": f"sqlite:///{(data / 'app.db').as_posix()}",
            "OUTBOX_DIR": str(data / "outbox"), "FEEDBACK_FILES_DIR": str(data / "correction_evidence"),
            "API_URL": f"http://127.0.0.1:{API_PORT}", "APP_URL": f"http://127.0.0.1:{WEB_PORT}"}
